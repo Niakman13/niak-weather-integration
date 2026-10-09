@@ -1,0 +1,101 @@
+"""The integration's settings: where every reading comes from.
+
+The keys are the same as in the card's YAML, so the settings of an existing card can be imported as they are.
+Display settings (format, sections, animations…) stay in the card.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, field, fields
+from typing import Any, Mapping
+
+ATMO_METRICS = ("air", "pm25", "pm10", "no2", "o3", "so2", "pollen", "grass", "ragweed", "mugwort", "alder", "birch", "olive",
+                "grass_concentration", "ragweed_concentration", "mugwort_concentration", "alder_concentration", "birch_concentration",
+                "olive_concentration")
+
+
+def atmo_key(metric: str, tomorrow: bool = False) -> str:
+    """The setting naming an Atmo France sensor: atmo_pm25_entity, atmo_pm25_tomorrow_entity…"""
+    return f"atmo_{metric}{'_tomorrow' if tomorrow else ''}_entity"
+
+
+ATMO_KEYS = tuple(atmo_key(m, t) for t in (False, True) for m in ATMO_METRICS)
+
+
+@dataclass(frozen=True)
+class LegacyPollen:
+    """A Polleninformation sensor of the older pollen source."""
+
+    entity_id: str
+    name: str = ""
+    icon: str = ""
+
+
+@dataclass(frozen=True)
+class Settings:
+    weather_entity: str
+    location: str | None = None
+    forecast_source: str | None = None
+    vigilance_entity: str | None = None
+    sun_entity: str | None = None
+    sun_elevation_entity: str | None = None
+    season_entity: str | None = None
+    # Station
+    station_model: str | None = None
+    station_device_id: str | None = None
+    station_history: bool = True
+    """Compute rain totals and the day's strongest gust from the Recorder when the station has no sensor for them."""
+    temperature_entity: str | None = None
+    humidity_entity: str | None = None
+    dew_point_entity: str | None = None
+    temperature_trend_entity: str | None = None
+    wind_speed_entity: str | None = None
+    wind_gust_entity: str | None = None
+    wind_bearing_entity: str | None = None
+    max_daily_gust_entity: str | None = None
+    rain_rate_entity: str | None = None
+    rain_total_entity: str | None = None
+    daily_rain_entity: str | None = None
+    rain_24h_entity: str | None = None
+    weekly_rain_entity: str | None = None
+    monthly_rain_entity: str | None = None
+    yearly_rain_entity: str | None = None
+    event_rain_entity: str | None = None
+    pressure_entity: str | None = None
+    solar_radiation_entity: str | None = None
+    uv_index_entity: str | None = None
+    illuminance_entity: str | None = None
+    # Air and pollens
+    atmo_area: str | None = None
+    pollen_source: str | None = None
+    """« atmo », « legacy » (Polleninformation) or « none »; unset means Atmo when an Atmo sensor is configured."""
+    atmo: Mapping[str, str] = field(default_factory=dict)
+    """Atmo France sensors, by setting key (atmo_pm25_entity…)."""
+    pollens: tuple[LegacyPollen, ...] = ()
+
+    @classmethod
+    def from_options(cls, options: Mapping[str, Any]) -> Settings:
+        """Settings from the integration's options (or a card's YAML): empty values count as unset, unknown keys are ignored."""
+        known = {f.name for f in fields(cls)} - {"atmo", "pollens"}
+        values: dict[str, Any] = {}
+        for key in known:
+            value = options.get(key)
+            if value not in (None, ""):
+                values[key] = value
+        values["atmo"] = {k: options[k] for k in ATMO_KEYS if options.get(k)}
+        values["pollens"] = tuple(LegacyPollen(str(p.get("id")), str(p.get("nom") or p.get("name") or ""), str(p.get("ico") or p.get("icon") or ""))
+                                  for p in options.get("pollens") or () if isinstance(p, Mapping) and p.get("id"))
+        if "weather_entity" not in values:
+            raise ValueError("weather_entity is required")
+        return cls(**values)
+
+    def entity_ids(self) -> set[str]:
+        """Every sensor the engine reads: a change of one of them means a new calculation."""
+        ids = {getattr(self, f.name) for f in fields(self) if f.name.endswith("_entity") and getattr(self, f.name)}
+        ids |= set(self.atmo.values()) | {p.entity_id for p in self.pollens}
+        ids.add(self.sun_entity or "sun.sun")
+        return ids
+
+    @property
+    def atmo_pollens(self) -> bool:
+        """Atmo France gives the pollens: the Polleninformation sensors are then left out."""
+        return self.pollen_source == "atmo" or (self.pollen_source is None and bool(self.atmo))
