@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import math
 import re
+from decimal import ROUND_HALF_UP, Decimal
 from enum import StrEnum
 from typing import Any
 
@@ -68,3 +69,12 @@ def fr(value: float | None, digits: int = 1) -> str:
     if value is None:
         return "—"
     return f"{round(value, digits):.{digits}f}".replace(".", ",")
+
+
+def french(value: float, digits: int = 1, minimum: int = 0) -> str:
+    """A number written as the browser writes it in French: at most `digits` decimals (at least `minimum`), rounded half away
+    from zero on its shortest decimal form (8.45 → 8,5), a narrow space between thousands. Never « -0 »."""
+    q = Decimal(repr(float(value))).quantize(Decimal(1).scaleb(-digits), rounding=ROUND_HALF_UP)
+    whole, _, decimals = f"{abs(q):f}".partition(".")
+    decimals = decimals.rstrip("0").ljust(minimum, "0")
+    return f"{'-' if q < 0 else ''}{int(whole):,}".replace(",", "\u202f") + (f",{decimals}" if decimals else "")

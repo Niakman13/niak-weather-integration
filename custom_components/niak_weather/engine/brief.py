@@ -8,7 +8,6 @@ import math
 import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from decimal import ROUND_HALF_UP, Decimal
 from typing import Any, Callable, Mapping, Sequence
 from zoneinfo import ZoneInfo
 
@@ -16,7 +15,7 @@ from . import atmo
 from .forecast import Day, Hour
 from .local import LocalWeather
 from .settings import Settings
-from .units import finite
+from .units import finite, french
 
 GROUPS = ("official", "now", "future", "environment")
 COLORS = ("61,155,233", "190,140,35", "230,125,45", "215,70,75")
@@ -52,12 +51,8 @@ class Brief:
 
 
 def number(value: float, digits: int = 1) -> str:
-    """French number, at most `digits` decimals, rounded half away from zero like the browser does."""
-    q = Decimal(value).quantize(Decimal(1).scaleb(-digits), rounding=ROUND_HALF_UP)
-    text = f"{q:f}"
-    if digits:
-        text = text.rstrip("0").rstrip(".")
-    return ("0" if text in ("-0", "") else text).replace(".", ",")
+    """French number, at most `digits` decimals, as the browser writes it."""
+    return french(value, digits)
 
 
 def _round_half_up(value: float) -> int:
