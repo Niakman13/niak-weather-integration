@@ -209,3 +209,29 @@ def test_does_not_confuse_millimetres_of_distance_with_rain() -> None:
 def test_fills_the_polleninformation_alternative() -> None:
     result = fill([State("sensor.polleninformation_city_grasses", "3")], {}, {}, {**BASE, "pollen_source": "legacy"}, "atmo")
     assert result["pollens"][0]["id"] == "sensor.polleninformation_city_grasses"
+
+
+def test_prefills_compatible_outdoor_measures_of_a_gw2000a() -> None:
+    every = states(State("sensor.gw2000a_outdoor_temperature", "12", {"device_class": "temperature", "unit_of_measurement": "°C"}),
+                   State("sensor.gw2000a_outdoor_humidity", "80", {"device_class": "humidity", "unit_of_measurement": "%"}),
+                   State("sensor.gw2000a_wind_speed", "5", {"device_class": "wind_speed", "unit_of_measurement": "km/h"}),
+                   State("sensor.gw2000a_rain_rate", "0", {"device_class": "precipitation_intensity", "unit_of_measurement": "mm/h"}),
+                   State("sensor.indoor_temperature", "23", {"device_class": "temperature", "unit_of_measurement": "°C"}),
+                   State("sensor.thermal_comfort_humidex", "13", {"device_class": "temperature", "unit_of_measurement": "°C"}),
+                   State("sensor.confort_ouvertures", "ok"))
+    found = fill(every, {}, {}, BASE, "station")
+    assert {k: found.get(k) for k in ("temperature_entity", "humidity_entity", "wind_speed_entity", "rain_rate_entity")} == {
+        "temperature_entity": "sensor.gw2000a_outdoor_temperature", "humidity_entity": "sensor.gw2000a_outdoor_humidity",
+        "wind_speed_entity": "sensor.gw2000a_wind_speed", "rain_rate_entity": "sensor.gw2000a_rain_rate"}
+
+
+def test_recognises_the_long_names_of_a_ws90_behind_zigbee2mqtt() -> None:
+    prefix = "sensor.station_meteo_ecowitt_ws90_powered_by_shelly_"
+    names = ["temperature", "humidity", "wind_speed", "gust_speed", "wind_direction", "rain_rate", "precipitations_24h", "pressure", "illuminance", "uv_index",
+             "humidex"]
+    every = [State(prefix + n, "1") for n in names]
+    found = fill(every, {prefix + n: {"platform": "zigbee2mqtt", "device_id": "ws90"} for n in names}, {}, BASE, "station")
+    expected = {"temperature_entity": "temperature", "humidity_entity": "humidity", "wind_speed_entity": "wind_speed", "wind_gust_entity": "gust_speed",
+                "wind_bearing_entity": "wind_direction", "rain_rate_entity": "rain_rate", "rain_24h_entity": "precipitations_24h",
+                "pressure_entity": "pressure", "illuminance_entity": "illuminance", "uv_index_entity": "uv_index"}
+    assert {k: found.get(k) for k in expected} == {k: prefix + v for k, v in expected.items()}

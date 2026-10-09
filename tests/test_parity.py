@@ -118,3 +118,27 @@ def test_does_not_bridge_an_unavailable_pressure_reference() -> None:
 
 def test_keeps_cumulative_counters_nested() -> None:
     assert rain_narrative(1, 1, 1) == "tout ce qui est tombé ce mois-ci est tombé aujourd’hui"
+
+
+def test_measured_rain_wins_over_the_area_forecast() -> None:
+    from engine.feel import Measures, verdict
+
+    v = verdict(Measures(temperature=18, rain_rate=5), "cloudy")
+    assert (v.condition, v.observed) == ("pouring", True)
+
+
+def test_finds_the_first_notable_rain_and_tells_a_shower_from_a_downpour() -> None:
+    from engine.feel import Alert, Measures, verdict
+    from engine.forecast import Hour
+
+    v = verdict(Measures(), "partlycloudy", [Hour(precipitation=0), Hour(precipitation=0.4)])
+    assert (v.next_rain_hours, v.next_rain_amount) == (1, 0.4)
+    assert verdict(Measures(rain_rate=1), "cloudy").alert is None
+    assert verdict(Measures(rain_rate=12), "cloudy").alert is Alert.DOWNPOUR
+
+
+def test_reads_numbers_without_turning_invalid_values_into_zero() -> None:
+    from engine.units import finite
+
+    assert finite("12.4") == 12.4
+    assert finite("unknown") is None and finite(None) is None and finite("") is None
