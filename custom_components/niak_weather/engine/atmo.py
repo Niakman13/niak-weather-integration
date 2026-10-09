@@ -200,13 +200,15 @@ def detect(states: Sequence[StateLike], registry: Mapping[str, Mapping[str, Any]
     weather = by_id.get(options.get("weather_entity") or "")
     desired = normal(options.get("location") or (weather.attributes.get("friendly_name") if weather else ""))
     matches = [g for g in groups if normal(g["label"]) == desired]
-    chosen = options.get("atmo_area") or (next(iter(selected)) if len(selected) == 1 else groups[0]["value"] if len(groups) == 1
-                                          else matches[0]["value"] if len(matches) == 1 else None)
+    # An empty zone or pollen source is a choice (« none »), not a missing value: only what is unset gets detected.
+    area = options.get("atmo_area")
+    chosen = area if area is not None else (next(iter(selected)) if len(selected) == 1 else groups[0]["value"] if len(groups) == 1
+                                            else matches[0]["value"] if len(matches) == 1 else None)
     if not chosen:
         return found
-    if not options.get("atmo_area"):
+    if area is None:
         found["atmo_area"] = chosen
-    if not options.get("pollen_source"):
+    if options.get("pollen_source") is None:
         found["pollen_source"] = "atmo"
     for key in ATMO_KEYS:
         if options.get(key) is not None:
