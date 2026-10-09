@@ -13,7 +13,7 @@
 Elle calcule ce qu’ils veulent dire : ressenti, alertes, pluie à venir, tendances, bulletin du jour.
 Elle donne le résultat à la [carte Niak Weather](https://github.com/Niakman13/niak-weather) et à vos automatisations.
 
-> **Version bêta (2.0.0b1).** À installer avec la carte Niak Weather 2.0 bêta.
+> **Version bêta (2.0.0b2).** À installer avec la carte Niak Weather 2.0 bêta.
 
 ## Ce qu’il faut
 
