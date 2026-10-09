@@ -15,12 +15,19 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN
 from .coordinator import NiakWeatherConfigEntry, NiakWeatherCoordinator, Snapshot
 from .engine.feel import Alert
+from .engine.moisture import humidex
 
 ALERTS = ["none", *(a.value for a in Alert)]
 
 
 def _feels(s: Snapshot) -> float | None:
     return s.local.feel.value if s.local.available else None
+
+
+def _humidex(s: Snapshot) -> float | None:
+    # The engine keeps the humidex only when it raises the feel; the sensor always gives it, like Thermal Comfort.
+    w = s.local
+    return round(humidex(w.temperature, w.dew_point), 1) if w.temperature is not None and w.dew_point is not None else None
 
 
 def _rain_24h(s: Snapshot) -> float | None:
@@ -62,7 +69,7 @@ SENSORS: tuple[NiakSensorDescription, ...] = (
         native_unit_of_measurement=UnitOfTemperature.CELSIUS, suggested_display_precision=1, value=lambda s: s.local.frost_point),
     NiakSensorDescription(
         key="humidex", translation_key="humidex", state_class=SensorStateClass.MEASUREMENT, suggested_display_precision=1,
-        value=lambda s: s.local.humidex),
+        value=lambda s: _humidex(s)),
     NiakSensorDescription(
         key="alert", translation_key="alert", device_class=SensorDeviceClass.ENUM, options=ALERTS,
         value=lambda s: s.local.alert.value if s.local.alert else "none", attributes=lambda s: {"level": s.local.level.value}),
