@@ -57,6 +57,18 @@ def ws_subscribe(hass: HomeAssistant, connection: websocket_api.ActiveConnection
         connection.send_message(websocket_api.event_message(msg["id"], {"version": VIEW_VERSION, "entryId": entry.entry_id, "title": entry.title,
                                                                         "view": snapshot.view}))
 
-    connection.subscriptions[msg["id"]] = coordinator.async_add_listener(send)
+    @callback
+    def stopped() -> None:
+        # The place restarts with new settings: the card subscribes again a moment later.
+        connection.send_message(websocket_api.event_message(msg["id"], {"version": VIEW_VERSION, "reload": True}))
+
+    remove_view, remove_stop = coordinator.async_add_listener(send), coordinator.async_add_stop_listener(stopped)
+
+    @callback
+    def unsubscribe() -> None:
+        remove_view()
+        remove_stop()
+
+    connection.subscriptions[msg["id"]] = unsubscribe
     connection.send_result(msg["id"])
     send()
