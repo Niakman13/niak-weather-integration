@@ -9,7 +9,7 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, Sen
 from homeassistant.const import UnitOfPrecipitationDepth, UnitOfPressure, UnitOfSpeed, UnitOfTemperature, UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
-from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
@@ -92,7 +92,7 @@ SENSORS: tuple[NiakSensorDescription, ...] = (
 )
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: NiakWeatherConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback) -> None:
+async def async_setup_entry(hass: HomeAssistant, entry: NiakWeatherConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     async_add_entities(NiakWeatherSensor(entry.runtime_data, description) for description in SENSORS)
 
 
