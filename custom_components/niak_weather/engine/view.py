@@ -192,6 +192,10 @@ class WeatherView:
     date_label: str
     provider: str
     forecast_source: str
+    weather_entity: str
+    """Opened when the forecast is tapped."""
+    station: bool
+    """A local thermometer: the feel is compared with it rather than with the bulletin."""
     now: CurrentWeather
     season: SeasonView
     alerts: tuple[alerts.AlertPoint, ...]
@@ -242,6 +246,7 @@ def build_view(get: Getter, settings: Settings, w: LocalWeather, brief: Brief | 
         location=settings.location or place_name(str(attributes.get("friendly_name") or "")),
         date_label=date_label[0].upper() + date_label[1:], provider=weather_source_label(get, settings),
         forecast_source=settings.forecast_source or ("Météo-France" if re.search("france", str(attributes.get("attribution")), re.IGNORECASE) else "Prévisions météo"),
+        weather_entity=settings.weather_entity, station=bool(settings.temperature_entity),
         now=current_weather(get, settings, w, trend), season=SeasonView(season, season.news, season.tip),
         alerts=tuple(shown), points=tuple(p for p in alerts.ticker_points(brief) if p.text not in {a.source for a in shown}), brief=brief,
         bulletin=build_bulletin(hours, now, zone), comfort=_comfort(get, settings, w), rain=rain, wind=wind, pressure=pressure,

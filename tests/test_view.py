@@ -125,6 +125,7 @@ def test_sends_plain_json_with_camel_case_keys_and_no_unknown_values() -> None:
     data = json.loads(json.dumps(to_json(v), allow_nan=False))
     assert {"location", "dateLabel", "forecastSource", "now", "season", "alerts", "points", "extras", "hours", "days", "air"} <= set(data)
     assert data["now"]["temperatureSource"] == "Météo-France" and "conditionEntity" in data["now"]
+    assert (data["weatherEntity"], data["station"]) == ("weather.home", False)
     assert data["season"]["info"]["season"] == "autumn" and data["season"]["tip"].startswith("Automne")
     # Unknown values are left out, so the card reads them as undefined, never as null.
     assert "trend" not in data["now"] and "rateEntity" not in data["rain"]
