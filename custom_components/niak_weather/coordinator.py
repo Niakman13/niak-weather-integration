@@ -22,13 +22,14 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .const import DEBOUNCE_SECONDS, DOMAIN, FORECAST_INTERVAL, FORECAST_RETRY, HISTORY_INTERVAL, LOGGER, RAIN_INTERVAL, TICK
-from .engine.brief import Brief, build_brief
+from .engine.brief import Brief
+from .engine.compute import compute
 from .engine.forecast import Day, Hour, Units, parse_days, parse_hours
-from .engine.local import LocalWeather, build_local
+from .engine.local import LocalWeather
 from .engine.settings import Settings
-from .engine.station import Derived, Statistic, derive_station, midnight
+from .engine.station import Derived, Statistic, midnight
 from .engine.trends import Change
-from .engine.view import build_view, to_json
+from .engine.view import to_json
 
 RAIN_UNITS = ("mm", "in", "inch")
 FORECAST_KINDS = (("daily", 1), ("hourly", 2))
@@ -102,16 +103,11 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         return self._compute()
 
     def _compute(self) -> Snapshot:
-        hass, s = self.hass, self.settings
-        now, zone, get = dt_util.now(), ZoneInfo(hass.config.time_zone), hass.states.get
-        # The engine reads the next hours, first one first: an hour already over is no longer « next ».
-        upcoming = [h for h in self.hours if h.time is None or h.time.timestamp() > now.timestamp() - 3600][:18]
-        local = build_local(get, s, upcoming, self.history, now, zone)
-        derived = derive_station(get, s, self.statistics, self.statistics_unit, {**self.history, **self.rain_history}, now, zone) if s.station_history else None
-        brief = build_brief(local, s, get, self.hours, self.days, now, zone, self.platforms)
-        view = build_view(get, s, local, brief, self.hours, self.days, self.history, self.rain_history, derived, now, zone,
-                          hass.config.latitude, hass.config.elevation or 0)
-        return Snapshot(local, brief, derived, to_json(view), now)
+        hass = self.hass
+        now = dt_util.now()
+        result = compute(hass.states.get, self.settings, self.hours, self.days, self.history, self.rain_history, self.statistics, self.statistics_unit,
+                         now, ZoneInfo(hass.config.time_zone), hass.config.latitude, hass.config.elevation or 0, self.platforms)
+        return Snapshot(result.local, result.brief, result.derived, to_json(result.view), now)
 
     # ---- Sources ----
 
