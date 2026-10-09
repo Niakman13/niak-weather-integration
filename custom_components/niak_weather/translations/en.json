@@ -1,0 +1,275 @@
+{
+  "config": {
+    "abort": {
+      "no_weather": "No weather source found. Add a weather integration first (Météo-France for instance)."
+    },
+    "step": {
+      "user": {
+        "title": "Niak Weather",
+        "description": "Niak Weather cards are already on your dashboards. You can start from their settings.",
+        "menu_options": {
+          "import_card": "Start from a card’s settings",
+          "weather": "Set everything up"
+        }
+      },
+      "import_card": {
+        "title": "Start from a card",
+        "description": "Choose the card. Its settings are shown at each step, to check them.",
+        "data": {
+          "card": "Card"
+        }
+      },
+      "weather": {
+        "title": "Weather",
+        "description": "The forecast source and the name of the place.",
+        "data": {
+          "weather_entity": "Weather forecast",
+          "location": "Place name",
+          "vigilance_entity": "Météo-France weather alert",
+          "season_entity": "Season"
+        },
+        "data_description": {
+          "weather_entity": "Météo-France preferably.",
+          "location": "Shown at the top of the card.",
+          "vigilance_entity": "Optional.",
+          "season_entity": "Optional. Without a sensor, the season follows the date."
+        },
+        "sections": {
+          "advanced": {
+            "name": "Advanced settings",
+            "data": {
+              "sun_entity": "Sun",
+              "sun_elevation_entity": "Sun elevation",
+              "forecast_source": "Name of the forecast source"
+            }
+          }
+        }
+      },
+      "station": {
+        "title": "Weather station",
+        "description": "Station recognised: {profile}. Sensors found: {recognized}.",
+        "data": {
+          "station_model": "Model",
+          "station_device_id": "Device",
+          "station_history": "Compute from history"
+        },
+        "data_description": {
+          "station_history": "Rain totals, temperature trend and the day’s strongest gust, when the station does not provide them."
+        }
+      },
+      "station_sensors": {
+        "title": "Station sensors",
+        "description": "Check each sensor. Leave empty what the station does not measure.",
+        "sections": {
+          "station_temperature": {
+            "name": "Temperature and humidity",
+            "data": {
+              "temperature_entity": "Outdoor temperature",
+              "humidity_entity": "Outdoor humidity"
+            }
+          },
+          "station_rain": {
+            "name": "Rain",
+            "data": {
+              "rain_rate_entity": "Rain rate",
+              "rain_total_entity": "Total rain counter",
+              "daily_rain_entity": "Rain since midnight",
+              "rain_24h_entity": "Rain over 24 h",
+              "weekly_rain_entity": "Rain this week",
+              "monthly_rain_entity": "Rain this month",
+              "yearly_rain_entity": "Rain this year",
+              "event_rain_entity": "Rain this event"
+            }
+          },
+          "station_wind": {
+            "name": "Wind",
+            "data": {
+              "wind_speed_entity": "Average wind",
+              "wind_gust_entity": "Gusts",
+              "wind_bearing_entity": "Wind direction",
+              "max_daily_gust_entity": "Strongest gust today"
+            }
+          },
+          "station_sun": {
+            "name": "Sun",
+            "data": {
+              "illuminance_entity": "Illuminance",
+              "uv_index_entity": "UV index",
+              "solar_radiation_entity": "Solar radiation"
+            }
+          },
+          "station_specific": {
+            "name": "Other measures",
+            "data": {
+              "pressure_entity": "Pressure",
+              "dew_point_entity": "Dew point",
+              "temperature_trend_entity": "Temperature trend"
+            }
+          }
+        }
+      },
+      "air": {
+        "title": "Air quality and pollen",
+        "description": "Atmo France data for your town.",
+        "data": {
+          "atmo_area": "Atmo France area",
+          "pollen_source": "Pollen"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Niak Weather",
+        "menu_options": {
+          "weather": "Weather",
+          "station": "Weather station",
+          "air": "Air quality and pollen"
+        }
+      },
+      "weather": {
+        "title": "Weather",
+        "description": "The forecast source and the name of the place.",
+        "data": {
+          "weather_entity": "Weather forecast",
+          "location": "Place name",
+          "vigilance_entity": "Météo-France weather alert",
+          "season_entity": "Season"
+        },
+        "data_description": {
+          "weather_entity": "Météo-France preferably.",
+          "location": "Shown at the top of the card.",
+          "vigilance_entity": "Optional.",
+          "season_entity": "Optional. Without a sensor, the season follows the date."
+        },
+        "sections": {
+          "advanced": {
+            "name": "Advanced settings",
+            "data": {
+              "sun_entity": "Sun",
+              "sun_elevation_entity": "Sun elevation",
+              "forecast_source": "Name of the forecast source"
+            }
+          }
+        }
+      },
+      "station": {
+        "title": "Weather station",
+        "description": "Station recognised: {profile}. Sensors found: {recognized}.",
+        "data": {
+          "station_model": "Model",
+          "station_device_id": "Device",
+          "station_history": "Compute from history"
+        },
+        "data_description": {
+          "station_history": "Rain totals, temperature trend and the day’s strongest gust, when the station does not provide them."
+        }
+      },
+      "station_sensors": {
+        "title": "Station sensors",
+        "description": "Check each sensor. Leave empty what the station does not measure.",
+        "sections": {
+          "station_temperature": {
+            "name": "Temperature and humidity",
+            "data": {
+              "temperature_entity": "Outdoor temperature",
+              "humidity_entity": "Outdoor humidity"
+            }
+          },
+          "station_rain": {
+            "name": "Rain",
+            "data": {
+              "rain_rate_entity": "Rain rate",
+              "rain_total_entity": "Total rain counter",
+              "daily_rain_entity": "Rain since midnight",
+              "rain_24h_entity": "Rain over 24 h",
+              "weekly_rain_entity": "Rain this week",
+              "monthly_rain_entity": "Rain this month",
+              "yearly_rain_entity": "Rain this year",
+              "event_rain_entity": "Rain this event"
+            }
+          },
+          "station_wind": {
+            "name": "Wind",
+            "data": {
+              "wind_speed_entity": "Average wind",
+              "wind_gust_entity": "Gusts",
+              "wind_bearing_entity": "Wind direction",
+              "max_daily_gust_entity": "Strongest gust today"
+            }
+          },
+          "station_sun": {
+            "name": "Sun",
+            "data": {
+              "illuminance_entity": "Illuminance",
+              "uv_index_entity": "UV index",
+              "solar_radiation_entity": "Solar radiation"
+            }
+          },
+          "station_specific": {
+            "name": "Other measures",
+            "data": {
+              "pressure_entity": "Pressure",
+              "dew_point_entity": "Dew point",
+              "temperature_trend_entity": "Temperature trend"
+            }
+          }
+        }
+      },
+      "air": {
+        "title": "Air quality and pollen",
+        "description": "Atmo France data for your town.",
+        "data": {
+          "atmo_area": "Atmo France area",
+          "pollen_source": "Pollen"
+        }
+      }
+    }
+  },
+  "selector": {
+    "station_model": {
+      "options": {
+        "gw2000a": "Ecowitt GW2000A",
+        "ws90": "Shelly / Ecowitt WS90 (Zigbee2MQTT)",
+        "manual": "Other station",
+        "none": "No station"
+      }
+    },
+    "pollen_source": {
+      "options": {
+        "atmo": "Atmo France",
+        "legacy": "Polleninformation",
+        "none": "No pollen"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "feels_like": { "name": "Feels like" },
+      "dew_point": { "name": "Dew point" },
+      "frost_point": { "name": "Frost point" },
+      "humidex": { "name": "Humidex" },
+      "alert": {
+        "name": "Station alert",
+        "state": {
+          "none": "None",
+          "thunderstorm": "Thunderstorm",
+          "downpour": "Downpour",
+          "gusts": "Gusts",
+          "heatwave": "Heatwave",
+          "frost": "Frost",
+          "heat": "Heat",
+          "cold": "Cold",
+          "uv": "UV"
+        }
+      },
+      "brief": { "name": "In brief" },
+      "next_rain": { "name": "Rain in" },
+      "pressure_trend": { "name": "Pressure trend" },
+      "rain_24h": { "name": "Rain over 24 h" },
+      "max_gust_today": { "name": "Strongest gust today" },
+      "temperature_trend": { "name": "Temperature trend" }
+    }
+  }
+}
