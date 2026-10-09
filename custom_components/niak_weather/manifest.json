@@ -1,0 +1,14 @@
+{
+  "domain": "niak_weather",
+  "name": "Niak Weather",
+  "after_dependencies": ["lovelace"],
+  "codeowners": ["@Niakman13"],
+  "config_flow": true,
+  "dependencies": ["recorder", "websocket_api"],
+  "documentation": "https://github.com/Niakman13/niak-weather-integration",
+  "integration_type": "service",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/Niakman13/niak-weather-integration/issues",
+  "requirements": [],
+  "version": "2.0.0b1"
+}

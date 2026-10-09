@@ -1,0 +1,275 @@
+{
+  "config": {
+    "abort": {
+      "no_weather": "Aucune source météo trouvée. Ajoutez d’abord une intégration météo (Météo-France par exemple)."
+    },
+    "step": {
+      "user": {
+        "title": "Niak Weather",
+        "description": "Des cartes Niak Weather sont déjà sur vos tableaux de bord. Vous pouvez reprendre leurs réglages.",
+        "menu_options": {
+          "import_card": "Reprendre les réglages d’une carte",
+          "weather": "Tout configurer"
+        }
+      },
+      "import_card": {
+        "title": "Reprendre une carte",
+        "description": "Choisissez la carte. Ses réglages seront affichés à chaque étape, pour vérification.",
+        "data": {
+          "card": "Carte"
+        }
+      },
+      "weather": {
+        "title": "Météo",
+        "description": "La source des prévisions et le nom du lieu.",
+        "data": {
+          "weather_entity": "Prévisions météo",
+          "location": "Nom du lieu",
+          "vigilance_entity": "Vigilance Météo-France",
+          "season_entity": "Saison"
+        },
+        "data_description": {
+          "weather_entity": "Météo-France de préférence.",
+          "location": "Affiché en haut de la carte.",
+          "vigilance_entity": "Facultatif.",
+          "season_entity": "Facultatif. Sans capteur, la saison suit la date."
+        },
+        "sections": {
+          "advanced": {
+            "name": "Réglages avancés",
+            "data": {
+              "sun_entity": "Soleil",
+              "sun_elevation_entity": "Hauteur du soleil",
+              "forecast_source": "Nom de la source des prévisions"
+            }
+          }
+        }
+      },
+      "station": {
+        "title": "Station météo",
+        "description": "Station reconnue : {profile}. Capteurs trouvés : {recognized}.",
+        "data": {
+          "station_model": "Modèle",
+          "station_device_id": "Appareil",
+          "station_history": "Calculer depuis l’historique"
+        },
+        "data_description": {
+          "station_history": "Cumuls de pluie, tendance de la température et rafale du jour, quand la station ne les donne pas."
+        }
+      },
+      "station_sensors": {
+        "title": "Capteurs de la station",
+        "description": "Vérifiez chaque capteur. Laissez vide ce que la station ne mesure pas.",
+        "sections": {
+          "station_temperature": {
+            "name": "Température et humidité",
+            "data": {
+              "temperature_entity": "Température extérieure",
+              "humidity_entity": "Humidité extérieure"
+            }
+          },
+          "station_rain": {
+            "name": "Pluie",
+            "data": {
+              "rain_rate_entity": "Intensité de la pluie",
+              "rain_total_entity": "Compteur de pluie total",
+              "daily_rain_entity": "Pluie depuis minuit",
+              "rain_24h_entity": "Pluie sur 24 h",
+              "weekly_rain_entity": "Pluie de la semaine",
+              "monthly_rain_entity": "Pluie du mois",
+              "yearly_rain_entity": "Pluie de l’année",
+              "event_rain_entity": "Pluie de l’épisode"
+            }
+          },
+          "station_wind": {
+            "name": "Vent",
+            "data": {
+              "wind_speed_entity": "Vent moyen",
+              "wind_gust_entity": "Rafales",
+              "wind_bearing_entity": "Direction du vent",
+              "max_daily_gust_entity": "Rafale maximale du jour"
+            }
+          },
+          "station_sun": {
+            "name": "Soleil",
+            "data": {
+              "illuminance_entity": "Luminosité",
+              "uv_index_entity": "Indice UV",
+              "solar_radiation_entity": "Rayonnement solaire"
+            }
+          },
+          "station_specific": {
+            "name": "Autres mesures",
+            "data": {
+              "pressure_entity": "Pression",
+              "dew_point_entity": "Point de rosée",
+              "temperature_trend_entity": "Tendance de la température"
+            }
+          }
+        }
+      },
+      "air": {
+        "title": "Qualité de l’air et pollens",
+        "description": "Les données Atmo France de votre commune.",
+        "data": {
+          "atmo_area": "Zone Atmo France",
+          "pollen_source": "Pollens"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Niak Weather",
+        "menu_options": {
+          "weather": "Météo",
+          "station": "Station météo",
+          "air": "Qualité de l’air et pollens"
+        }
+      },
+      "weather": {
+        "title": "Météo",
+        "description": "La source des prévisions et le nom du lieu.",
+        "data": {
+          "weather_entity": "Prévisions météo",
+          "location": "Nom du lieu",
+          "vigilance_entity": "Vigilance Météo-France",
+          "season_entity": "Saison"
+        },
+        "data_description": {
+          "weather_entity": "Météo-France de préférence.",
+          "location": "Affiché en haut de la carte.",
+          "vigilance_entity": "Facultatif.",
+          "season_entity": "Facultatif. Sans capteur, la saison suit la date."
+        },
+        "sections": {
+          "advanced": {
+            "name": "Réglages avancés",
+            "data": {
+              "sun_entity": "Soleil",
+              "sun_elevation_entity": "Hauteur du soleil",
+              "forecast_source": "Nom de la source des prévisions"
+            }
+          }
+        }
+      },
+      "station": {
+        "title": "Station météo",
+        "description": "Station reconnue : {profile}. Capteurs trouvés : {recognized}.",
+        "data": {
+          "station_model": "Modèle",
+          "station_device_id": "Appareil",
+          "station_history": "Calculer depuis l’historique"
+        },
+        "data_description": {
+          "station_history": "Cumuls de pluie, tendance de la température et rafale du jour, quand la station ne les donne pas."
+        }
+      },
+      "station_sensors": {
+        "title": "Capteurs de la station",
+        "description": "Vérifiez chaque capteur. Laissez vide ce que la station ne mesure pas.",
+        "sections": {
+          "station_temperature": {
+            "name": "Température et humidité",
+            "data": {
+              "temperature_entity": "Température extérieure",
+              "humidity_entity": "Humidité extérieure"
+            }
+          },
+          "station_rain": {
+            "name": "Pluie",
+            "data": {
+              "rain_rate_entity": "Intensité de la pluie",
+              "rain_total_entity": "Compteur de pluie total",
+              "daily_rain_entity": "Pluie depuis minuit",
+              "rain_24h_entity": "Pluie sur 24 h",
+              "weekly_rain_entity": "Pluie de la semaine",
+              "monthly_rain_entity": "Pluie du mois",
+              "yearly_rain_entity": "Pluie de l’année",
+              "event_rain_entity": "Pluie de l’épisode"
+            }
+          },
+          "station_wind": {
+            "name": "Vent",
+            "data": {
+              "wind_speed_entity": "Vent moyen",
+              "wind_gust_entity": "Rafales",
+              "wind_bearing_entity": "Direction du vent",
+              "max_daily_gust_entity": "Rafale maximale du jour"
+            }
+          },
+          "station_sun": {
+            "name": "Soleil",
+            "data": {
+              "illuminance_entity": "Luminosité",
+              "uv_index_entity": "Indice UV",
+              "solar_radiation_entity": "Rayonnement solaire"
+            }
+          },
+          "station_specific": {
+            "name": "Autres mesures",
+            "data": {
+              "pressure_entity": "Pression",
+              "dew_point_entity": "Point de rosée",
+              "temperature_trend_entity": "Tendance de la température"
+            }
+          }
+        }
+      },
+      "air": {
+        "title": "Qualité de l’air et pollens",
+        "description": "Les données Atmo France de votre commune.",
+        "data": {
+          "atmo_area": "Zone Atmo France",
+          "pollen_source": "Pollens"
+        }
+      }
+    }
+  },
+  "selector": {
+    "station_model": {
+      "options": {
+        "gw2000a": "Ecowitt GW2000A",
+        "ws90": "Shelly / Ecowitt WS90 (Zigbee2MQTT)",
+        "manual": "Autre station",
+        "none": "Pas de station"
+      }
+    },
+    "pollen_source": {
+      "options": {
+        "atmo": "Atmo France",
+        "legacy": "Polleninformation",
+        "none": "Pas de pollens"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "feels_like": { "name": "Ressenti" },
+      "dew_point": { "name": "Point de rosée" },
+      "frost_point": { "name": "Point de givre" },
+      "humidex": { "name": "Humidex" },
+      "alert": {
+        "name": "Alerte de la station",
+        "state": {
+          "none": "Aucune",
+          "thunderstorm": "Orage",
+          "downpour": "Forte pluie",
+          "gusts": "Rafales",
+          "heatwave": "Canicule",
+          "frost": "Gel",
+          "heat": "Chaleur",
+          "cold": "Froid",
+          "uv": "UV"
+        }
+      },
+      "brief": { "name": "En bref" },
+      "next_rain": { "name": "Pluie dans" },
+      "pressure_trend": { "name": "Tendance de la pression" },
+      "rain_24h": { "name": "Pluie sur 24 h" },
+      "max_gust_today": { "name": "Rafale maximale du jour" },
+      "temperature_trend": { "name": "Tendance de la température" }
+    }
+  }
+}
