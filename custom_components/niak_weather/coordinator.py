@@ -13,7 +13,8 @@ from zoneinfo import ZoneInfo
 
 from homeassistant.components.recorder import get_instance, history, statistics
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import Event, EventStateChangedData, HomeAssistant, callback
+from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, STATE_UNAVAILABLE, STATE_UNKNOWN
+from homeassistant.core import CoreState, Event, EventStateChangedData, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.debounce import Debouncer
@@ -65,23 +66,63 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         self.statistics_unit: str | None = None
         self.platforms: dict[str, str] = {}
         self._cancel_retry: Callable[[], None] | None = None
+        self._stop_listeners: set[Callable[[], None]] = set()
+        self._retries = 0
+        self._unlisten_started: Callable[[], None] | None = None
 
     async def async_start(self) -> None:
         """First fetches, then listen to the sensors and keep each source fresh."""
         registry = er.async_get(self.hass)
         ids = self.settings.entity_ids()
         self.platforms = {e.entity_id: e.platform for e in registry.entities.values() if e.entity_id in ids}
-        await asyncio.gather(self._load_forecasts(), self._load_history(), self._load_rain())
         entry = self.config_entry
+        # Listen first: a weather service that starts while the first fetches run is caught at once.
         entry.async_on_unload(async_track_state_change_event(self.hass, sorted(ids), self._on_state_change))
+        await asyncio.gather(self._load_forecasts(), self._load_history(), self._load_rain())
         for interval, load in ((FORECAST_INTERVAL, self._load_forecasts), (HISTORY_INTERVAL, self._load_history), (RAIN_INTERVAL, self._load_rain)):
             entry.async_on_unload(async_track_time_interval(self.hass, self._in_background(load), interval))
         entry.async_on_unload(self._cancel_forecast_retry)
+        entry.async_on_unload(self._stopped)
+        if self.hass.state is not CoreState.running:
+            # Many weather services only compute their forecast once Home Assistant has started: ask again then.
+            self._unlisten_started = self.hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, self._on_started)
+            entry.async_on_unload(self._stop_listening_started)
         await self.async_config_entry_first_refresh()
 
     @callback
+    def _on_started(self, _: Event) -> None:
+        self._unlisten_started = None
+        self._cancel_forecast_retry()
+        self._in_background(self._load_forecasts)(dt_util.utcnow())
+
+    @callback
+    def _stop_listening_started(self) -> None:
+        # A listener that already fired is gone: removing it again would log an error.
+        if self._unlisten_started:
+            self._unlisten_started()
+            self._unlisten_started = None
+
+    @callback
+    def async_add_stop_listener(self, listener: Callable[[], None]) -> Callable[[], None]:
+        """Called when this place stops (new settings, removal): a card can then subscribe again."""
+        self._stop_listeners.add(listener)
+        return lambda: self._stop_listeners.discard(listener)
+
+    @callback
+    def _stopped(self) -> None:
+        for listener in list(self._stop_listeners):
+            listener()
+        self._stop_listeners.clear()
+
+    @callback
     def _on_state_change(self, event: Event[EventStateChangedData]) -> None:
-        self.config_entry.async_create_task(self.hass, self.async_request_refresh())
+        data = event.data
+        if data["entity_id"] == self.settings.weather_entity and _ready(data["new_state"]) and not _ready(data["old_state"]):
+            # The weather service has just started (or is back): its forecast is fetched now, not at the next retry.
+            self._cancel_forecast_retry()
+            self.config_entry.async_create_background_task(self.hass, self._load_then_refresh(self._load_forecasts), f"{DOMAIN} forecasts")
+        if self.data is not None:
+            self.config_entry.async_create_task(self.hass, self.async_request_refresh())
 
     def _in_background(self, load: Callable[[], Coroutine[Any, Any, None]]) -> Callable[[datetime], None]:
         @callback
@@ -115,8 +156,8 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         """Hourly and daily forecasts, in the weather entity's units. A failure is retried a minute later, never shown as « no rain »."""
         entity_id = self.settings.weather_entity
         state = self.hass.states.get(entity_id)
-        if state is None:
-            # The weather service has not started yet.
+        if not _ready(state):
+            # The weather service has not started yet: Home Assistant may show a placeholder that answers with an empty forecast.
             self._schedule_forecast_retry()
             return
         features = int(state.attributes.get("supported_features") or 0)
@@ -133,7 +174,10 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
                 LOGGER.debug("No %s forecast from %s: %s", kind, entity_id, err)
                 failed = True
                 return []
-            return list(((response or {}).get(entity_id) or {}).get("forecast") or [])
+            rows = list(((response or {}).get(entity_id) or {}).get("forecast") or [])
+            # A service offering this forecast that answers with nothing is not ready yet: ask again shortly.
+            failed = failed or not rows
+            return rows
 
         daily, hourly = await asyncio.gather(*(fetch(kind, bit) for kind, bit in FORECAST_KINDS))
         attributes = state.attributes
@@ -146,11 +190,16 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         self._cancel_forecast_retry()
         if failed:
             self._schedule_forecast_retry()
+        else:
+            self._retries = 0
 
     @callback
     def _schedule_forecast_retry(self) -> None:
+        # Soon after a start (10 s, 20 s, 40 s), then every minute while the service stays silent.
+        delay = min(FORECAST_RETRY, timedelta(seconds=10 * 2 ** self._retries))
+        self._retries += 1
         self._cancel_forecast_retry()
-        self._cancel_retry = async_call_later(self.hass, FORECAST_RETRY, self._in_background(self._retry_forecasts))
+        self._cancel_retry = async_call_later(self.hass, delay, self._in_background(self._retry_forecasts))
 
     async def _retry_forecasts(self) -> None:
         self._cancel_retry = None
@@ -223,6 +272,10 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
                       key=lambda r: r.end - r.start, reverse=True)
         # One row per boundary: where a day and an hour end together, the hour wins.
         return sorted({r.end: r for r in rows}.values(), key=lambda r: r.end), unit
+
+
+def _ready(state: Any) -> bool:
+    return state is not None and state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN)
 
 
 def _seconds(value: Any) -> float:
