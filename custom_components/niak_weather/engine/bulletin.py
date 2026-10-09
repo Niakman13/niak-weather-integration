@@ -162,51 +162,246 @@ def build_bulletin(hours: Sequence[Hour], now: datetime, zone: ZoneInfo) -> Bull
                               icon=condition_icon(condition, night), text=". ".join(bits) + ".", phrase=main,
                               early=early if evolves else condition, late=late if evolves else condition, night=night,
                               during=prefix + slot.during, start=prefix + slot.start, tmin=tmin, tmax=tmax, rain=rain, wind=wind, gust=gust, bearing=bearing))
-    return Bulletin(summary=summarise(periods), periods=tuple(periods))
+    return Bulletin(summary=narrate(hours, now, zone), periods=tuple(periods))
 
 
-def summarise(periods: Sequence[Period]) -> str:
-    """One readable paragraph: the sky as a sequence of states over time, then temperatures, rain and notable wind."""
-    runs: list[dict] = []
+# The summary reads like a forecaster's: the rest of the day in at most two parts (« ce soir et cette nuit », « demain »),
+# each saying what matters first (rain and its hours, then how the sky changes, then the temperature worth knowing and a
+# notable wind), the day named once.
 
-    def push(condition: str, when: str, night: bool) -> None:
-        if runs and runs[-1]["condition"] == condition:
-            runs[-1]["when"].append(when)
-            runs[-1]["night"] = runs[-1]["night"] or night
-            runs[-1]["day"] = runs[-1]["day"] or not night
+# Sky families, from the clearest. Rain, storms and snow are told by their hours, not by the sky.
+SKY = {"sunny": 0, "clear-night": 0, "windy": 0, "partlycloudy": 1, "cloudy": 2, "windy-variant": 2, "fog": 3}
+STEADY_DAY = ("grand soleil", "soleil et nuages", "ciel couvert", "brouillard")
+STEADY_NIGHT = ("ciel dégagé", "quelques nuages", "ciel couvert", "brouillard")
+SHORT_DAY = ("soleil", "quelques nuages", "ciel gris", "brouillard")
+WEEKDAYS = ("Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche")
+
+
+@dataclass(frozen=True)
+class _Moment:
+    hour: int
+    """Local hour."""
+    sky: int | None
+    wet: bool
+    kind: str
+    """« orages », « neige », « pluie » for a wet hour."""
+    rain: float
+    temperature: float | None
+    wind: float | None
+    gust: float | None
+    bearing: float | None
+
+
+def _moment(h: Hour, zone: ZoneInfo) -> _Moment:
+    condition = h.condition.replace("_", "-")
+    rain = max(0.0, h.precipitation or 0)
+    kind = ("orages" if condition in ("lightning", "lightning-rainy", "hail") else "neige" if condition in ("snowy", "snowy-rainy")
+            else "pluie")
+    wet = rain >= 0.1 or _rainy(condition) or condition in ("lightning", "lightning-rainy", "snowy")
+    return _Moment(hour=h.time.astimezone(zone).hour if h.time else 0, sky=SKY.get(condition), wet=wet, kind=kind, rain=rain,
+                   temperature=h.temperature, wind=h.wind_speed, gust=h.wind_gust if h.wind_gust and h.wind_gust > 0 else None,
+                   bearing=h.wind_bearing)
+
+
+def _when(hour: int) -> str:
+    return ("après minuit" if hour < 3 else "en fin de nuit" if hour < 6 else "au lever du jour" if hour < 8 else "en matinée" if hour < 11
+            else "vers midi" if hour < 13 else "en début d’après-midi" if hour < 16 else "en fin d’après-midi" if hour < 18
+            else "en début de soirée" if hour < 21 else "en fin de soirée")
+
+
+def _clock(hour: int) -> str:
+    hour %= 24
+    return "minuit" if hour == 0 else "midi" if hour == 12 else f"{hour} h"
+
+
+def _change(before: int, after: int, night: bool) -> str:
+    if before == 3:
+        return ("le ciel se dégage" if night else "grand soleil") if after == 0 else "éclaircies" if after == 1 else "ciel gris"
+    if after == 0:
+        return "le ciel se dégage" if night else "le soleil s’impose" if before == 1 else "le soleil revient"
+    if after == 1:
+        return "quelques nuages" if before == 0 else "éclaircies"
+    return "le ciel se couvre" if after == 2 else "brouillard"
+
+
+def _sky(moments: Sequence[_Moment], night: bool) -> str:
+    """The sky over the dry hours: steady, or how it changes."""
+    runs: list[list] = []
+    for m in moments:
+        if m.sky is None:
+            continue
+        if runs and runs[-1][0] == m.sky:
+            runs[-1][2] += 1
         else:
-            runs.append({"condition": condition, "when": [when], "day": not night, "night": night})
+            runs.append([m.sky, m.hour, 1])
+    # One odd hour is the provider hesitating, not the sky changing.
+    if sum(r[2] for r in runs) >= 4:
+        runs = [r for r in runs if r[2] > 1] or runs
+        merged: list[list] = []
+        for r in runs:
+            if merged and merged[-1][0] == r[0]:
+                merged[-1][2] += r[2]
+            else:
+                merged.append(list(r))
+        runs = merged
+    if not runs:
+        return ""
+    first, last = runs[0], runs[-1]
+    if first[0] == last[0]:
+        return (STEADY_NIGHT if night else STEADY_DAY)[first[0]]
+    start = (STEADY_NIGHT if night else SHORT_DAY)[first[0]]
+    return f"{start} {_when(first[1])}, puis {_change(first[0], last[0], night)} {_when(last[1])}"
 
-    for p in periods:
-        # A period whose sky changes reads « en début d’après-midi … en fin d’après-midi ».
-        push(p.early, p.start if p.late != p.early else p.label.lower(), p.night)
-        if p.late != p.early:
-            push(p.late, p.during, p.night)
 
-    def join(xs: Sequence[str]) -> str:
-        return xs[0] if len(xs) < 2 else f"{', '.join(xs[:-1])} et {xs[-1]}"
+def _after_rain(moments: Sequence[_Moment], night: bool) -> str:
+    """The sky once the rain has stopped, in a few words."""
+    skies = [m.sky for m in moments if m.sky is not None]
+    if len(skies) < 2:
+        return ""
+    sky = max(set(skies), key=lambda s: (skies.count(s), -s))
+    return (("le ciel se dégage" if night else "le soleil revient"), "éclaircies", "ciel couvert", "brouillard")[sky]
 
-    def span(xs: Sequence[str]) -> str:
-        # Three parts of the day or more under the same sky: « ce soir et jusqu’à demain matin ».
-        return f"{xs[0]} et jusqu’à {xs[-1]}" if len(xs) >= 3 else join(xs)
 
-    def words(r: dict) -> str:
-        return "beau temps" if r["condition"] == "sunny" and r["day"] and r["night"] else phrase(r["condition"], r["night"] and not r["day"])
+def _episodes(moments: Sequence[_Moment]) -> list[list[_Moment]]:
+    """Wet hours, a single dry hour between two showers counting as the same episode."""
+    out: list[list[_Moment]] = []
+    dry = 0
+    for m in moments:
+        if m.wet:
+            if out and dry <= 1 and out[-1]:
+                out[-1].append(m)
+            else:
+                out.append([m])
+            dry = 0
+        else:
+            dry += 1
+    return out
 
-    parts = [f"{words(r)} {span(r['when'])}" for r in runs]
-    sky = _cap(parts[0] if len(parts) < 2 else f"{', '.join(parts[:-1])}, puis {parts[-1]}") + "."
-    out = [sky]
-    temps = [t for p in periods for t in (p.tmin, p.tmax) if t is not None]
-    if temps:
-        lo, hi = min(temps), max(temps)
-        warm = next(p for p in periods if p.tmax == hi)
-        cold = next(p for p in periods if p.tmin == lo)
-        out.append(f"Autour de {number(lo)} °C." if lo == hi else f"De {number(lo)} °C {cold.label.lower()} à {number(hi)} °C {warm.label.lower()}.")
-    wet = [p for p in periods if p.rain >= 1]
-    out.append(f"Pluie {join([p.label.lower() for p in wet])} : {number(sum(p.rain for p in wet), 1)} mm au total." if wet else "Pas de pluie attendue.")
-    windy = sorted((p for p in periods if (p.wind or 0) >= 30 or (p.gust or 0) >= 50),
-                   key=lambda p: -(p.gust if p.gust is not None else p.wind if p.wind is not None else 0))
-    if windy:
-        w = windy[0]
-        out.append(_cap(f"{wind_text(w.wind or 0, w.gust, w.bearing)} {w.label.lower()}."))
-    return " ".join(out)
+
+def _rain(episodes: Sequence[Sequence[_Moment]], first: int, last: int, night: bool, continues: bool = False) -> str:
+    if not episodes:
+        return ""
+    total = sum(m.rain for e in episodes for m in e)
+    kinds = [m.kind for e in episodes for m in e]
+    kind = "orages" if "orages" in kinds else "neige" if "neige" in kinds else "pluie"
+    # Snow is not told in millimetres of water, nor rain that is only ending.
+    amount = f" ({number(total, 0 if total >= 10 else 1)} mm)" if total >= 1 and kind != "neige" and not (continues and len(episodes) == 1) else ""
+    if len(episodes) > 2:
+        return f"{'averses' if kind == 'pluie' else kind} par moments{amount}"
+    parts: list[tuple[str, str]] = []
+    for e in episodes:
+        rain = sum(m.rain for m in e)
+        word = kind if kind != "pluie" else ("fortes pluies" if rain / len(e) >= 4 else "averses" if len(e) <= 2 and rain < 2
+                                             else "quelques gouttes" if rain < 0.3 else "pluie")
+        start, end = e[0].hour, (e[-1].hour + 1) % 24
+        if e[0].hour == first and e[-1].hour == last:
+            parts.append((word, "toute la nuit" if night else "toute la journée"))
+        elif e[0].hour == first and continues:
+            # Rain carried over from the part before: it stops, it does not start again under another name.
+            stops = {"orages": "les orages cessent", "neige": "la neige cesse"}.get(kind, "la pluie cesse")
+            parts.append((stops, f"vers {_clock(end)}"))
+        elif e[0].hour == first:
+            parts.append((word, f"jusqu’à {_clock(end)}"))
+        elif e[-1].hour == last:
+            parts.append((word, f"à partir de {_clock(start)}"))
+        elif len(e) <= 2:
+            parts.append((word, f"vers {_clock(start)}"))
+        else:
+            parts.append((word, f"de {_clock(start)} à {_clock(end)}"))
+    if len({w for w, _ in parts}) == 1:
+        return f"{parts[0][0]} {' et '.join(t for _, t in parts)}{amount}"
+    return " et ".join(f"{w} {t}" for w, t in parts) + amount
+
+
+def _temperature(moments: Sequence[_Moment], night: bool) -> str:
+    temps = [(m.temperature, m.hour) for m in moments if m.temperature is not None]
+    if not temps:
+        return ""
+    if night:
+        # A night the forecast does not follow until the morning has no minimum worth giving.
+        if not any(3 <= h < 8 for _, h in temps):
+            return ""
+        low = min(t for t, _ in temps)
+        hour = [h for t, h in temps if t == low][-1]
+        value, when = _degrees(low), "au petit matin" if 3 <= hour < 8 else _when(hour)
+        if low >= 20:
+            return f"nuit chaude, pas moins de {value} °C"
+        return (f"gel {when} ({value} °C)" if low <= 0 else f"froid {when} ({value} °C), gelée possible" if low <= 3
+                else f"frais {when} ({value} °C)" if low < 10 else f"{value} °C {when}")
+    high = max(t for t, _ in temps)
+    value = _degrees(high)
+    return (f"très chaud, jusqu’à {value} °C" if high >= 35 else f"chaud, jusqu’à {value} °C" if high >= 30
+            else f"sans dégel, {value} °C au mieux" if high <= 0 else f"froid, pas plus de {value} °C" if high <= 5 else f"jusqu’à {value} °C")
+
+
+def _degrees(value: float) -> str:
+    return number(_round(value), 0).replace("-", "−")
+
+
+def _wind(moments: Sequence[_Moment]) -> str:
+    speed = max((m.wind for m in moments if m.wind is not None), default=0)
+    gust = max((m.gust for m in moments if m.gust is not None), default=0)
+    out = []
+    if speed >= 30:
+        windiest = max((m for m in moments if m.wind is not None), key=lambda m: m.wind or 0)
+        side = "" if windiest.bearing is None else " " + FROM[_round(windiest.bearing / 45) % 8]
+        out.append(f"vent {'fort' if speed >= 40 else 'assez fort'}{side}")
+    if gust >= 50:
+        out.append(f"rafales à {number(_round(gust), 0)} km/h")
+    return " et ".join(out)
+
+
+def _label(day: int, night: bool, moments: Sequence[_Moment], now: datetime, zone: ZoneInfo) -> str:
+    if night:
+        evening = any(m.hour >= 18 for m in moments)
+        late = any(m.hour < 6 for m in moments)
+        if day < 0 or not evening:
+            return "Cette nuit" if day <= 0 else "La nuit suivante"
+        if day == 0:
+            return "Ce soir et cette nuit" if late else "Ce soir"
+        return "Demain soir" if day == 1 else "Après-demain soir"
+    morning, afternoon = any(m.hour < 12 for m in moments), any(m.hour >= 12 for m in moments)
+    if day == 0:
+        whole = WEEKDAYS[now.astimezone(zone).weekday()] if now.astimezone(zone).hour < 5 else "Aujourd’hui"
+        return whole if morning and afternoon else "Ce matin" if morning else "Cet après-midi"
+    if day == 1:
+        return "Demain" if morning and afternoon else "Demain matin" if morning else "Demain après-midi"
+    return "Après-demain"
+
+
+def narrate(hours: Sequence[Hour], now: datetime, zone: ZoneInfo, parts: int = 2) -> str:
+    """The rest of the day as a forecaster would say it, in at most `parts` sentences."""
+    blocks: dict[tuple[int, bool], list[_Moment]] = {}
+    for h in hours:
+        if h.time is None or h.time < now - timedelta(minutes=30):
+            continue
+        local = h.time.astimezone(zone)
+        night = not 6 <= local.hour < 18
+        # The night belongs to the evening before it: « ce soir et cette nuit ».
+        day = day_offset(h.time, now, zone) - (1 if local.hour < 6 else 0)
+        blocks.setdefault((day, night), []).append(_moment(h, zone))
+    usable = [(key, moments) for key, moments in blocks.items() if len(moments) >= 2][:parts]
+    dry_everywhere = not any(m.wet for _, moments in usable for m in moments)
+    sentences = []
+    wet_before, windy_before = False, False
+    for i, ((day, night), moments) in enumerate(usable):
+        episodes = _episodes(moments)
+        rain = _rain(episodes, moments[0].hour, moments[-1].hour, night, continues=wet_before)
+        wet_before = moments[-1].wet
+        if episodes and episodes[0][0] is moments[0]:
+            sky = _after_rain([m for m in moments[moments.index(episodes[0][-1]) + 1:] if not m.wet], night)
+            weather = rain + (f", puis {sky}" if sky else "")
+        else:
+            sky = _sky([m for m in moments if not m.wet], night)
+            weather = ", ".join(x for x in (sky, rain) if x)
+        wind = _wind(moments)
+        # The same wind twice is said once: it keeps blowing, or it drops.
+        told = "vent toujours fort" if wind and windy_before else "le vent faiblit" if windy_before else wind
+        windy_before = bool(wind)
+        facts = [x for x in (_temperature(moments, night), told) if x]
+        if dry_everywhere and i == len(usable) - 1:
+            facts.append("sans pluie")
+        text = " ; ".join(x for x in (weather, ", ".join(facts)) if x)
+        if text:
+            sentences.append(f"{_label(day, night, moments, now, zone)}, {text}.")
+    return " ".join(sentences)
