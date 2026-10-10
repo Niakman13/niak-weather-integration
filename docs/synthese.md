@@ -50,9 +50,13 @@ Le niveau prend **le plus élevé** des points, jamais une moyenne. Une vigilanc
 
 ## Ce que montre le bandeau
 
-- **La vigilance officielle** reste en haut, à part : elle vaut pour le département et pour une période.
-- **L’alerte mesurée chez vous** (le point de votre station le plus sérieux) ouvre l’étiquette « Maintenant » de la frise, avec son halo.
-- **Les autres points** défilent un à un, les plus importants d’abord : au plus quatre, sans répéter une alerte déjà affichée.
+- **La vigilance officielle** reste en haut, à part : elle vaut pour le département et pour une période. La frise ne la répète pas.
+- **La frise « Événements »** reçoit sa propre liste :
+  - **maintenant** : ce qui demande l’attention, l’air et les pollens dès 3 sur 6, et une information utile au plus (écart de ressenti ou pression), trois au plus ;
+  - **puis chaque point des prochaines heures, à son heure** : pluie, orage, gel, gelée, brouillard, température, forte pluie demain, air et pollens de demain dès 3 sur 6. Cinq au plus ; s’il y en a davantage, les plus importants ;
+  - le point le plus sérieux porte le halo d’alerte ;
+  - les textes ne répètent pas l’heure : « Fortes pluies : 12 mm prévus » sur l’étiquette « 17 h ».
+- **La bulle qui défile** de la tuile repliée garde une sélection courte : au plus quatre points, les plus importants d’abord.
 - Le **i** de la synthèse liste tous les points retenus, par famille, et les données à vérifier.
 
 ## La vigilance Météo-France

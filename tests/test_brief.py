@@ -110,6 +110,8 @@ def test_dates_each_forecast_point_for_the_banner_timeline() -> None:
     rain, storm = (next(s for s in b.signals if s.key == k) for k in ("rain-future", "storm"))
     assert (rain.at, rain.clock) == ((NOW + timedelta(hours=2)).timestamp(), "14 h")
     assert (storm.at, storm.clock) == ((NOW + timedelta(hours=4)).timestamp(), "16 h")
+    # On the timeline the label gives the time: the sentence leaves it out.
+    assert (rain.short, storm.short) == ("Pluie : au moins 3 mm prévus", "Orage ou grêle")
     assert all(s.at is None for s in b.signals if s.group == "now")
 
 

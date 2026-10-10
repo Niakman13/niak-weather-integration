@@ -23,6 +23,8 @@ class Point:
     """When it happens, in seconds since 1970; absent for what is measured now."""
     clock: str | None = None
     """« 20 h », « midi », « demain »: the banner's label for that time."""
+    alert: bool = False
+    """On the timeline: the point that needs attention most, shown with the alert's halo."""
 
 
 @dataclass(frozen=True)
@@ -151,3 +153,33 @@ def alert_points(brief: Brief | None) -> list[AlertPoint]:
     if top:
         alerts.append(AlertPoint(top[0].severity, label(top[0]), top[0].text, top[0].icon, top[0].text, False, top[0].entity, top[0].at, top[0].clock))
     return alerts
+
+
+# The timeline's « now »: what needs attention, then one useful piece of information at most.
+NOW_INFO = ("comfort-gap", "pressure")
+NOW_MAX, FUTURE_MAX = 3, 5
+ATMO_FROM = 3
+"""Air and pollens reach the timeline from this Atmo index (out of 6)."""
+
+
+def timeline_points(brief: Brief | None) -> list[Point]:
+    """Every point of the coming hours, each at its time, for the banner's timeline: what needs attention now (the official vigilance aside,
+    it has its own pill), then each forecast point (rain, storm, frost, fog, temperature, tomorrow's rain, air and pollens from 3 out of 6)."""
+    if brief is None:
+        return []
+    signals = [s for s in brief.signals if s.group != "official"]
+    top = next((s for s in signals if s.severity > 0), None)
+
+    def wanted(s: Signal) -> bool:
+        if s.group != "environment":
+            return True
+        return (s.index is not None and s.index >= ATMO_FROM) or s.key.startswith("atmo-event") or (s.key.startswith("legacy") and s.severity > 0)
+
+    present = [s for s in signals if s.at is None and wanted(s) and (s.severity > 0 or s.group == "environment")][:NOW_MAX]
+    info = next((s for key in NOW_INFO for s in signals if s.key == key and s.severity == 0), None)
+    if info and len(present) < NOW_MAX:
+        present.append(info)
+    # The most important forecast points when there are too many, shown in time order.
+    coming = sorted((s for s in signals if s.at is not None and wanted(s)), key=lambda s: (-s.severity, s.at))[:FUTURE_MAX]
+    coming.sort(key=lambda s: s.at)
+    return [Point(s.group, label(s), s.icon, s.short or s.text, s.severity, theme_of(s), s.entity, s.at, s.clock, s is top) for s in (*present, *coming)]
