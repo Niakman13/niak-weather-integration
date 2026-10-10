@@ -14,6 +14,10 @@ from .units import Kind, measurement
 
 SPAN, STEP = 6 * 3600, 600
 BUCKETS = SPAN // STEP
+BRIEF_OUTAGE = 15 * 60
+"""A sensor unavailable for less than this (Home Assistant restarting) is not a gap: the curve goes on, as in Home Assistant's history."""
+KNOWN = STEP / 2
+"""A ten-minute point needs at least five minutes of readings."""
 
 
 class Point(NamedTuple):
@@ -51,7 +55,7 @@ def rain_days(rows: Sequence[Change], unit: str | None, now: datetime, zone: Zon
 
 
 def wind_chart_series(rows: Sequence[Change], unit: str | None, now: datetime, current: float | None, mode: Literal["mean", "peak"]) -> tuple[Point, ...]:
-    """Ten-minute time-weighted means or gust peaks; unknown intervals remain gaps."""
+    """Ten-minute time-weighted means or gust peaks; a long outage remains a gap, a restart does not."""
     return _chart_series(rows, unit, now, current, mode, Kind.WIND)
 
 
@@ -76,6 +80,8 @@ def _chart_series(rows: Sequence[Change], unit: str | None, now: datetime, curre
     buckets = [_Bucket() for _ in range(BUCKETS)]
     for i, event in enumerate(events):
         a, b = max(start, event.time), min(end, events[i + 1].time if i + 1 < len(events) else end)
+        if event.value is None and (events[i + 1].time if i + 1 < len(events) else end) - event.time < BRIEF_OUTAGE:
+            continue
         j = max(0, math.floor((a - start) / STEP))
         while b > a and j < BUCKETS and start + j * STEP < b:
             bucket, duration = buckets[j], min(b, start + (j + 1) * STEP) - max(a, start + j * STEP)
@@ -86,7 +92,7 @@ def _chart_series(rows: Sequence[Change], unit: str | None, now: datetime, curre
                 bucket.duration += duration
                 bucket.peak = max(bucket.peak, event.value)
             j += 1
-    full = [not b.missing and b.duration == STEP for b in buckets]
+    full = [not b.missing and b.duration >= KNOWN for b in buckets]
     return (*(Point(start + (i + 0.5) * STEP, (b.sum / b.duration if mode == "mean" else b.peak) if full[i] else None) for i, b in enumerate(buckets)),
             Point(end, current))
 

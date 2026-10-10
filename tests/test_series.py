@@ -107,12 +107,16 @@ def test_aggregates_time_weighted_wind_separately_from_gust_peaks() -> None:
     assert wind_chart_series([], "km/h", NOW, 14, "mean") == ()
 
 
-def test_keeps_partial_intervals_and_outages_absent_with_unit_conversion() -> None:
+def test_bridges_a_restart_but_keeps_a_long_outage_as_a_gap_with_unit_conversion() -> None:
+    # Home Assistant restarting: the station is `unavailable` for five minutes. Its history draws on; so does the card.
     rows = [p("2026-10-05T10:05:00Z", "2"), p("2026-10-05T10:25:00Z", "unavailable"), p("2026-10-05T10:30:00Z", "5")]
     series = wind_chart_series(rows, "m/s", NOW, None, "mean")
-    assert series[0].value is None and series[1].value == pytest.approx(7.2)
-    assert series[2].value is None and series[3].value == 18
+    assert [series[i].value for i in range(4)] == [pytest.approx(7.2), pytest.approx(7.2), pytest.approx(7.2), 18]
     assert series[-1].value is None
+    # The station off for half an hour: a gap, never a made-up line.
+    rows = [p("2026-10-05T10:00:00Z", "2"), p("2026-10-05T10:20:00Z", "unavailable"), p("2026-10-05T10:50:00Z", "5")]
+    series = wind_chart_series(rows, "m/s", NOW, None, "mean")
+    assert [series[i].value is None for i in range(6)] == [False, False, True, True, True, False]
 
 
 def test_keeps_brief_gust_peaks_while_bounding_dense_history_to_37_points() -> None:
