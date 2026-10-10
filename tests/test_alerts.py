@@ -62,3 +62,9 @@ def test_vigilance_parts() -> None:
     assert vigilance_parts("Vigilance jaune · vent violent") == ("Vigilance jaune", "Vent violent")
     assert vigilance_parts("Vigilance jaune") == (None, "Vigilance jaune")
     assert vigilance_parts("Vent soutenu, rafales à 43,9 km/h") == (None, "Vent soutenu, rafales à 43,9 km/h")
+
+
+def test_gives_the_vigilance_the_icon_of_its_first_phenomenon() -> None:
+    from engine.alerts import phenomenon_icon
+    assert [phenomenon_icon(d) for d in ("Orages, vent violent (jaune)", "Neige-verglas", "Vagues-submersion", "Inconnu")] == [
+        "mdi:weather-lightning", "mdi:snowflake", "mdi:waves", "mdi:alert-outline"]

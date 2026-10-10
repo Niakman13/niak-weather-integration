@@ -19,6 +19,10 @@ class Point:
     level: int
     theme: str | None = None
     entity: str | None = None
+    at: float | None = None
+    """When it happens, in seconds since 1970; absent for what is measured now."""
+    clock: str | None = None
+    """« 20 h », « midi », « demain »: the banner's label for that time."""
 
 
 @dataclass(frozen=True)
@@ -31,6 +35,8 @@ class AlertPoint:
     """The full sentence it comes from, to avoid repeating it in the scrolling bubble."""
     official: bool
     entity: str | None = None
+    at: float | None = None
+    clock: str | None = None
 
 
 def label(s: Signal) -> str:
@@ -109,7 +115,7 @@ def ticker_points(brief: Brief | None) -> list[Point]:
     for s in (*p.selected, p.context, p.outlook, *secondary(brief, p)):
         if s is not None and s.group != "official" and s not in seen:
             seen.append(s)
-            points.append(Point(s.group, label(s), s.icon, s.text, s.severity, theme_of(s), s.entity))
+            points.append(Point(s.group, label(s), s.icon, s.text, s.severity, theme_of(s), s.entity, s.at, s.clock))
     return points[:4]
 
 
@@ -121,6 +127,17 @@ def vigilance_parts(text: str) -> tuple[str | None, str]:
     return None, text
 
 
+# The first phenomenon of a vigilance gives its icon (Météo-France's names, lower case, accents optional).
+PHENOMENON_ICONS = (("orage", "mdi:weather-lightning"), ("vent", "mdi:weather-windy"), ("pluie", "mdi:weather-pouring"), ("crue", "mdi:home-flood"),
+                    ("inondation", "mdi:home-flood"), ("neige", "mdi:snowflake"), ("verglas", "mdi:snowflake"), ("canicule", "mdi:thermometer-high"),
+                    ("grand froid", "mdi:snowflake-thermometer"), ("avalanche", "mdi:landslide"), ("vague", "mdi:waves"), ("submersion", "mdi:waves"))
+
+
+def phenomenon_icon(detail: str) -> str:
+    first = detail.split(",")[0].lower()
+    return next((icon for word, icon in PHENOMENON_ICONS if word in first), "mdi:alert-outline")
+
+
 def alert_points(brief: Brief | None) -> list[AlertPoint]:
     """The vigilance first, then the most important point needing attention at home: neither hides the other."""
     if brief is None:
@@ -129,8 +146,8 @@ def alert_points(brief: Brief | None) -> list[AlertPoint]:
     official = next((s for s in brief.signals if s.key == "official" and s.severity > 0), None)
     if official:
         level, detail = vigilance_parts(official.text)
-        alerts.append(AlertPoint(official.severity, level, detail, "mdi:alert-outline", official.text, True, official.entity))
+        alerts.append(AlertPoint(official.severity, level, detail, phenomenon_icon(detail) if level else "mdi:alert-outline", official.text, True, official.entity))
     top = sorted((s for s in brief.signals if s.group != "official" and s.severity > 0), key=lambda s: -s.severity)
     if top:
-        alerts.append(AlertPoint(top[0].severity, label(top[0]), top[0].text, top[0].icon, top[0].text, False, top[0].entity))
+        alerts.append(AlertPoint(top[0].severity, label(top[0]), top[0].text, top[0].icon, top[0].text, False, top[0].entity, top[0].at, top[0].clock))
     return alerts

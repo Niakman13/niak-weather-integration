@@ -109,6 +109,13 @@ def test_names_the_days_of_the_week_today_first() -> None:
     assert (d.today, d.icon, d.high, d.low, d.rain) == (True, "mdi:weather-rainy", 20, 12, 3)
 
 
+def test_places_each_forecast_hour_on_the_timeline() -> None:
+    from engine.forecast import Hour
+    from engine.view import forecast_slots
+    hours = [Hour(time=NOW + timedelta(hours=i), temperature=15, condition="sunny") for i in range(1, 4)]
+    assert [(s.hour, s.time) for s in forecast_slots(hours, NOW, PARIS)] == [(18 + i, (NOW + timedelta(hours=i + 1)).timestamp()) for i in range(3)]
+
+
 def test_says_the_pressure_is_stable_rather_than_zero() -> None:
     v = view({"pressure_entity": "sensor.pressure"}, {"sensor.pressure": sensor(1014, "hPa")},
              adjust=lambda w: replace(w, pressure_trend=Trend(0, 180, Direction.STEADY, "temps installé")))

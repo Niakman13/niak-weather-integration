@@ -135,6 +135,8 @@ class Slot:
     wind: float | None
     gust: float | None
     bearing: float | None
+    time: float | None = None
+    """Seconds since 1970: where the hour sits on the banner's timeline."""
 
 
 @dataclass(frozen=True)
@@ -262,7 +264,7 @@ def forecast_slots(hours: Sequence[Hour], now: datetime, zone: ZoneInfo, sunrise
         hour = h.time.astimezone(zone).hour
         night = hour < sunrise or hour >= sunset
         slots.append(Slot(hour, day_offset(h.time, now, zone), h.temperature, max(0.0, h.precipitation or 0.0), h.condition, condition_label(h.condition),
-                          condition_icon(h.condition, night), night, h.wind_speed, h.wind_gust, h.wind_bearing))
+                          condition_icon(h.condition, night), night, h.wind_speed, h.wind_gust, h.wind_bearing, h.time.timestamp()))
     return tuple(slots)
 
 

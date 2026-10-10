@@ -104,6 +104,20 @@ def test_storms_and_frost_without_claiming_local_detection() -> None:
     assert "fournisseur météo" in next(s for s in b.signals if s.key == "storm").explanation
 
 
+def test_dates_each_forecast_point_for_the_banner_timeline() -> None:
+    # NOW is 12 h in Paris: rain in 2 h falls at 14 h, the storm in 4 h at 16 h.
+    b = brief(points=hours({"hours": 2, "precipitation": 3, "condition": "rainy"}, {"hours": 4, "condition": "lightning-rainy"}))
+    rain, storm = (next(s for s in b.signals if s.key == k) for k in ("rain-future", "storm"))
+    assert (rain.at, rain.clock) == ((NOW + timedelta(hours=2)).timestamp(), "14 h")
+    assert (storm.at, storm.clock) == ((NOW + timedelta(hours=4)).timestamp(), "16 h")
+    assert all(s.at is None for s in b.signals if s.group == "now")
+
+
+def test_writes_noon_midnight_and_days_beyond_tomorrow() -> None:
+    from engine.brief import clock
+    assert [clock(NOW + timedelta(hours=h), NOW, ZONE) for h in (0, 12, 30, 60)] == ["midi", "minuit", "demain", "mercredi"]
+
+
 def test_ignores_undated_or_out_of_window_points() -> None:
     assert brief(points=hours({"hours": None, "precipitation": 50}, {"hours": 7, "condition": "hail"})).signals == ()
 
