@@ -18,7 +18,7 @@ Sans station, le cadre décrit l’état du bulletin (« Pluie », « Temps sec 
 
 Le chiffre principal est le **vent moyen** ; les rafales sont à côté (ce sont les pointes, pas la même mesure). Sans vent moyen, les rafales deviennent le chiffre principal.
 
-La courbe couvre 6 heures, par tranches de 10 minutes : moyenne pondérée par la durée pour le vent moyen, maximum pour les rafales. Le dernier point est la lecture du moment. Les périodes inconnues restent des coupures.
+La courbe couvre 6 heures, par tranches de 10 minutes : moyenne pondérée par la durée pour le vent moyen, maximum pour les rafales. Le dernier point est la lecture du moment. Une coupure de moins de 15 minutes (Home Assistant qui redémarre) ne coupe pas la courbe, comme dans l’historique de Home Assistant ; une vraie panne de la station reste un trou.
 
 La **rafale maximale du jour** vient de la station, ou est calculée depuis l’historique des rafales depuis minuit (marquée **≥** si l’historique est partiel). La direction absente n’est jamais remplacée par 0°.
 
