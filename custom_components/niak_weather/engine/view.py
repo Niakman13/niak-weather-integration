@@ -202,6 +202,8 @@ class WeatherView:
     season: SeasonView
     alerts: tuple[alerts.AlertPoint, ...]
     points: tuple[alerts.Point, ...]
+    timeline: tuple[alerts.Point, ...]
+    """The banner's timeline: every point of the coming hours, each at its time."""
     brief: Brief | None
     bulletin: Bulletin | None
     comfort: ComfortView | None
@@ -250,7 +252,8 @@ def build_view(get: Getter, settings: Settings, w: LocalWeather, brief: Brief | 
         forecast_source=settings.forecast_source or ("Météo-France" if re.search("france", str(attributes.get("attribution")), re.IGNORECASE) else "Prévisions météo"),
         weather_entity=settings.weather_entity, station=bool(settings.temperature_entity),
         now=current_weather(get, settings, w, trend), season=SeasonView(season, season.news, season.tip),
-        alerts=tuple(shown), points=tuple(p for p in alerts.ticker_points(brief) if p.text not in {a.source for a in shown}), brief=brief,
+        alerts=tuple(shown), points=tuple(p for p in alerts.ticker_points(brief) if p.text not in {a.source for a in shown}),
+        timeline=tuple(alerts.timeline_points(brief)), brief=brief,
         bulletin=build_bulletin(hours, now, zone), comfort=_comfort(get, settings, w), rain=rain, wind=wind, pressure=pressure,
         extras=_extras(get, settings, w), hours=forecast_slots(hours, now, zone, w.sunrise, w.sunset), days=forecast_days(days, hours, now, zone),
         air=Air(_air(get, settings, now, zone, False), _air(get, settings, now, zone, True)))

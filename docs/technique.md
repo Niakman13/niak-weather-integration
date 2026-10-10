@@ -46,6 +46,7 @@ La **vue** contient tout ce que la carte affiche, déjà calculé et rédigé en
 
 - conventions : clés en camelCase, temps en secondes depuis 1970, valeur inconnue absente (jamais `null`), points de graphique `[secondes, valeur]` ;
 - chaque point de la synthèse porte son heure (`at`, `clock`), et chaque heure de prévision la sienne (`time`), pour la frise ;
+- `timeline` est la liste de la frise : les points de maintenant, puis ceux des prochaines heures à leur heure, chacun avec son texte court ; `points` reste la sélection courte de la bulle qui défile ;
 - elle est décrite par `engine/view.py`, et côté carte par `src/view.ts` ;
 - `version` monte seulement si une carte plus ancienne ne peut plus la lire : elle demande alors sa mise à jour.
 

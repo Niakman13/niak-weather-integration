@@ -11,6 +11,18 @@ def brief(*signals: Signal) -> Brief:
     return Brief("", "", "", "", "", tuple(signals), (), True)
 
 
+def sig(key: str, group: str, severity: int, text: str | None = None) -> Signal:
+    return Signal(key, group, severity, text or key, key, "mdi:x")
+
+
+def dated(key: str, group: str, severity: int, text: str, at: float, clock: str, short: str) -> Signal:
+    return Signal(key, group, severity, text, key, "mdi:x", None, at, clock, short)
+
+
+def atmo(key: str, severity: int, index: float, at: float | None = None, clock: str | None = None) -> Signal:
+    return Signal(key, "environment", severity, key, key, "mdi:x", None, at, clock, None, index)
+
+
 def test_scrolls_the_points_most_important_first_without_the_official_warning() -> None:
     # Yellow storm vigilance at Gardanne, storm tonight, 72 mm tomorrow, a 5 °C feel gap.
     points = ticker_points(brief(signal("official", "official", 1, "Vigilance jaune · orages"), signal("storm", "future", 2),
@@ -68,3 +80,27 @@ def test_gives_the_vigilance_the_icon_of_its_first_phenomenon() -> None:
     from engine.alerts import phenomenon_icon
     assert [phenomenon_icon(d) for d in ("Orages, vent violent (jaune)", "Neige-verglas", "Vagues-submersion", "Inconnu")] == [
         "mdi:weather-lightning", "mdi:snowflake", "mdi:waves", "mdi:alert-outline"]
+
+
+def test_puts_every_point_of_the_coming_hours_on_the_timeline_each_at_its_time() -> None:
+    from engine.alerts import timeline_points
+    at = lambda h: 1_800_000_000 + h * 3600
+    b = brief(
+        dated("rain-future", "future", 2, "Fortes pluies dans environ 2 h : 12 mm prévus", at(2), "17 h", "Fortes pluies : 12 mm prévus"),
+        dated("storm", "future", 2, "Orage ou grêle dans environ 4 h", at(4), "19 h", "Orage ou grêle"),
+        dated("frost-night", "future", 1, "Gelée blanche possible vers 4 h : 2 °C prévus", at(13), "4 h", "Gelée blanche possible : 2 °C prévus"),
+        dated("temperature-future", "future", 0, "Baisse jusqu’à 10 °C dans les 6 h", at(6), "21 h", "Baisse jusqu’à 10 °C"),
+        dated("rain-tomorrow", "future", 0, "Forte pluie demain : 24 mm", at(30), "demain", "Forte pluie : 24 mm"),
+        sig("official", "official", 1), sig("pressure", "now", 0, "La pression monte"), sig("wind-soft", "now", 0, "Vent faible"),
+        sig("air-false", "environment", 0, "Air extérieur : moyen aujourd’hui"))
+    points = timeline_points(b)
+    # The vigilance has its own pill; « vent faible » and an air index under 3 are left out; the time is on the label, not in the text.
+    assert [(p.clock, p.text, p.alert) for p in points] == [
+        (None, "La pression monte", False), ("17 h", "Fortes pluies : 12 mm prévus", True), ("19 h", "Orage ou grêle", False),
+        ("21 h", "Baisse jusqu’à 10 °C", False), ("4 h", "Gelée blanche possible : 2 °C prévus", False), ("demain", "Forte pluie : 24 mm", False)]
+
+
+def test_shows_air_and_pollens_on_the_timeline_from_3_out_of_6() -> None:
+    from engine.alerts import timeline_points
+    b = brief(atmo("pollen-false", 0, 3), atmo("air-false", 0, 2), atmo("pollen-true", 1, 4, 1_800_100_000, "demain"))
+    assert [(p.text, p.clock) for p in timeline_points(b)] == [("pollen-false", None), ("pollen-true", "demain")]
