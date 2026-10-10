@@ -15,7 +15,7 @@ from .units import Kind, finite, french, measurement
 Getter = Callable[[str], Any]
 STATION = "Station locale"
 NO_RAIN_MEASURED = "Pas de pluie mesurée · ciel du bulletin"
-DARK_SKIES = ("lightning", "lightning-rainy", "pouring")
+DARK_SKIES = ("lightning", "lightning-rainy", "pouring", "hail")
 RAIN_LABELS = {"rainy": "Pluie", "pouring": "Fortes pluies", "lightning-rainy": "Pluie orageuse", "snowy": "Neige", "snowy-rainy": "Pluie et neige",
                "hail": "Grêle", "sunny": "Temps sec", "clear-night": "Temps sec", "partlycloudy": "Temps sec", "cloudy": "Temps sec",
                "fog": "Brouillard", "windy": "Temps sec", "windy-variant": "Temps sec", "lightning": "Orage"}

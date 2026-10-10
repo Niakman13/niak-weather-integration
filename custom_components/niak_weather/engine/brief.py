@@ -35,6 +35,10 @@ class Signal:
     explanation: str
     icon: str
     entity: str | None = None
+    at: float | None = None
+    """When a forecast point happens, in seconds since 1970; absent for what is measured now."""
+    clock: str | None = None
+    """That time as the banner writes it: « 20 h », « midi », « minuit », « demain »."""
 
 
 @dataclass(frozen=True)
@@ -72,6 +76,15 @@ def _lower_first(text: str) -> str:
     return text[0].lower() + text[1:] if re.match(r"^[A-ZÀ-Ý][a-zà-ÿ]", text) else text
 
 
+def clock(when: datetime, now: datetime, zone: ZoneInfo) -> str:
+    """« 20 h », « midi », « minuit » within the next 24 hours; « demain » or the day's name beyond."""
+    local = when.astimezone(zone)
+    if when - now < timedelta(hours=24):
+        return "minuit" if local.hour == 0 else "midi" if local.hour == 12 else f"{local.hour} h"
+    days = (local.date() - now.astimezone(zone).date()).days
+    return "demain" if days == 1 else ("lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche")[local.weekday()]
+
+
 @dataclass(frozen=True)
 class _Point:
     hours: float
@@ -86,6 +99,9 @@ def build_brief(w: LocalWeather, settings: Settings, get: Callable[[str], Any], 
     src = w.sources.get
     temp, feels, wind, gust, rain = w.temperature, w.feel.value, w.wind.speed, w.wind.gust, w.rain.rate
     station = bool(settings.temperature_entity)
+
+    def when(t: datetime | None) -> dict[str, Any]:
+        return {} if t is None else {"at": t.timestamp(), "clock": clock(t, now, zone)}
 
     current = "Ressenti indisponible." if feels is None else f"{number(feels)} °C ressentis"
     if feels is not None and temp is not None:
@@ -143,15 +159,15 @@ def build_brief(w: LocalWeather, settings: Settings, get: Callable[[str], Any], 
         heavy = peak >= 5 or total >= 20
         add(Signal("rain-future", "future", 2 if heavy else 1 if total >= 5 else 0,
                    f"{'Fortes pluies' if heavy else 'Pluie'} {_timing(rains[0].hours)} : {'au moins ' if any(x.hour.precipitation is None for x in upcoming) else ''}{number(total)} mm prévus",
-                   "Total prévu sur les 6 prochaines heures.", "mdi:weather-pouring", settings.weather_entity))
+                   "Total prévu sur les 6 prochaines heures.", "mdi:weather-pouring", settings.weather_entity, **when(rains[0].hour.time)))
     storm = next((x for x in upcoming if x.hour.condition.replace("_", "-") in ("lightning", "lightning-rainy", "hail")), None)
     if storm:
         add(Signal("storm", "future", 2, f"Orage ou grêle {_timing(storm.hours)}", "Annoncé par le fournisseur météo pour les 6 prochaines heures.",
-                   "mdi:weather-lightning", settings.weather_entity))
+                   "mdi:weather-lightning", settings.weather_entity, **when(storm.hour.time)))
     cold = next((x for x in upcoming if x.hour.temperature is not None and x.hour.temperature <= 0), None)
     if cold:
         add(Signal("freeze-future", "future", 1, f"Gel {_timing(cold.hours)} : {number(cold.hour.temperature or 0)} °C prévus", "Prévision du fournisseur météo.",
-                   "mdi:snowflake", settings.weather_entity))
+                   "mdi:snowflake", settings.weather_entity, **when(cold.hour.time)))
 
     def at(offset: float) -> str:
         return f"vers {(now + timedelta(hours=offset)).astimezone(zone).hour} h"
@@ -165,7 +181,7 @@ def build_brief(w: LocalWeather, settings: Settings, get: Callable[[str], Any], 
         text = (f"Gel {at(low.hours)} : {number(low_t)} °C prévus" if low_t <= 0 else
                 f"{'Gelée blanche possible' if w.frost_point is not None and w.frost_point >= low_t - 3 else 'Gel au sol possible'} {at(low.hours)} : {number(low_t)} °C prévus")
         add(Signal("frost-night", "future", 1, text, "Minimum prévu dans les 18 h. Au sol, il fait 2 à 3 °C de moins que sous abri. Pensez aux plantes et au pare-brise.",
-                   "mdi:snowflake-alert", settings.weather_entity))
+                   "mdi:snowflake-alert", settings.weather_entity, **when(low.hour.time)))
         # The night's minimum says more than the first freezing hour: keep one frost line.
         signals[:] = [s for s in signals if s.key != "freeze-future"]
     if low and low_t is not None:
@@ -175,19 +191,21 @@ def build_brief(w: LocalWeather, settings: Settings, get: Callable[[str], Any], 
         if w.condition != "fog" and night_calm and (low.hour.precipitation or 0) < 0.3 and saturated and low_t > 0:
             add(Signal("fog-later", "future", 0, f"Brouillard possible {at(low.hours)}",
                        "Au plus froid de la nuit, l’air prévu est saturé d’humidité, sans vent ni pluie. C’est une estimation de la carte, pas une prévision de brouillard du fournisseur.",
-                       "mdi:weather-fog", settings.weather_entity))
+                       "mdi:weather-fog", settings.weather_entity, **when(low.hour.time)))
     valid = [x.hour.temperature for x in upcoming if x.hour.temperature is not None]
     if temp is not None and valid and not cold:
         top, bottom = max(valid), min(valid)
         if top - temp >= 3 or temp - bottom >= 3:
+            rising = top - temp >= 3
+            peak = next(x for x in upcoming if x.hour.temperature == (top if rising else bottom))
             add(Signal("temperature-future", "future", 0,
-                       f"Montée jusqu’à {number(top)} °C dans les 6 h" if top - temp >= 3 else f"Baisse jusqu’à {number(bottom)} °C dans les 6 h",
-                       "Comparé à la température actuelle, sur les 6 prochaines heures.", "mdi:thermometer", settings.weather_entity))
+                       f"Montée jusqu’à {number(top)} °C dans les 6 h" if rising else f"Baisse jusqu’à {number(bottom)} °C dans les 6 h",
+                       "Comparé à la température actuelle, sur les 6 prochaines heures.", "mdi:thermometer", settings.weather_entity, **when(peak.hour.time)))
     tomorrow = now.astimezone(zone).date() + timedelta(days=1)
     heavy_day = next((d for d in days if d.time.astimezone(zone).date() == tomorrow and d.precipitation is not None and d.precipitation >= 20), None)
     if heavy_day:
         add(Signal("rain-tomorrow", "future", 0, f"Forte pluie demain : {number(heavy_day.precipitation or 0)} mm", "Prévision du fournisseur météo pour demain, dès 20 mm.",
-                   "mdi:weather-pouring", settings.weather_entity))
+                   "mdi:weather-pouring", settings.weather_entity, heavy_day.time.timestamp(), "demain"))
     if not upcoming:
         caveats.append("Prévisions des 6 prochaines heures indisponibles.")
     elif any(x.hour.precipitation is None for x in upcoming):
