@@ -1,5 +1,5 @@
 {
-  "name": "Niak Weather",
+  "name": "Niak Weather (intégration)",
   "render_readme": true,
   "homeassistant": "2025.1.0"
 }
