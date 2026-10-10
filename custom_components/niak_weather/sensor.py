@@ -8,9 +8,11 @@ from typing import Any
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorEntityDescription, SensorStateClass
 from homeassistant.const import UnitOfPrecipitationDepth, UnitOfPressure, UnitOfSpeed, UnitOfTemperature, UnitOfTime
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import slugify
 
 from .const import DOMAIN
 from .coordinator import NiakWeatherConfigEntry, NiakWeatherCoordinator, Snapshot
@@ -18,6 +20,10 @@ from .engine.feel import Alert
 from .engine.moisture import humidex
 
 ALERTS = ["none", *(a.value for a in Alert)]
+# Entity ids that say what they are, the same in every home: sensor.niak_weather_ressenti, sensor.niak_weather_pluie_24h…
+OBJECT_IDS = {"feels_like": "ressenti", "dew_point": "point_de_rosee", "frost_point": "point_de_givre", "humidex": "humidex", "alert": "alerte",
+              "brief": "en_bref", "next_rain": "pluie_dans", "pressure_trend": "tendance_pression", "rain_24h": "pluie_24h",
+              "max_gust_today": "rafale_max_jour", "temperature_trend": "tendance_temperature"}
 
 
 def _feels(s: Snapshot) -> float | None:
@@ -99,8 +105,30 @@ SENSORS: tuple[NiakSensorDescription, ...] = (
 )
 
 
+def prefix(hass: HomeAssistant, entry: NiakWeatherConfigEntry) -> str:
+    """« niak_weather » for the first place; the next places add their name: « niak_weather_marseille »."""
+    earlier = [e for e in hass.config_entries.async_entries(DOMAIN) if e.entry_id != entry.entry_id and e.created_at < entry.created_at]
+    return f"{DOMAIN}_{slugify(entry.title)}" if earlier else DOMAIN
+
+
+def device_name(hass: HomeAssistant, entry: NiakWeatherConfigEntry) -> str:
+    return "Niak Weather" if prefix(hass, entry) == DOMAIN else f"Niak Weather {entry.title}"
+
+
+def rename_place_ids(hass: HomeAssistant, entry: NiakWeatherConfigEntry) -> None:
+    """Sensors created by the betas were named after the place (sensor.gardanne_pluie_sur_24_h): they take their Niak Weather id.
+    An id the user chose (one that does not start with the place) is kept."""
+    registry, place = er.async_get(hass), f"sensor.{slugify(entry.title)}_"
+    for description in SENSORS:
+        entity_id = registry.async_get_entity_id("sensor", DOMAIN, f"{entry.entry_id}_{description.key}")
+        wanted = f"sensor.{prefix(hass, entry)}_{OBJECT_IDS[description.key]}"
+        if entity_id and entity_id.startswith(place) and entity_id != wanted and not registry.async_get(wanted):
+            registry.async_update_entity(entity_id, new_entity_id=wanted)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: NiakWeatherConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
-    async_add_entities(NiakWeatherSensor(entry.runtime_data, description) for description in SENSORS)
+    rename_place_ids(hass, entry)
+    async_add_entities(NiakWeatherSensor(entry.runtime_data, description, prefix(hass, entry), device_name(hass, entry)) for description in SENSORS)
 
 
 class NiakWeatherSensor(CoordinatorEntity[NiakWeatherCoordinator], SensorEntity):
@@ -109,12 +137,14 @@ class NiakWeatherSensor(CoordinatorEntity[NiakWeatherCoordinator], SensorEntity)
     _unrecorded_attributes = frozenset({"summary", "points", "phrase"})
     entity_description: NiakSensorDescription
 
-    def __init__(self, coordinator: NiakWeatherCoordinator, description: NiakSensorDescription) -> None:
+    def __init__(self, coordinator: NiakWeatherCoordinator, description: NiakSensorDescription, prefix: str, device: str) -> None:
         super().__init__(coordinator)
         entry = coordinator.config_entry
         self.entity_description = description
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
-        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, entry.entry_id)}, name=entry.title, manufacturer="Niakman13",
+        # Only a suggestion: Home Assistant keeps an id the user changed.
+        self.entity_id = f"sensor.{prefix}_{OBJECT_IDS[description.key]}"
+        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, entry.entry_id)}, name=device, manufacturer="Niakman13",
                                             model="Niak Weather", entry_type=DeviceEntryType.SERVICE)
 
     @property
