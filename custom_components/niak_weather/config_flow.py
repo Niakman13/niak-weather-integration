@@ -225,31 +225,41 @@ class _SourceSteps:
         schema = vol.Schema({vol.Required("atmo_area"): SelectSelector(SelectSelectorConfig(
             options=[SelectOptionDict(value=NONE, label="Aucune"), *(SelectOptionDict(value=a["value"], label=a["label"]) for a in areas)],
             mode=SelectSelectorMode.DROPDOWN))})
-        return self.async_show_form(step_id="air_quality", data_schema=self.add_suggested_values_to_schema(schema, {"atmo_area": current}))  # type: ignore[attr-defined]
+        hint = "" if areas else "\n\nAtmo France n’est pas encore installée : [installer l’intégration Atmo France](https://github.com/sebcaps/atmofrance), puis revenez ici."
+        return self.async_show_form(step_id="air_quality", data_schema=self.add_suggested_values_to_schema(schema, {"atmo_area": current}),  # type: ignore[attr-defined]
+                                    description_placeholders={"hint": hint})
 
     async def async_step_pollen(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """The pollens: from Atmo France, from Polleninformation, or none."""
+        """The pollens: from Atmo France, from Polleninformation, or none. Both sources are always offered; one not installed says so."""
         states, registry, _ = _context(self.hass)
         areas, legacy = self._areas(), bool(polleninfo.candidates(states, registry)[0])
-        choices = [*(["atmo"] if areas else []), *(["legacy"] if legacy else []), NONE]
-        if user_input is None and len(choices) == 1 and self.skip_empty:
+        if user_input is None and not areas and not legacy and self.skip_empty:
             self.sources["pollen_source"] = NONE
             self._apply_atmo()
             return await self._done("pollen")
+        errors: dict[str, str] = {}
         if user_input is not None:
             source = user_input.get("pollen_source", NONE)
-            self.sources["pollen_source"] = source
-            if source == "atmo" and not self.sources.get("atmo_area"):
-                return await self.async_step_pollen_area()
-            self._apply_atmo()
-            if source == "legacy":
-                return await self.async_step_pollen_sensors()
-            return await self._done("pollen")
-        current = self.sources.get("pollen_source") or ("atmo" if areas else "legacy" if legacy else NONE)
-        schema = vol.Schema({vol.Required("pollen_source"): SelectSelector(SelectSelectorConfig(options=choices, translation_key="pollen_source",
-                                                                                                mode=SelectSelectorMode.LIST))})
-        return self.async_show_form(step_id="pollen", data_schema=self.add_suggested_values_to_schema(  # type: ignore[attr-defined]
-            schema, {"pollen_source": current if current in choices else NONE}))
+            if source == "atmo" and not areas:
+                errors["base"] = "atmo_missing"
+            elif source == "legacy" and not legacy:
+                errors["base"] = "polleninformation_missing"
+            else:
+                self.sources["pollen_source"] = source
+                if source == "atmo" and not self.sources.get("atmo_area"):
+                    return await self.async_step_pollen_area()
+                self._apply_atmo()
+                if source == "legacy":
+                    return await self.async_step_pollen_sensors()
+                return await self._done("pollen")
+        missing = " — pas encore installée"
+        options = [SelectOptionDict(value="atmo", label="Atmo France" + ("" if areas else missing)),
+                   SelectOptionDict(value="legacy", label="Polleninformation" + ("" if legacy else missing)),
+                   SelectOptionDict(value=NONE, label="Pas de pollens")]
+        current = (user_input or {}).get("pollen_source") or self.sources.get("pollen_source") or ("atmo" if areas else "legacy" if legacy else NONE)
+        schema = vol.Schema({vol.Required("pollen_source"): SelectSelector(SelectSelectorConfig(options=options, mode=SelectSelectorMode.LIST))})
+        return self.async_show_form(step_id="pollen", data_schema=self.add_suggested_values_to_schema(schema, {"pollen_source": current}),  # type: ignore[attr-defined]
+                                    errors=errors)
 
     async def async_step_pollen_area(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Atmo pollens without Atmo air: their zone."""

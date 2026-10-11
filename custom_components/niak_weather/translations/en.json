@@ -132,7 +132,7 @@
       },
       "air_quality": {
         "title": "Step 3 of 4 · Air quality",
-        "description": "Your town’s air index and its pollutants, published by Atmo France. « None »: no air quality.",
+        "description": "Your town’s air index and its pollutants, published by Atmo France. « None »: no air quality.{hint}",
         "data": {
           "atmo_area": "Atmo France zone"
         }
@@ -151,6 +151,10 @@
           "atmo_area": "Atmo France zone"
         }
       }
+    },
+    "error": {
+      "atmo_missing": "Atmo France is not installed. Install the Atmo France integration (github.com/sebcaps/atmofrance), then come back.",
+      "polleninformation_missing": "Polleninformation is not installed. Install the Polleninformation EU integration (github.com/krissen/polleninformation), then come back."
     }
   },
   "options": {
@@ -291,7 +295,7 @@
       },
       "air_quality": {
         "title": "Air quality",
-        "description": "Your town’s air index and its pollutants, published by Atmo France. « None »: no air quality.",
+        "description": "Your town’s air index and its pollutants, published by Atmo France. « None »: no air quality.{hint}",
         "data": {
           "atmo_area": "Atmo France zone"
         }
@@ -310,6 +314,10 @@
           "atmo_area": "Atmo France zone"
         }
       }
+    },
+    "error": {
+      "atmo_missing": "Atmo France is not installed. Install the Atmo France integration (github.com/sebcaps/atmofrance), then come back.",
+      "polleninformation_missing": "Polleninformation is not installed. Install the Polleninformation EU integration (github.com/krissen/polleninformation), then come back."
     }
   },
   "selector": {
