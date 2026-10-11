@@ -23,13 +23,13 @@ Un guide en quatre étapes, chacune préremplie avec ce que Home Assistant conna
 0. **Bienvenue** : ce que fait Niak Weather et ce qu’il faut. Si vous aviez déjà la carte, **Reprendre les réglages d’une carte** : ils sont affichés à chaque étape, pour vérification.
 1. **Météo** : l’entité météo, le nom du lieu, la vigilance, la saison.
 2. **Station météo** : le modèle reconnu, puis chaque capteur. Laissez vide ce que la station ne mesure pas.
-3. **Qualité de l’air et pollens** : la commune Atmo France, et la source des pollens. Avec Polleninformation, vous choisissez ensuite ses capteurs.
+3. **Qualité de l’air**, puis **Pollens** : la commune Atmo France pour l’air (ou aucune), puis la source des pollens : Atmo France, Polleninformation ou aucune. Avec Polleninformation, vous choisissez ensuite ses capteurs.
 4. **Capteurs et automatisations** : les familles d’entités à activer (Maintenant, Alertes, Prochaines heures, Jardin…).
 5. **Récapitulatif** : ce qui a été trouvé, et ce qui manque à certaines entités (un capteur UV, Atmo France…).
 
 **Un champ laissé vide est un choix** : il n’est jamais rempli à votre place ensuite.
 
-**Configurer** ouvre un menu qui reste ouvert : Météo, Station, Air et pollens, Capteurs et automatisations. Chaque partie se change puis revient au menu ; rien n’est enregistré avant **Enregistrer et fermer**. L’écran **Capteurs et automatisations** active ou désactive chaque entité, rangée par famille. Plusieurs lieux ? Ajoutez l’intégration une fois par lieu.
+**Configurer** ouvre un menu qui reste ouvert : Météo, Station, Qualité de l’air et pollens (un sous-menu : l’air d’un côté, les pollens de l’autre), Capteurs et automatisations. Chaque partie se change puis revient au menu ; rien n’est enregistré avant **Enregistrer et fermer**. L’écran **Capteurs et automatisations** active ou désactive chaque entité, rangée par famille. Plusieurs lieux ? Ajoutez l’intégration une fois par lieu.
 
 ## Météo-France — ciel et prévisions
 
@@ -106,6 +106,7 @@ Les clés sont les mêmes que dans le YAML de la carte avant la 2.0 : les régla
 | `atmo_area` | Commune Atmo France |
 | `atmo_<mesure>_entity`, `atmo_<mesure>_tomorrow_entity` | Les mesures Atmo du jour et de demain (`air`, `pm25`, `grass`, `grass_concentration`…) |
 | `pollen_source` | `atmo`, `legacy` (Polleninformation) ou `none` |
+| `air_source` | `none` : pas de qualité de l’air, même si la zone Atmo sert aux pollens |
 | `pollens`, `pollen_risk_entity` | Les capteurs Polleninformation : les espèces suivies, le risque d’allergie global |
 | `families` | Les familles d’entités choisies à l’installation (elles décident des entités activées au départ) |
 

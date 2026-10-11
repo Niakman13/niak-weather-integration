@@ -49,7 +49,7 @@ Un guide en quatre étapes, puis un récapitulatif :
 
 1. **Météo** : l’entité météo, le nom du lieu, la vigilance, la saison.
 2. **Station météo** : le modèle (GW2000A, WS90 ou autre), puis chaque capteur.
-3. **Qualité de l’air et pollens** : Atmo France, ou Polleninformation pour les pollens.
+3. **Qualité de l’air**, puis **Pollens** : l’air d’Atmo France, et les pollens d’Atmo France ou de Polleninformation.
 4. **Capteurs et automatisations** : les familles d’entités à activer.
 
 Vous utilisez déjà la carte Niak Weather ? Le guide propose de reprendre ses réglages. Un champ laissé vide est un choix : il n’est jamais rempli à votre place.

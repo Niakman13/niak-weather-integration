@@ -108,14 +108,6 @@
           }
         }
       },
-      "air": {
-        "title": "Étape 3 sur 4 · Qualité de l’air et pollens",
-        "description": "L’air et les pollens de votre commune avec Atmo France. Pour les pollens, Polleninformation est aussi possible : vous choisirez ses capteurs juste après.",
-        "data": {
-          "atmo_area": "Zone Atmo France",
-          "pollen_source": "Pollens"
-        }
-      },
       "pollen_sensors": {
         "title": "Étape 3 sur 4 · Capteurs Polleninformation",
         "description": "Les espèces à suivre et le risque d’allergie global. Niak les a proposés : vérifiez, ajoutez ou retirez.",
@@ -136,7 +128,28 @@
       },
       "summary": {
         "title": "Récapitulatif",
-        "description": "**Météo** : {weather}\n**Station** : {station}\n**Air et pollens** : {air}\n**Familles de capteurs** : {families}\n\nÀ savoir :\n{missing}\n\nValidez pour créer le lieu. Tout se modifie ensuite dans **Configurer**. Le détail de chaque capteur : [la documentation](https://github.com/Niakman13/niak-weather-integration/blob/main/docs/capteurs.md)."
+        "description": "**Météo** : {weather}\n**Station** : {station}\n**Qualité de l’air** : {air}\n**Pollens** : {pollen}\n**Familles de capteurs** : {families}\n\nÀ savoir :\n{missing}\n\nValidez pour créer le lieu. Tout se modifie ensuite dans **Configurer**. Le détail de chaque capteur : [la documentation](https://github.com/Niakman13/niak-weather-integration/blob/main/docs/capteurs.md)."
+      },
+      "air_quality": {
+        "title": "Étape 3 sur 4 · Qualité de l’air",
+        "description": "L’indice de l’air de votre commune et ses polluants, publiés par Atmo France. « Aucune » : pas de qualité de l’air.",
+        "data": {
+          "atmo_area": "Zone Atmo France"
+        }
+      },
+      "pollen": {
+        "title": "Étape 3 sur 4 · Pollens",
+        "description": "D’où viennent les pollens : Atmo France (indice de 1 à 6) ou Polleninformation (niveaux de 0 à 4). Avec Polleninformation, vous choisirez ses capteurs juste après.",
+        "data": {
+          "pollen_source": "Source des pollens"
+        }
+      },
+      "pollen_area": {
+        "title": "Étape 3 sur 4 · Zone Atmo des pollens",
+        "description": "La commune Atmo France dont Niak lira les pollens.",
+        "data": {
+          "atmo_area": "Zone Atmo France"
+        }
       }
     }
   },
@@ -144,7 +157,7 @@
     "step": {
       "init": {
         "title": "Niak Weather",
-        "description": "**Météo** : {weather}\n**Station** : {station}\n**Air et pollens** : {air}\n**Capteurs** : {entities}\n\nChangez ce que vous voulez : rien n’est enregistré avant « Enregistrer et fermer ».",
+        "description": "**Météo** : {weather}\n**Station** : {station}\n**Qualité de l’air** : {air}\n**Pollens** : {pollen}\n**Capteurs** : {entities}\n\nChangez ce que vous voulez : rien n’est enregistré avant « Enregistrer et fermer ».",
         "menu_options": {
           "weather": "Météo",
           "station": "Station météo",
@@ -244,10 +257,11 @@
       },
       "air": {
         "title": "Qualité de l’air et pollens",
-        "description": "L’air et les pollens de votre commune avec Atmo France. Pour les pollens, Polleninformation est aussi possible : vous choisirez ses capteurs juste après.",
-        "data": {
-          "atmo_area": "Zone Atmo France",
-          "pollen_source": "Pollens"
+        "description": "**Qualité de l’air** : {air}\n**Pollens** : {pollen}",
+        "menu_options": {
+          "air_quality": "Qualité de l’air",
+          "pollen": "Pollens",
+          "init": "Retour au menu"
         }
       },
       "pollen_sensors": {
@@ -273,6 +287,27 @@
           "energie": "Énergie",
           "vie_pratique": "Vie pratique",
           "meteo": "Entité météo"
+        }
+      },
+      "air_quality": {
+        "title": "Qualité de l’air",
+        "description": "L’indice de l’air de votre commune et ses polluants, publiés par Atmo France. « Aucune » : pas de qualité de l’air.",
+        "data": {
+          "atmo_area": "Zone Atmo France"
+        }
+      },
+      "pollen": {
+        "title": "Pollens",
+        "description": "D’où viennent les pollens : Atmo France (indice de 1 à 6) ou Polleninformation (niveaux de 0 à 4). Avec Polleninformation, vous choisirez ses capteurs juste après.",
+        "data": {
+          "pollen_source": "Source des pollens"
+        }
+      },
+      "pollen_area": {
+        "title": "Zone Atmo des pollens",
+        "description": "La commune Atmo France dont Niak lira les pollens.",
+        "data": {
+          "atmo_area": "Zone Atmo France"
         }
       }
     }
