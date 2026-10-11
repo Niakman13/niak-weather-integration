@@ -18,11 +18,11 @@ from homeassistant.helpers.selector import (BooleanSelector, EntitySelector, Ent
                                             SelectSelectorConfig, SelectSelectorMode, TextSelector)
 
 from .const import CARD_TYPE, DOMAIN, LOGGER
-from .engine import atmo, detection
+from .engine import atmo, detection, families, polleninfo
 from .engine.settings import ATMO_KEYS, Settings
 from .engine.view import place_name
 
-SETTING_KEYS = frozenset({f.name for f in fields(Settings)} - {"atmo"}) | frozenset(ATMO_KEYS)
+SETTING_KEYS = frozenset({f.name for f in fields(Settings)} - {"atmo"}) | frozenset(ATMO_KEYS) | {"families"}
 NONE = "none"
 
 
@@ -188,7 +188,7 @@ class _SourceSteps:
     async def async_step_air(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         states, registry, devices = _context(self.hass)
         areas = atmo.areas(states, registry, devices)
-        legacy = any(s.entity_id.startswith("sensor.polleninformation_") for s in states)
+        legacy = bool(polleninfo.candidates(states, registry)[0])
         if user_input is None and not areas and not legacy:
             return await self._done("air")
         if user_input is not None:
@@ -199,6 +199,8 @@ class _SourceSteps:
             self.sources["pollen_source"] = source
             if area != NONE or source == "legacy":
                 self.sources = detection.fill(states, registry, devices, self.sources, "atmo")
+            if source == "legacy":
+                return await self.async_step_pollen_sensors()
             return await self._done("air")
         filled = detection.fill(states, registry, devices, self.sources, "atmo")
         choices = [*(["atmo"] if areas else []), *(["legacy"] if legacy else []), NONE]
@@ -211,6 +213,41 @@ class _SourceSteps:
         source = filled.get("pollen_source") or ("atmo" if areas else "legacy" if legacy else NONE)
         suggested = {"atmo_area": filled.get("atmo_area") or NONE, "pollen_source": source if source in choices else NONE}
         return self.async_show_form(step_id="air", data_schema=self.add_suggested_values_to_schema(schema, suggested))  # type: ignore[attr-defined]
+
+    async def async_step_pollen_sensors(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Polleninformation: its species sensors and its overall allergy risk, proposed, to check or change."""
+        states, registry, _ = _context(self.hass)
+        species, risks = polleninfo.candidates(states, registry)
+        if user_input is not None:
+            by_id = {s.entity_id: s for s in states}
+            self.sources["pollens"] = [polleninfo.pollen_option(i, by_id.get(i)) for i in user_input.get("pollens") or []]
+            self.sources["pollen_risk_entity"] = user_input.get("pollen_risk_entity") or ""
+            return await self._done("air")
+        chosen = [p.get("id") for p in self.sources.get("pollens") or [] if isinstance(p, dict)]
+        schema = vol.Schema({
+            vol.Optional("pollens"): EntitySelector(EntitySelectorConfig(domain="sensor", multiple=True, include_entities=sorted(set(species) | set(chosen)))),
+            vol.Optional("pollen_risk_entity"): EntitySelector(EntitySelectorConfig(domain="sensor", include_entities=sorted(set(risks) | (
+                {self.sources["pollen_risk_entity"]} if self.sources.get("pollen_risk_entity") else set())))),
+        })
+        suggested = {"pollens": chosen, **({"pollen_risk_entity": self.sources["pollen_risk_entity"]} if self.sources.get("pollen_risk_entity") else {})}
+        return self.async_show_form(step_id="pollen_sensors", data_schema=self.add_suggested_values_to_schema(schema, suggested))  # type: ignore[attr-defined]
+
+    def _summary(self) -> dict[str, str]:
+        """One line per part, for the menu and the last step: what is set, in a few words."""
+        s, get = self.sources, self.hass.states.get
+        weather = get(s.get("weather_entity") or "")
+        station = [f for f in detection.STATION_FIELDS if s.get(f)]
+        model = {"gw2000a": "GW2000A", "ws90": "WS90", "manual": "Station"}.get(s.get("station_model") or "", "")
+        count = len(s.get("pollens") or [])
+        pollens = {"atmo": "pollens Atmo France", "legacy": f"pollens Polleninformation ({count} espèce{'s' if count > 1 else ''})"}.get(
+            s.get("pollen_source") or "", "sans pollens")
+        area = next((a["label"] for a in atmo.areas(self.hass.states.async_all(), _context(self.hass)[1]) if a["value"] == s.get("atmo_area")), "")
+        return {
+            "weather": (str(weather.attributes.get("friendly_name") or s.get("weather_entity")) if weather else "à choisir")
+                       + (" · vigilance" if s.get("vigilance_entity") else ""),
+            "station": f"{model + ' · ' if model else ''}{len(station)} capteur{'s' if len(station) > 1 else ''}" if station else "pas de station",
+            "air": f"Atmo France {area} · {pollens}" if area else pollens[:1].upper() + pollens[1:],
+        }
 
     def _title(self) -> str:
         weather = self.hass.states.get(self.sources.get("weather_entity") or "")
@@ -230,10 +267,9 @@ class NiakWeatherConfigFlow(_SourceSteps, ConfigFlow, domain=DOMAIN):
         return NiakWeatherOptionsFlow()
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Welcome: what Niak Weather does and the four steps; an existing card's settings can be the starting point."""
         self._cards = await find_cards(self.hass)
-        if self._cards:
-            return self.async_show_menu(step_id="user", menu_options=["import_card", "weather"])
-        return await self.async_step_weather()
+        return self.async_show_menu(step_id="user", menu_options=["import_card", "weather"] if self._cards else ["weather"])
 
     async def async_step_import_card(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Start from a card's settings: each step then shows them, to check before saving."""
@@ -249,17 +285,96 @@ class NiakWeatherConfigFlow(_SourceSteps, ConfigFlow, domain=DOMAIN):
             return await self.async_step_station()
         if step == "station_sensors":
             return await self.async_step_air()
-        return self.async_create_entry(title=self._title(), data={}, options=_clean(self.sources))
+        return await self.async_step_families()
+
+    async def async_step_families(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Step 4: which families of entities to start with; each can be changed later, entity by entity."""
+        if user_input is not None:
+            self.sources["families"] = list(user_input.get("families") or [])
+            return await self.async_step_summary()
+        schema = vol.Schema({vol.Optional("families"): SelectSelector(SelectSelectorConfig(
+            options=[f for f, _ in families.FAMILIES], multiple=True, mode=SelectSelectorMode.LIST, translation_key="family"))})
+        return self.async_show_form(step_id="families", data_schema=self.add_suggested_values_to_schema(  # type: ignore[attr-defined]
+            schema, {"families": self.sources.get("families", list(families.DEFAULT_FAMILIES))}))
+
+    async def async_step_summary(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """The last look before creating: what was found, and what some entities still need."""
+        if user_input is not None:
+            return self.async_create_entry(title=self._title(), data={}, options=_clean(self.sources))
+        settings = Settings.from_options(_clean(self.sources))
+        chosen = set(self.sources.get("families") or [])
+        missing = [f"{key_name(k)} : il faut {text}" for k, text in families.needs(settings).items() if families.family_of(k) in chosen]
+        return self.async_show_form(step_id="summary", data_schema=vol.Schema({}), description_placeholders={  # type: ignore[attr-defined]
+            **self._summary(), "families": ", ".join(FAMILY_NAMES[f] for f, _ in families.FAMILIES if f in chosen) or "aucune", "missing": "\n".join(f"- {m}" for m in missing) or "- Rien : tout ce qui est choisi a sa source."})
 
 
 class NiakWeatherOptionsFlow(_SourceSteps, OptionsFlow):
-    """Change one part at a time: the weather service, the station or the air quality."""
+    """A menu that stays open: each part is changed and checked, then everything is saved at once."""
+
+    _started = False
+    _enabled: set[str] | None = None
+    """The entities chosen in « Capteurs et automatisations », by key; None while that screen was not used."""
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        self.sources = dict(self.config_entry.options)
-        return self.async_show_menu(step_id="init", menu_options=["weather", "station", "air"])
+        if not self._started:
+            self._started, self.sources = True, dict(self.config_entry.options)
+        entries = self._entities()
+        enabled = self._enabled if self._enabled is not None else {k for k, e in entries.items() if e.disabled_by is None}
+        return self.async_show_menu(step_id="init", menu_options=["weather", "station", "air", "entities", "save"],
+                                    description_placeholders={**self._summary(), "entities": f"{len(enabled)} actives sur {len(entries)}"})
 
     async def _done(self, step: str) -> ConfigFlowResult:
-        if step == "weather" and self._title() != self.config_entry.title:
+        return await self.async_step_init()
+
+    def _entities(self) -> dict[str, er.RegistryEntry]:
+        """This place's entities by key (the end of their unique id)."""
+        prefix = f"{self.config_entry.entry_id}_"
+        return {e.unique_id.removeprefix(prefix): e for e in er.async_entries_for_config_entry(er.async_get(self.hass), self.config_entry.entry_id)
+                if e.unique_id.startswith(prefix)}
+
+    async def async_step_entities(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Every entity, by family, ticked when it is enabled; what an entity still needs is said above."""
+        entries = self._entities()
+        if user_input is not None:
+            self._enabled = {key for family, _ in families.FAMILIES for key in user_input.get(family) or []}
+            return await self.async_step_init()
+        enabled = self._enabled if self._enabled is not None else {k for k, e in entries.items() if e.disabled_by is None}
+        schema: dict[Any, Any] = {}
+        suggested: dict[str, list[str]] = {}
+        for family, keys in families.FAMILIES:
+            present = [k for k in keys if k in entries]
+            if present:
+                schema[vol.Optional(family)] = SelectSelector(SelectSelectorConfig(options=present, multiple=True, mode=SelectSelectorMode.LIST,
+                                                                                   translation_key="entity"))
+                suggested[family] = [k for k in present if k in enabled]
+        needs = families.needs(Settings.from_options(_clean(self.sources)))
+        notes = "\n".join(f"- {key_name(k)} : il faut {text}" for k, text in needs.items() if k in entries) or "- Chaque entité a sa source."
+        return self.async_show_form(step_id="entities", data_schema=self.add_suggested_values_to_schema(vol.Schema(schema), suggested),  # type: ignore[attr-defined]
+                                    description_placeholders={"needs": notes})
+
+    async def async_step_save(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Everything at once: the entities switched on or off, the place's name, then the settings (which restart the place)."""
+        if self._enabled is not None:
+            registry = er.async_get(self.hass)
+            for key, entry in self._entities().items():
+                if key in self._enabled and entry.disabled_by is not None:
+                    registry.async_update_entity(entry.entity_id, disabled_by=None)
+                elif key not in self._enabled and entry.disabled_by is None:
+                    registry.async_update_entity(entry.entity_id, disabled_by=er.RegistryEntryDisabler.USER)
+            # Enabled entities appear once the place restarts, even when no setting changed.
+            self.hass.config_entries.async_schedule_reload(self.config_entry.entry_id)
+        if self._title() != self.config_entry.title:
             self.hass.config_entries.async_update_entry(self.config_entry, title=self._title())
         return self.async_create_entry(data=_clean(self.sources))
+
+
+def key_name(key: str) -> str:
+    """An entity's French name, for the notes of the settings."""
+    return KEY_NAMES.get(key, key)
+
+
+FAMILY_NAMES = {"maintenant": "Maintenant", "alertes": "Alertes", "prochaines_heures": "Prochaines heures", "jardin": "Jardin",
+                "batiment": "Bâtiment", "energie": "Énergie", "vie_pratique": "Vie pratique", "meteo": "Entité météo"}
+KEY_NAMES = {"vigilance": "Vigilance", "uv_fort": "UV forts", "pluie_7j": "Pluie des 7 jours", "rain_24h": "Pluie sur 24 h",
+             "pressure_trend": "Tendance de la pression", "max_gust_today": "Rafale maximale du jour", "temperature_trend": "Tendance de la température",
+             "qualite_air": "Qualité de l’air", "pollens": "Pollens"}

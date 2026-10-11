@@ -26,7 +26,7 @@ Il y a cinq façons de s’en servir :
 
 Une donnée manquante donne **inconnu**, jamais « pas de pluie » ou « pas d’alerte ».
 
-Les entités marquées « à activer » existent mais sont désactivées au départ. Pour en activer une : **Paramètres → Appareils et services → Niak Weather → Entités**, puis ouvrez-la et activez-la.
+Les entités marquées « à activer » existent mais sont désactivées au départ. Pour en activer : **Paramètres → Appareils et services → Niak Weather → Configurer → Capteurs et automatisations**. Tout y est rangé par famille, et l’écran dit ce qui manque à certaines (un capteur UV, Atmo France…). À la première installation, les familles choisies décident de ce qui est activé.
 
 ## Maintenant
 
@@ -104,7 +104,7 @@ L’évapotranspiration et le bilan hydrique arriveront avec le chantier de l’
 | `sensor.niak_weather_sechage_linge` · *à activer* | Excellent, bon, moyen, mauvais ou impossible, et jusqu’à quand | « Bon moment pour étendre » |
 | `binary_sensor.niak_weather_givre_pare_brise` · *à activer* | Givre attendu au plus froid de la nuit | Rappel la veille du trajet |
 | `sensor.niak_weather_qualite_air` · *à activer* | L’indice Atmo du jour (1 à 6), le polluant principal en attribut | Ne pas aérer, purificateur |
-| `sensor.niak_weather_pollens` · *à activer* | L’indice pollens Atmo du jour (1 à 6) | Fermer les fenêtres, prévenir les allergiques |
+| `sensor.niak_weather_pollens` · *à activer* | L’indice pollens du jour : Atmo (1 à 6) ou Polleninformation (0 à 4, l’échelle est en attribut) | Fermer les fenêtres, prévenir les allergiques |
 
 ## L’évènement `niak_weather_alerte`
 

@@ -16,7 +16,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .coordinator import NiakWeatherConfigEntry, NiakWeatherCoordinator
 from .engine.catalogue import CONDITIONS
 from .engine.units import Kind, finite, measurement
-from .sensor import device_info, device_name, prefix
+from .sensor import device_info, device_name, first_enabled, prefix
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: NiakWeatherConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
@@ -26,8 +26,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: NiakWeatherConfigEntry, 
 class NiakWeatherEntity(CoordinatorEntity[NiakWeatherCoordinator], WeatherEntity):
     _attr_has_entity_name = True
     _attr_name = None
-    # Off at first: a second weather entity in every picker would confuse more than help, until it is wanted.
-    _attr_entity_registry_enabled_default = False
     _attr_native_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_native_pressure_unit = UnitOfPressure.HPA
     _attr_native_wind_speed_unit = UnitOfSpeed.KILOMETERS_PER_HOUR
@@ -39,6 +37,8 @@ class NiakWeatherEntity(CoordinatorEntity[NiakWeatherCoordinator], WeatherEntity
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_weather"
         self.entity_id = f"weather.{prefix}"
         self._attr_device_info = device_info(coordinator, device)
+        # Off at first unless chosen at setup: a second weather entity in every picker would confuse more than help, until it is wanted.
+        self._attr_entity_registry_enabled_default = first_enabled(coordinator, "weather", False)
         self._forecast_version = coordinator.forecast_version
 
     @property

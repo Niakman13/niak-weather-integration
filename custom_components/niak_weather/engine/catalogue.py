@@ -10,7 +10,7 @@ from datetime import date, datetime, timedelta
 from typing import Any, Callable, Mapping, Sequence
 from zoneinfo import ZoneInfo
 
-from . import atmo
+from . import atmo, polleninfo
 from .brief import COLOR_NAMES, Brief, number, read_vigilance
 from .feel import STORMY, normalise_condition
 from .forecast import Day, Hour
@@ -397,7 +397,8 @@ def build_catalogue(w: LocalWeather, brief: Brief, derived: Derived | None, sett
 
     items["qualite_air"] = _atmo(get, settings, "air", atmo.POLLUTANT_METRICS, now, zone)
     items["pollens"] = (_atmo(get, settings, "pollen", atmo.POLLEN_METRICS, now, zone) if settings.pollen_source not in ("none", "legacy")
-                        else Item(None, "Pollens Atmo France non configurés", "atmo"))
+                        else _polleninformation(get, settings, now, zone) if settings.pollen_source == "legacy"
+                        else Item(None, "Pas de source de pollens", "atmo"))
     return items
 
 
@@ -434,6 +435,19 @@ def _drying(w: LocalWeather, raining: Item, upcoming: Sequence[Hour], now: datet
     if wind is not None:
         words.append("sans vent" if wind < 5 else "léger vent" if wind < 20 else "bon vent" if wind <= 40 else "trop de vent")
     return Item("excellent" if score >= 5 else "bon" if score >= 3 else "moyen", f"Jusqu’à {hour_text(until, zone)} : {', '.join(words)}", source, end=until)
+
+
+def _polleninformation(get: Callable[[str], Any], settings: Settings, now: datetime, zone: ZoneInfo) -> Item:
+    """Polleninformation's level of the day, on its own scale of 0 to 4, and the species that weighs most."""
+    if not settings.pollens and not settings.pollen_risk_entity:
+        return Item(None, "Capteurs Polleninformation non choisis", "polleninformation")
+    value, main = polleninfo.worst(*polleninfo.readings(get, settings, False, now, zone))
+    if value is None:
+        return Item(None, "Polleninformation indisponible", "polleninformation")
+    tomorrow, _ = polleninfo.worst(*polleninfo.readings(get, settings, True, now, zone))
+    word = polleninfo.WORDS[value]
+    return Item(value, f"{word} ({value}/4)" + (f" · {main}" if main else ""), "polleninformation",
+                extra={"libelle": word, "principal": main, "echelle": polleninfo.SCALE, "demain": tomorrow})
 
 
 def _atmo(get: Callable[[str], Any], settings: Settings, kind: str, metrics: Sequence[str], now: datetime, zone: ZoneInfo) -> Item:

@@ -5,11 +5,11 @@
     },
     "step": {
       "user": {
-        "title": "Niak Weather",
-        "description": "Des cartes Niak Weather sont déjà sur vos tableaux de bord. Vous pouvez reprendre leurs réglages.",
+        "title": "Bienvenue dans Niak Weather",
+        "description": "Niak Weather est le cerveau de la météo chez vous : il lit vos prévisions, votre station et la qualité de l’air, puis calcule ce qu’ils veulent dire.\n\nQuatre étapes, chacune déjà remplie avec ce que Home Assistant connaît :\n1. **Météo** : la source des prévisions (Météo-France conseillé).\n2. **Station** : vos capteurs, si vous en avez.\n3. **Air et pollens** : Atmo France ou Polleninformation, facultatif.\n4. **Capteurs** : ce que vous voulez pour vos automatisations.\n\nTout se modifie ensuite dans **Configurer**.",
         "menu_options": {
-          "import_card": "Reprendre les réglages d’une carte",
-          "weather": "Tout configurer"
+          "import_card": "Reprendre les réglages d’une carte Niak Weather",
+          "weather": "Commencer"
         }
       },
       "import_card": {
@@ -20,7 +20,7 @@
         }
       },
       "weather": {
-        "title": "Météo",
+        "title": "Étape 1 sur 4 · Météo",
         "description": "La source des prévisions et le nom du lieu.",
         "data": {
           "weather_entity": "Prévisions météo",
@@ -46,7 +46,7 @@
         }
       },
       "station": {
-        "title": "Station météo",
+        "title": "Étape 2 sur 4 · Station météo",
         "description": "Station reconnue : {profile}. Capteurs trouvés : {recognized}.",
         "data": {
           "station_model": "Modèle",
@@ -58,7 +58,7 @@
         }
       },
       "station_sensors": {
-        "title": "Capteurs de la station",
+        "title": "Étape 2 sur 4 · Capteurs de la station",
         "description": "Vérifiez chaque capteur. Laissez vide ce que la station ne mesure pas.",
         "sections": {
           "station_temperature": {
@@ -109,12 +109,34 @@
         }
       },
       "air": {
-        "title": "Qualité de l’air et pollens",
-        "description": "Les données Atmo France de votre commune.",
+        "title": "Étape 3 sur 4 · Qualité de l’air et pollens",
+        "description": "L’air et les pollens de votre commune avec Atmo France. Pour les pollens, Polleninformation est aussi possible : vous choisirez ses capteurs juste après.",
         "data": {
           "atmo_area": "Zone Atmo France",
           "pollen_source": "Pollens"
         }
+      },
+      "pollen_sensors": {
+        "title": "Étape 3 sur 4 · Capteurs Polleninformation",
+        "description": "Les espèces à suivre et le risque d’allergie global. Niak les a proposés : vérifiez, ajoutez ou retirez.",
+        "data": {
+          "pollens": "Espèces",
+          "pollen_risk_entity": "Risque d’allergie global"
+        },
+        "data_description": {
+          "pollen_risk_entity": "Facultatif. Sans lui, Niak retient l’espèce la plus élevée."
+        }
+      },
+      "families": {
+        "title": "Étape 4 sur 4 · Capteurs et automatisations",
+        "description": "Cochez ce que vous voulez utiliser. Les entités de ces familles seront activées, si leur source est là. Chaque entité se règle ensuite une par une dans **Configurer**.",
+        "data": {
+          "families": "Familles"
+        }
+      },
+      "summary": {
+        "title": "Récapitulatif",
+        "description": "**Météo** : {weather}\n**Station** : {station}\n**Air et pollens** : {air}\n**Familles de capteurs** : {families}\n\nÀ savoir :\n{missing}\n\nValidez pour créer le lieu. Tout se modifie ensuite dans **Configurer**. Le détail de chaque capteur : [la documentation](https://github.com/Niakman13/niak-weather-integration/blob/main/docs/capteurs.md)."
       }
     }
   },
@@ -122,10 +144,13 @@
     "step": {
       "init": {
         "title": "Niak Weather",
+        "description": "**Météo** : {weather}\n**Station** : {station}\n**Air et pollens** : {air}\n**Capteurs** : {entities}\n\nChangez ce que vous voulez : rien n’est enregistré avant « Enregistrer et fermer ».",
         "menu_options": {
           "weather": "Météo",
           "station": "Station météo",
-          "air": "Qualité de l’air et pollens"
+          "air": "Qualité de l’air et pollens",
+          "entities": "Capteurs et automatisations",
+          "save": "Enregistrer et fermer"
         }
       },
       "weather": {
@@ -219,10 +244,35 @@
       },
       "air": {
         "title": "Qualité de l’air et pollens",
-        "description": "Les données Atmo France de votre commune.",
+        "description": "L’air et les pollens de votre commune avec Atmo France. Pour les pollens, Polleninformation est aussi possible : vous choisirez ses capteurs juste après.",
         "data": {
           "atmo_area": "Zone Atmo France",
           "pollen_source": "Pollens"
+        }
+      },
+      "pollen_sensors": {
+        "title": "Capteurs Polleninformation",
+        "description": "Les espèces à suivre et le risque d’allergie global. Niak les a proposés : vérifiez, ajoutez ou retirez.",
+        "data": {
+          "pollens": "Espèces",
+          "pollen_risk_entity": "Risque d’allergie global"
+        },
+        "data_description": {
+          "pollen_risk_entity": "Facultatif. Sans lui, Niak retient l’espèce la plus élevée."
+        }
+      },
+      "entities": {
+        "title": "Capteurs et automatisations",
+        "description": "Cochez les entités à activer, par famille. Une entité décochée disparaît de Home Assistant ; la carte n’en a pas besoin.\n\nÀ savoir :\n{needs}",
+        "data": {
+          "maintenant": "Maintenant",
+          "alertes": "Alertes",
+          "prochaines_heures": "Prochaines heures",
+          "jardin": "Jardin",
+          "batiment": "Bâtiment",
+          "energie": "Énergie",
+          "vie_pratique": "Vie pratique",
+          "meteo": "Entité météo"
         }
       }
     }
@@ -241,6 +291,58 @@
         "atmo": "Atmo France",
         "legacy": "Polleninformation",
         "none": "Pas de pollens"
+      }
+    },
+    "family": {
+      "options": {
+        "maintenant": "Maintenant — ressenti, temps observé, pluie en cours",
+        "alertes": "Alertes — vigilance, orage, vent fort, gel, canicule",
+        "prochaines_heures": "Prochaines heures — pluie à venir, minimale, maximale",
+        "jardin": "Jardin — pluie des 7 jours",
+        "batiment": "Bâtiment — degrés-jours de chauffe et de climatisation",
+        "energie": "Énergie — ensoleillement de demain",
+        "vie_pratique": "Vie pratique — séchage du linge, givre, air, pollens",
+        "meteo": "Entité météo — pour les cartes météo et l’assistant vocal"
+      }
+    },
+    "entity": {
+      "options": {
+        "feels_like": "Ressenti — la température ressentie et ses causes",
+        "temps_observe": "Temps observé — la pluie mesurée passe devant le bulletin",
+        "pluie_en_cours": "Pluie en cours — oui/non",
+        "brouillard": "Brouillard probable — oui/non",
+        "dew_point": "Point de rosée",
+        "frost_point": "Point de givre",
+        "humidex": "Humidex",
+        "pressure_trend": "Tendance de la pression — sur 3 h",
+        "temperature_trend": "Tendance de la température — °C par heure",
+        "rain_24h": "Pluie sur 24 h — tombée",
+        "max_gust_today": "Rafale maximale du jour",
+        "vigilance": "Vigilance Météo-France — verte à rouge",
+        "alert": "Alerte de la station — en un mot",
+        "brief": "En bref — la synthèse et le bulletin du jour",
+        "orage": "Orage proche — oui/non",
+        "vent_fort": "Vent fort — oui/non",
+        "pluie_forte": "Pluie forte — oui/non",
+        "gel": "Gel — oui/non",
+        "canicule": "Canicule — oui/non",
+        "uv_fort": "UV forts — oui/non",
+        "next_rain": "Pluie dans — heures avant la prochaine pluie",
+        "pluie_heure": "Pluie dans l’heure — mm",
+        "pluie_6h": "Pluie prévue sur 6 h — mm",
+        "pluie_24h_prevue": "Pluie prévue sur 24 h — mm",
+        "minimale_nuit": "Minimale de la nuit",
+        "maximale_demain": "Maximale de demain",
+        "rafales_6h": "Rafales max. sur 6 h",
+        "pluie_7j": "Pluie des 7 derniers jours — pour l’arrosage",
+        "degres_jours_chauffe": "Degrés-jours de chauffe — le besoin de chauffage",
+        "degres_jours_clim": "Degrés-jours de climatisation",
+        "ensoleillement_demain": "Ensoleillement de demain — en %",
+        "sechage_linge": "Séchage du linge — bon moment pour étendre ?",
+        "givre_pare_brise": "Givre sur le pare-brise — oui/non",
+        "qualite_air": "Qualité de l’air — indice Atmo",
+        "pollens": "Pollens — indice du jour",
+        "weather": "Entité météo Niak Weather — pour les cartes météo et l’assistant vocal"
       }
     }
   },

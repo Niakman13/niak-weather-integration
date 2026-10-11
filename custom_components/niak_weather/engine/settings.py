@@ -67,6 +67,8 @@ class Settings:
     # Air and pollens
     atmo_area: str | None = None
     pollen_source: str | None = None
+    pollen_risk_entity: str | None = None
+    """Polleninformation's overall allergy risk, next to its species (pollens)."""
     """« atmo », « legacy » (Polleninformation) or « none »; unset means Atmo when an Atmo sensor is configured."""
     atmo: Mapping[str, str] = field(default_factory=dict)
     """Atmo France sensors, by setting key (atmo_pm25_entity…)."""

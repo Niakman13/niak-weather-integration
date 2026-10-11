@@ -11,7 +11,7 @@ from enum import Enum
 from typing import Any, Callable, Mapping, Sequence
 from zoneinfo import ZoneInfo
 
-from . import alerts
+from . import alerts, polleninfo
 from .atmo import METRICS, POLLEN_METRICS, POLLUTANT_METRICS, Reading, read_metric
 from .brief import Brief
 from .bulletin import Bulletin, build_bulletin
@@ -30,9 +30,6 @@ Getter = Callable[[str], Any]
 ROSE = ("N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO")
 WEEKDAYS = ("lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche")
 SHORT_WEEKDAYS = ("Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim")
-POLLEN_WORDS = {"none": 0, "aucun": 0, "low": 1, "faible": 1, "moderate": 2, "modéré": 2, "modere": 2, "high": 3, "élevé": 3, "eleve": 3,
-                "very_high": 4, "très élevé": 4, "tres eleve": 4}
-
 
 @dataclass(frozen=True)
 class Chip:
@@ -173,6 +170,8 @@ class AirPanel:
     details: tuple[AirItem, ...]
     updated: str
     stale: bool
+    scale: int = 6
+    """The top of the index: 6 for Atmo France, 4 for Polleninformation."""
 
 
 @dataclass(frozen=True)
@@ -463,9 +462,7 @@ def _extras(get: Getter, settings: Settings, w: LocalWeather) -> tuple[Chip, ...
             s = get(pollen.entity_id)
             if not available(s):
                 continue
-            raw = str(s.state).lower().strip()
-            number = finite(raw)
-            level = POLLEN_WORDS.get(raw, max(0, min(4, math.floor(number + 0.5))) if number is not None else 0)
+            level = polleninfo.level(s) or 0
             if level > 0:
                 out.append(Chip("level3" if level >= 4 else "level2" if level >= 3 else "level1", pollen.icon or "mdi:flower-pollen",
                                 ("", "faible", "modéré", "élevé", "très élevé")[level], pollen.name or pollen.entity_id, pollen.entity_id))
@@ -501,7 +498,24 @@ def _air(get: Getter, settings: Settings, now: datetime, zone: ZoneInfo, tomorro
             r, c = read(metric), read(f"{metric}_concentration")
             if r is not None or c is not None:
                 species.append(AirItem(name(metric), r if r is not None else c, c if r is not None else None))
-    return (*panel("air", read("air"), pollution), *(panel("pollen", read("pollen"), species) if with_pollen else ()))
+    legacy = settings.pollen_source == "legacy" and bool(settings.pollens or settings.pollen_risk_entity)
+    return (*panel("air", read("air"), pollution), *(panel("pollen", read("pollen"), species) if with_pollen else ()),
+            *(_legacy_pollen(get, settings, now, zone, tomorrow) if legacy else ()))
+
+
+def _legacy_pollen(get: Getter, settings: Settings, now: datetime, zone: ZoneInfo, tomorrow: bool) -> tuple[AirPanel, ...]:
+    """The Polleninformation panel: the overall risk (or the worst species) on its scale of 0 to 4, then each species."""
+    risk, species = polleninfo.readings(get, settings, tomorrow, now, zone)
+    known = [(n, r) for n, r in species if r.value is not None]
+    if risk is None and not known:
+        return ()
+    details = tuple(AirItem(n, r) for n, r in sorted(species, key=lambda x: -(x[1].value or 0)))
+    primary = risk if risk is not None and risk.value is not None else max((r for _, r in known), key=lambda r: r.value or 0, default=None)
+    top = details[0] if details and details[0].reading.value else None
+    worse = top if top is not None and primary is not None and (top.reading.value or 0) > (primary.value or 0) else None
+    readings = [r for r in (primary, *(d.reading for d in details)) if r is not None]
+    return (AirPanel("pollen", tomorrow, " / ".join(dict.fromkeys(r.zone for r in readings if r.zone)), primary, worse, details,
+                     " / ".join(dict.fromkeys(r.updated for r in readings if r.updated)), any(r.stale for r in readings), polleninfo.SCALE),)
 
 
 def _camel(name: str) -> str:

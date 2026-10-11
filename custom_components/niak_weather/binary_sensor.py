@@ -12,7 +12,7 @@ from homeassistant.util import dt as dt_util
 
 from .coordinator import NiakWeatherConfigEntry, NiakWeatherCoordinator
 from .engine.catalogue import ALERTS, Item
-from .sensor import device_info, device_name, item_attributes, prefix
+from .sensor import device_info, device_name, first_enabled, item_attributes, prefix
 
 # Grouped as in the documentation: Maintenant, Alertes, Vie pratique.
 BINARY_SENSORS: tuple[BinarySensorEntityDescription, ...] = (
@@ -42,6 +42,7 @@ class NiakWeatherBinarySensor(CoordinatorEntity[NiakWeatherCoordinator], BinaryS
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_{description.key}"
         self.entity_id = f"binary_sensor.{prefix}_{description.key}"
         self._attr_device_info = device_info(coordinator, device)
+        self._attr_entity_registry_enabled_default = first_enabled(coordinator, description.key, description.entity_registry_enabled_default)
 
     @property
     def _item(self) -> Item | None:

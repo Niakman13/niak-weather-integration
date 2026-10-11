@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any, Callable, Mapping, Sequence
 
-from . import atmo
+from . import atmo, polleninfo
 from .atmo import StateLike, normal
 from .settings import ATMO_KEYS
 
@@ -103,9 +103,13 @@ def function_matches(state: StateLike, field: str, entry: Mapping[str, Any] | No
     return True
 
 
+# Computed values, never taken for station sensors: Thermal Comfort's (humidex, dew point…) and Niak Weather's own.
+DERIVED = ("thermal_comfort", "niak_weather")
+
+
 def _is_thermal(state: StateLike, entry: Mapping[str, Any] | None) -> bool:
-    # Thermal Comfort outputs (humidex, dew point…) are never taken for station sensors: the engine computes them.
-    return (entry or {}).get("platform") == "thermal_comfort" or bool(re.search(r"thermal.*comfort", sensor_text(state, entry)))
+    return ((entry or {}).get("platform") in DERIVED or state.entity_id.startswith(("sensor.niak_weather_", "binary_sensor.niak_weather_"))
+            or bool(re.search(r"thermal.*comfort", sensor_text(state, entry))))
 
 
 def candidates(states: Sequence[StateLike], field: str, registry: Registry, options: Mapping[str, Any] | None = None) -> list[str]:
@@ -151,7 +155,7 @@ def manual_candidates(states: Sequence[StateLike], field: str, registry: Registr
     found = []
     for state in states:
         entry = registry.get(state.entity_id) or {}
-        if not state.entity_id.startswith("sensor.") or entry.get("disabled_by") or entry.get("platform") == "thermal_comfort":
+        if not state.entity_id.startswith("sensor.") or entry.get("disabled_by") or entry.get("platform") in DERIVED:
             continue
         if not function_matches(state, field, entry):
             continue
@@ -169,9 +173,6 @@ def _unique_best(ids: Sequence[str], score: Callable[[str], float]) -> str | Non
         return None
     return ranked[0][0]
 
-
-POLLEN_SPECIES = {"grasses": ("Graminées", "mdi:grass"), "ragweed": ("Ambroisie", "mdi:flower-pollen"), "mugwort": ("Armoise", "mdi:flower-pollen"),
-                  "olive": ("Olivier", "mdi:fruit-cherries"), "birch": ("Bouleau", "mdi:tree-outline"), "alder": ("Aulne", "mdi:tree-outline")}
 
 
 def detect_station(states: Sequence[StateLike], registry: Registry, devices: Devices, options: Mapping[str, Any]) -> dict[str, Any]:
@@ -212,14 +213,8 @@ def detect_station(states: Sequence[StateLike], registry: Registry, devices: Dev
             selected[field] = best
     selected.update(atmo.detect(states, registry, options, devices))
     if options.get("pollens") is None and options.get("pollen_source") == "legacy":
-        groups: dict[str, list[dict[str, str]]] = {}
-        for state in states:
-            match = re.match(r"^sensor\.(polleninformation_.+)_(grasses|ragweed|mugwort|olive|birch|alder)$", state.entity_id)
-            if match:
-                name, icon = POLLEN_SPECIES[match.group(2)]
-                groups.setdefault(match.group(1), []).append({"id": state.entity_id, "nom": name, "ico": icon})
-        if len(groups) == 1:
-            selected["pollens"] = next(iter(groups.values()))
+        found = polleninfo.detect(states, registry)
+        selected.update({k: v for k, v in found.items() if options.get(k) is None})
     return selected
 
 
@@ -294,7 +289,7 @@ def fill(states: Sequence[StateLike], registry: Registry, devices: Devices, opti
     else:
         found = detect_station(states, registry, devices, search)
         keys = [*CATEGORY_FIELDS[category], *(("station_device_id",) if category == "station" else ()),
-                *(("atmo_area", "pollen_source", "pollens") if category == "atmo" else ())]
+                *(("atmo_area", "pollen_source", "pollens", "pollen_risk_entity") if category == "atmo" else ())]
         detected = {k: found[k] for k in keys if k in found and not (k == "station_device_id" and search.get(k) == "")}
         # A chosen generic station can expose renamed sensors through their physical type.
         if category == "station" and search.get("station_device_id"):
@@ -370,7 +365,7 @@ def source_devices(states: Sequence[StateLike], registry: Registry, devices: Dev
     ids: list[str] = []
     for entity_id, entry in registry.items():
         state = by_id.get(entity_id)
-        if state is None or not entry.get("device_id") or entry.get("disabled_by") or entry.get("platform") == "thermal_comfort":
+        if state is None or not entry.get("device_id") or entry.get("disabled_by") or entry.get("platform") in DERIVED:
             continue
         if entity_id in semantic or any(measurement_matches(state, f) for f in STATION_FIELDS):
             ids.append(entry["device_id"])
