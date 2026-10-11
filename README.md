@@ -1,9 +1,9 @@
 # Niak Weather — intégration
 
-[![release](https://img.shields.io/github/v/release/Niakman13/niak-weather-integration)](https://github.com/Niakman13/niak-weather-integration/releases)
+[![release](https://img.shields.io/github/v/release/Niakman13/niak-weather-integration?cacheSeconds=86400)](https://github.com/Niakman13/niak-weather-integration/releases)
 [![Validate](https://github.com/Niakman13/niak-weather-integration/actions/workflows/validate.yml/badge.svg)](https://github.com/Niakman13/niak-weather-integration/actions/workflows/validate.yml)
 [![HACS](https://img.shields.io/badge/HACS-Custom-orange)](https://hacs.xyz)
-[![License](https://img.shields.io/github/license/Niakman13/niak-weather-integration)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 [![Sponsor](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/Niakman13)
 [![Buy me a coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-frankblemont-FFDD00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/frankblemont)
