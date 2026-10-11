@@ -132,7 +132,7 @@
       },
       "air_quality": {
         "title": "Étape 3 sur 4 · Qualité de l’air",
-        "description": "L’indice de l’air de votre commune et ses polluants, publiés par Atmo France. « Aucune » : pas de qualité de l’air.",
+        "description": "L’indice de l’air de votre commune et ses polluants, publiés par Atmo France. « Aucune » : pas de qualité de l’air.{hint}",
         "data": {
           "atmo_area": "Zone Atmo France"
         }
@@ -151,6 +151,10 @@
           "atmo_area": "Zone Atmo France"
         }
       }
+    },
+    "error": {
+      "atmo_missing": "Atmo France n’est pas installée. Installez l’intégration Atmo France (github.com/sebcaps/atmofrance), puis revenez choisir cette source.",
+      "polleninformation_missing": "Polleninformation n’est pas installée. Installez l’intégration Polleninformation EU (github.com/krissen/polleninformation), puis revenez choisir cette source."
     }
   },
   "options": {
@@ -291,7 +295,7 @@
       },
       "air_quality": {
         "title": "Qualité de l’air",
-        "description": "L’indice de l’air de votre commune et ses polluants, publiés par Atmo France. « Aucune » : pas de qualité de l’air.",
+        "description": "L’indice de l’air de votre commune et ses polluants, publiés par Atmo France. « Aucune » : pas de qualité de l’air.{hint}",
         "data": {
           "atmo_area": "Zone Atmo France"
         }
@@ -310,6 +314,10 @@
           "atmo_area": "Zone Atmo France"
         }
       }
+    },
+    "error": {
+      "atmo_missing": "Atmo France n’est pas installée. Installez l’intégration Atmo France (github.com/sebcaps/atmofrance), puis revenez choisir cette source.",
+      "polleninformation_missing": "Polleninformation n’est pas installée. Installez l’intégration Polleninformation EU (github.com/krissen/polleninformation), puis revenez choisir cette source."
     }
   },
   "selector": {
