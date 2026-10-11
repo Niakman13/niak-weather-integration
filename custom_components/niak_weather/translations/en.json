@@ -108,14 +108,6 @@
           }
         }
       },
-      "air": {
-        "title": "Step 3 of 4 · Air quality and pollen",
-        "description": "Air quality and pollen for your town with Atmo France. Polleninformation can also give the pollen: you will choose its sensors next.",
-        "data": {
-          "atmo_area": "Atmo France area",
-          "pollen_source": "Pollen"
-        }
-      },
       "pollen_sensors": {
         "title": "Step 3 of 4 · Polleninformation sensors",
         "description": "The species to follow and the overall allergy risk, proposed by Niak: check, add or remove.",
@@ -136,7 +128,28 @@
       },
       "summary": {
         "title": "Summary",
-        "description": "**Weather**: {weather}\n**Station**: {station}\n**Air and pollen**: {air}\n**Sensor families**: {families}\n\nGood to know:\n{missing}\n\nSubmit to create the place. Everything can be changed later in **Configure**."
+        "description": "**Weather**: {weather}\n**Station**: {station}\n**Air quality**: {air}\n**Pollen**: {pollen}\n**Sensor families**: {families}\n\nGood to know:\n{missing}\n\nSubmit to create the place. Everything can be changed later in **Configure**."
+      },
+      "air_quality": {
+        "title": "Step 3 of 4 · Air quality",
+        "description": "Your town’s air index and its pollutants, published by Atmo France. « None »: no air quality.",
+        "data": {
+          "atmo_area": "Atmo France zone"
+        }
+      },
+      "pollen": {
+        "title": "Step 3 of 4 · Pollen",
+        "description": "Where the pollen comes from: Atmo France (index 1 to 6) or Polleninformation (levels 0 to 4). With Polleninformation, you will choose its sensors next.",
+        "data": {
+          "pollen_source": "Pollen source"
+        }
+      },
+      "pollen_area": {
+        "title": "Step 3 of 4 · Atmo zone for pollen",
+        "description": "The Atmo France town whose pollen Niak reads.",
+        "data": {
+          "atmo_area": "Atmo France zone"
+        }
       }
     }
   },
@@ -144,7 +157,7 @@
     "step": {
       "init": {
         "title": "Niak Weather",
-        "description": "**Weather**: {weather}\n**Station**: {station}\n**Air and pollen**: {air}\n**Sensors**: {entities}\n\nChange what you want: nothing is saved before « Save and close ».",
+        "description": "**Weather**: {weather}\n**Station**: {station}\n**Air quality**: {air}\n**Pollen**: {pollen}\n**Sensors**: {entities}\n\nChange what you want: nothing is saved before « Save and close ».",
         "menu_options": {
           "weather": "Weather",
           "station": "Weather station",
@@ -244,10 +257,11 @@
       },
       "air": {
         "title": "Air quality and pollen",
-        "description": "Air quality and pollen for your town with Atmo France. Polleninformation can also give the pollen: you will choose its sensors next.",
-        "data": {
-          "atmo_area": "Atmo France area",
-          "pollen_source": "Pollen"
+        "description": "**Air quality**: {air}\n**Pollen**: {pollen}",
+        "menu_options": {
+          "air_quality": "Air quality",
+          "pollen": "Pollen",
+          "init": "Back to the menu"
         }
       },
       "pollen_sensors": {
@@ -273,6 +287,27 @@
           "energie": "Energy",
           "vie_pratique": "Everyday",
           "meteo": "Weather entity"
+        }
+      },
+      "air_quality": {
+        "title": "Air quality",
+        "description": "Your town’s air index and its pollutants, published by Atmo France. « None »: no air quality.",
+        "data": {
+          "atmo_area": "Atmo France zone"
+        }
+      },
+      "pollen": {
+        "title": "Pollen",
+        "description": "Where the pollen comes from: Atmo France (index 1 to 6) or Polleninformation (levels 0 to 4). With Polleninformation, you will choose its sensors next.",
+        "data": {
+          "pollen_source": "Pollen source"
+        }
+      },
+      "pollen_area": {
+        "title": "Atmo zone for pollen",
+        "description": "The Atmo France town whose pollen Niak reads.",
+        "data": {
+          "atmo_area": "Atmo France zone"
         }
       }
     }
