@@ -12,7 +12,7 @@ Il y a cinq façons de s’en servir :
 | **Des oui/non** | Prêts à servir de déclencheur ou de condition : `binary_sensor.niak_weather_gel`. |
 | **Un évènement d’alerte** | À chaque alerte qui commence, change ou finit : `niak_weather_alerte`. Une seule automatisation suffit pour toutes les notifications. |
 | **Une action qui répond** | « Quel temps entre 16 h 15 et 17 h ? » : `niak_weather.prevision`. |
-| **Une entité météo** | Le temps vu par votre station, avec les prévisions du fournisseur : `weather.niak_weather`. |
+| **Une entité météo** · *à activer* | Le temps vu par votre station, avec les prévisions du fournisseur : `weather.niak_weather`. |
 
 ## Les mêmes attributs partout
 
@@ -154,7 +154,7 @@ Au-delà des prévisions heure par heure, la réponse vient des prévisions par 
 
 Maintenant : la station (sinon le bulletin), le ressenti de Niak Weather, et le temps observé, où la pluie mesurée chez vous passe devant le bulletin. Prévisions : celles de votre fournisseur, par heure et par jour. Toute carte ou intégration qui accepte une entité météo en profite.
 
-Elle n’est jamais proposée comme source de Niak Weather lui-même.
+Elle est désactivée au départ : activez-la si une carte, un thermostat ou l’assistant vocal doit lire votre station. Elle n’est jamais proposée comme source de Niak Weather lui-même.
 
 ## Les modèles d’automatisation (blueprints)
 
