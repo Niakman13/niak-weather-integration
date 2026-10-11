@@ -235,3 +235,15 @@ def test_recognises_the_long_names_of_a_ws90_behind_zigbee2mqtt() -> None:
                 "wind_bearing_entity": "wind_direction", "rain_rate_entity": "rain_rate", "rain_24h_entity": "precipitations_24h",
                 "pressure_entity": "pressure", "illuminance_entity": "illuminance", "uv_index_entity": "uv_index"}
     assert {k: found.get(k) for k in expected} == {k: prefix + v for k, v in expected.items()}
+
+
+def test_niak_weather_never_offers_its_own_sensors_or_device_as_a_station() -> None:
+    @dataclass
+    class S:
+        entity_id: str
+        state: str
+        attributes: dict = field(default_factory=dict)
+    states = [S("sensor.niak_weather_point_de_rosee", "12", {"unit_of_measurement": "°C", "device_class": "temperature", "friendly_name": "Niak Weather Point de rosée"})]
+    registry = {"sensor.niak_weather_point_de_rosee": {"platform": "niak_weather", "device_id": "niak"}}
+    assert source_devices(states, registry, {"niak": {"name": "Niak Weather"}}) == []
+    assert candidates(states, "dew_point_entity", registry) == []

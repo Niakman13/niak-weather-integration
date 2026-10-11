@@ -16,6 +16,7 @@ from homeassistant.util import slugify
 
 from .const import DOMAIN
 from .coordinator import NiakWeatherConfigEntry, NiakWeatherCoordinator, Snapshot
+from .engine import families
 from .engine.catalogue import CONDITIONS, DRYING, VIGILANCE, Item
 from .engine.feel import Alert
 from .engine.moisture import humidex
@@ -181,6 +182,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: NiakWeatherConfigEntry, 
                         *(CatalogueSensor(entry.runtime_data, description, place, device) for description in CATALOGUE_SENSORS)])
 
 
+def first_enabled(coordinator: NiakWeatherCoordinator, key: str, default: bool) -> bool:
+    """Enabled at first: the families chosen at setup decide, when they were chosen; otherwise the entity's own default."""
+    return families.enabled_at_first(key, coordinator.config_entry.options.get("families"), default, coordinator.settings)
+
+
 def device_info(coordinator: NiakWeatherCoordinator, device: str) -> DeviceInfo:
     return DeviceInfo(identifiers={(DOMAIN, coordinator.config_entry.entry_id)}, name=device, manufacturer="Niakman13", model="Niak Weather",
                       entry_type=DeviceEntryType.SERVICE)
@@ -200,6 +206,7 @@ class NiakWeatherSensor(CoordinatorEntity[NiakWeatherCoordinator], SensorEntity)
         # Only a suggestion: Home Assistant keeps an id the user changed.
         self.entity_id = f"sensor.{prefix}_{OBJECT_IDS[description.key]}"
         self._attr_device_info = device_info(coordinator, device)
+        self._attr_entity_registry_enabled_default = first_enabled(coordinator, description.key, description.entity_registry_enabled_default)
 
     @property
     def native_value(self) -> Any:
@@ -230,6 +237,7 @@ class CatalogueSensor(CoordinatorEntity[NiakWeatherCoordinator], SensorEntity):
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_{description.key}"
         self.entity_id = f"sensor.{prefix}_{description.key}"
         self._attr_device_info = device_info(coordinator, device)
+        self._attr_entity_registry_enabled_default = first_enabled(coordinator, description.key, description.entity_registry_enabled_default)
 
     @property
     def _item(self) -> Item | None:

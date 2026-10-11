@@ -18,12 +18,18 @@ Niak Weather assemble des données **déjà présentes** dans Home Assistant. Il
 
 **Paramètres → Appareils et services → Ajouter une intégration → Niak Weather.**
 
-1. **Reprendre une carte** (si vous aviez déjà la carte Niak Weather) : ses réglages sont repris et affichés à chaque étape, pour vérification. Sinon, **Tout configurer**.
-2. **Météo** : l’entité météo, le nom du lieu, la vigilance, la saison.
-3. **Station météo** : le modèle reconnu, puis chaque capteur. Laissez vide ce que la station ne mesure pas.
-4. **Qualité de l’air et pollens** : la commune Atmo France.
+Un guide en quatre étapes, chacune préremplie avec ce que Home Assistant connaît :
 
-Chaque champ est prérempli avec ce que Home Assistant connaît. **Un champ laissé vide est un choix** : il n’est jamais rempli à votre place ensuite. Tout se modifie dans **Configurer**, une partie à la fois. Plusieurs lieux ? Ajoutez l’intégration une fois par lieu.
+0. **Bienvenue** : ce que fait Niak Weather et ce qu’il faut. Si vous aviez déjà la carte, **Reprendre les réglages d’une carte** : ils sont affichés à chaque étape, pour vérification.
+1. **Météo** : l’entité météo, le nom du lieu, la vigilance, la saison.
+2. **Station météo** : le modèle reconnu, puis chaque capteur. Laissez vide ce que la station ne mesure pas.
+3. **Qualité de l’air et pollens** : la commune Atmo France, et la source des pollens. Avec Polleninformation, vous choisissez ensuite ses capteurs.
+4. **Capteurs et automatisations** : les familles d’entités à activer (Maintenant, Alertes, Prochaines heures, Jardin…).
+5. **Récapitulatif** : ce qui a été trouvé, et ce qui manque à certaines entités (un capteur UV, Atmo France…).
+
+**Un champ laissé vide est un choix** : il n’est jamais rempli à votre place ensuite.
+
+**Configurer** ouvre un menu qui reste ouvert : Météo, Station, Air et pollens, Capteurs et automatisations. Chaque partie se change puis revient au menu ; rien n’est enregistré avant **Enregistrer et fermer**. L’écran **Capteurs et automatisations** active ou désactive chaque entité, rangée par famille. Plusieurs lieux ? Ajoutez l’intégration une fois par lieu.
 
 ## Météo-France — ciel et prévisions
 
@@ -66,7 +72,14 @@ Niak Weather lit, pour aujourd’hui et pour demain, **19 mesures** : l’indice
 - Les concentrations gardent leur unité, sans conversion ni seuil inventé.
 - Ce sont des données de **zone**, pas des mesures du jardin. Une publication de plus de 48 h est signalée.
 
-Les capteurs Polleninformation (ancienne source de pollens) restent lus si vous les aviez, avec leur échelle 0 à 4, mais jamais en double avec Atmo.
+### Polleninformation, l’autre source de pollens
+
+[Polleninformation EU](https://github.com/krissen/polleninformation) donne un capteur par espèce et un risque d’allergie global, aujourd’hui et demain. Choisissez **Polleninformation** dans **Qualité de l’air et pollens** : Niak propose les capteurs de votre lieu, vous vérifiez, ajoutez ou retirez.
+
+- Échelle : **0 (aucun) à 4 (très élevé)**, gardée telle quelle : la carte affiche « Niveau 2 sur 4 ».
+- Le panneau Pollens de la carte, le capteur `sensor.niak_weather_pollens` et la synthèse les utilisent.
+- Le niveau du jour est le risque d’allergie global quand il est choisi, sinon l’espèce la plus élevée.
+- Une seule source de pollens à la fois : Atmo France ou Polleninformation.
 
 ## Historique (Recorder)
 
@@ -93,5 +106,7 @@ Les clés sont les mêmes que dans le YAML de la carte avant la 2.0 : les régla
 | `atmo_area` | Commune Atmo France |
 | `atmo_<mesure>_entity`, `atmo_<mesure>_tomorrow_entity` | Les mesures Atmo du jour et de demain (`air`, `pm25`, `grass`, `grass_concentration`…) |
 | `pollen_source` | `atmo`, `legacy` (Polleninformation) ou `none` |
+| `pollens`, `pollen_risk_entity` | Les capteurs Polleninformation : les espèces suivies, le risque d’allergie global |
+| `families` | Les familles d’entités choisies à l’installation (elles décident des entités activées au départ) |
 
 Les anciens réglages Thermal Comfort sont ignorés : Niak Weather calcule lui-même humidex, point de rosée et point de givre.

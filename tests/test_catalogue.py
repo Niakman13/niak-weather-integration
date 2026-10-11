@@ -218,3 +218,17 @@ def test_rain_tomorrow_in_the_daytime_says_tomorrow() -> None:
     assert c["pluie_6h"].reason == "Sec"
     assert c["pluie_24h_prevue"].value == 6 and c["pluie_24h_prevue"].reason == "Pluie de minuit à 2 h, puis demain de midi à 14 h"
     assert run(evening, {"sensor.t": 15}, hours[:6] + [Hour(time=h.time) for h in hours[6:8]] + hours[8:])["pluie_24h_prevue"].reason == "Pluie demain de midi à 14 h"
+
+
+def test_families_say_what_starts_enabled_and_what_is_missing() -> None:
+    from engine import families
+    bare = Settings.from_options({"weather_entity": "weather.home"})
+    station = Settings.from_options({"weather_entity": "weather.home", "uv_index_entity": "sensor.uv", "pressure_entity": "sensor.p"})
+    assert "uv_fort" in families.needs(bare) and "uv_fort" not in families.needs(station)
+    # No families chosen (an older place): each entity keeps its own default.
+    assert families.enabled_at_first("sechage_linge", None, False, bare) is False
+    # Families chosen at setup: their entities start enabled when their source is there.
+    assert families.enabled_at_first("sechage_linge", ["vie_pratique"], False, bare) is True
+    assert families.enabled_at_first("qualite_air", ["vie_pratique"], False, bare) is False
+    assert families.enabled_at_first("feels_like", ["alertes"], True, bare) is False
+    assert sorted(k for _, keys in families.FAMILIES for k in keys) == sorted(set(k for _, keys in families.FAMILIES for k in keys))

@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from typing import Any, Callable, Mapping, Sequence
 from zoneinfo import ZoneInfo
 
-from . import atmo
+from . import atmo, polleninfo
 from .forecast import Day, Hour
 from .local import LocalWeather
 from .settings import Settings
@@ -285,14 +285,14 @@ def build_brief(w: LocalWeather, settings: Settings, get: Callable[[str], Any], 
                            "Atmo signale un événement particulier (code 7). Ce n’est pas un niveau de pollution.", "mdi:information-outline", event[1].entity_id,
                            **dated, short="Événement signalé par Atmo"))
     if settings.pollen_source not in ("none", "atmo") and not settings.atmo_pollens:
-        words = {"high": 3, "eleve": 3, "fort": 3, "very_high": 4, "very high": 4, "tres eleve": 4, "moderate": 2, "modere": 2, "low": 1, "faible": 1, "none": 0, "aucun": 0}
         for pollen in settings.pollens:
             state = get(pollen.entity_id)
-            raw = state.state if state else None
-            level = words[atmo.normal(raw)] if atmo.normal(raw) in words else finite(raw)
+            level = polleninfo.level(state)
             if level is not None and 3 <= level <= 4:
-                add(Signal(f"legacy-{pollen.entity_id}", "environment", 2 if level == 4 else 1, f"{pollen.name} : pollens {'très élevés' if level == 4 else 'élevés'}",
-                           "Niveau Polleninformation, sur une échelle de 0 à 4.", "mdi:flower-pollen", pollen.entity_id))
+                label = polleninfo.name(pollen, state)
+                add(Signal(f"legacy-{pollen.entity_id}", "environment", 2 if level == 4 else 1, f"{label} : pollens {'très élevés' if level == 4 else 'élevés'}",
+                           "Niveau Polleninformation, sur une échelle de 0 à 4. Ce n’est pas une mesure faite chez vous.", "mdi:flower-pollen", pollen.entity_id,
+                           short=f"Pollens : {label.lower()} {'très élevés' if level == 4 else 'élevés'}", index=level))
     if settings.vigilance_entity:
         official = read_vigilance(settings, get, now, platforms)
         if official is None:

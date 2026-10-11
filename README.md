@@ -45,12 +45,16 @@ Tout est calculé une fois, dans Home Assistant : la carte affiche, vos automati
 
 Chaque champ est déjà rempli avec ce que Home Assistant connaît : vous vérifiez, vous corrigez si besoin.
 
-- **Vous utilisez déjà la carte Niak Weather ?** L’intégration propose de reprendre ses réglages.
-- **Météo** : l’entité météo, le nom du lieu, la vigilance, la saison.
-- **Station météo** : le modèle (GW2000A, WS90 ou autre), puis chaque capteur.
-- **Qualité de l’air et pollens** : la commune Atmo France.
+Un guide en quatre étapes, puis un récapitulatif :
 
-Un champ laissé vide est un choix : il n’est jamais rempli à votre place. Tout se modifie ensuite dans **Configurer**. Plusieurs lieux ? Ajoutez l’intégration une fois par lieu. [Détail des sources et des réglages](docs/sources.md).
+1. **Météo** : l’entité météo, le nom du lieu, la vigilance, la saison.
+2. **Station météo** : le modèle (GW2000A, WS90 ou autre), puis chaque capteur.
+3. **Qualité de l’air et pollens** : Atmo France, ou Polleninformation pour les pollens.
+4. **Capteurs et automatisations** : les familles d’entités à activer.
+
+Vous utilisez déjà la carte Niak Weather ? Le guide propose de reprendre ses réglages. Un champ laissé vide est un choix : il n’est jamais rempli à votre place.
+
+**Configurer** ouvre un menu qui reste ouvert : on change chaque partie, puis **Enregistrer et fermer**. On y active aussi chaque entité, par famille. Plusieurs lieux ? Ajoutez l’intégration une fois par lieu. [Détail des sources et des réglages](docs/sources.md).
 
 ## Les capteurs et les automatisations
 
