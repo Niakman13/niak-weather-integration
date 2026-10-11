@@ -26,6 +26,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: NiakWeatherConfigEntry, 
 class NiakWeatherEntity(CoordinatorEntity[NiakWeatherCoordinator], WeatherEntity):
     _attr_has_entity_name = True
     _attr_name = None
+    # Off at first: a second weather entity in every picker would confuse more than help, until it is wanted.
+    _attr_entity_registry_enabled_default = False
     _attr_native_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_native_pressure_unit = UnitOfPressure.HPA
     _attr_native_wind_speed_unit = UnitOfSpeed.KILOMETERS_PER_HOUR

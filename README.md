@@ -70,7 +70,7 @@ Chaque entité dit **pourquoi** (attribut `raison`) et **d’où vient** sa vale
 
 - l’évènement **`niak_weather_alerte`**, au début, au changement et à la fin de chaque alerte ;
 - l’action **`niak_weather.prevision`**, qui répond à « quel temps entre 16 h 15 et 17 h ? » ;
-- l’entité **`weather.niak_weather`** : le temps vu par votre station, avec les prévisions du fournisseur ;
+- l’entité **`weather.niak_weather`** (à activer) : le temps vu par votre station, avec les prévisions du fournisseur ;
 - des **modèles d’automatisation** à importer en un clic : notifier les alertes, protéger avant le gel, le bulletin du matin.
 
 [Toutes les entités, leurs rôles et les modèles à importer](docs/capteurs.md). Un deuxième lieu ajoute son nom : `sensor.niak_weather_marseille_ressenti`. Une valeur inconnue reste **inconnue** : rien n’est inventé.
