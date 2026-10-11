@@ -1,0 +1,167 @@
+# Les capteurs et les automatisations
+
+[Accueil](../README.md) · [Le ressenti](ressenti.md) · [La synthèse et les alertes](synthese.md) · [Le bulletin du jour](bulletin.md) · [Sources et réglages](sources.md) · [Pluie, vent, pression](mesures.md) · [Fonctionnement technique](technique.md)
+
+Niak Weather dit **ce que la météo implique** ; chaque maison décide quoi en faire. Arrosage, chauffage, volets, notifications : tous lisent les mêmes valeurs.
+
+Il y a cinq façons de s’en servir :
+
+| | Pour quoi |
+| --- | --- |
+| **Des capteurs** | Des valeurs avec leur unité, à lire directement : `sensor.niak_weather_pluie_6h`. |
+| **Des oui/non** | Prêts à servir de déclencheur ou de condition : `binary_sensor.niak_weather_gel`. |
+| **Un évènement d’alerte** | À chaque alerte qui commence, change ou finit : `niak_weather_alerte`. Une seule automatisation suffit pour toutes les notifications. |
+| **Une action qui répond** | « Quel temps entre 16 h 15 et 17 h ? » : `niak_weather.prevision`. |
+| **Une entité météo** | Le temps vu par votre station, avec les prévisions du fournisseur : `weather.niak_weather`. |
+
+## Les mêmes attributs partout
+
+| Attribut | Ce qu’il dit |
+| --- | --- |
+| `raison` | La phrase qui explique la valeur : « Rafales mesurées à 68 km/h ». |
+| `source` | D’où vient la valeur : `station`, `bulletin`, `prevision`, `vigilance` ou `atmo`. |
+| `debut`, `fin` | Quand cela commence et finit, quand c’est connu. |
+| `partiel` | `true` si une partie des données manquait. Un total peut alors être plus élevé. |
+| `niveau` | Pour une alerte : 1 à surveiller, 2 sérieux, 3 vigilance rouge. |
+
+Une donnée manquante donne **inconnu**, jamais « pas de pluie » ou « pas d’alerte ».
+
+Les entités marquées « à activer » existent mais sont désactivées au départ. Pour en activer une : **Paramètres → Appareils et services → Niak Weather → Entités**, puis ouvrez-la et activez-la.
+
+## Maintenant
+
+Ce qui se passe chez vous, mesuré par la station (sinon le bulletin).
+
+| Entité | Ce qu’elle donne | Exemple d’usage |
+| --- | --- | --- |
+| `sensor.niak_weather_ressenti` | La température ressentie, ses causes en attributs | Consigne de confort, déclencheur chaleur ou froid |
+| `sensor.niak_weather_point_de_rosee` | Le point de rosée | Savoir si aérer assèche ou humidifie |
+| `sensor.niak_weather_point_de_givre` | Le point de givre | Prévoir la gelée blanche |
+| `sensor.niak_weather_humidex` | L’humidex, toujours renseigné | Remplace Thermal Comfort |
+| `sensor.niak_weather_temps_observe` | Le temps chez vous : la pluie mesurée passe devant le bulletin | Affichage, scénario d’éclairage |
+| `binary_sensor.niak_weather_pluie_en_cours` | Il pleut en ce moment | Fermer un velux, rentrer le linge |
+| `binary_sensor.niak_weather_brouillard` · *à activer* | Brouillard observé, annoncé ou probable cette nuit | Prudence sur la route le matin |
+| `sensor.niak_weather_tendance_pression` | L’écart de pression sur 3 h | Annoncer un changement de temps |
+| `sensor.niak_weather_tendance_temperature` | La température monte ou baisse, en °C par heure | Fermer avant le coup de chaud |
+| `sensor.niak_weather_pluie_24h` | La pluie tombée sur 24 h | Suivi du jardin |
+| `sensor.niak_weather_rafale_max_jour` | La plus forte rafale du jour | Suivi, inspection après un coup de vent |
+
+## Alertes
+
+Des oui/non prêts à déclencher, et la vigilance officielle. Une alerte s’allume tout de suite. Elle ne s’éteint qu’après **15 minutes** sans être observée, pour qu’une rafale autour du seuil n’envoie pas dix messages. La vigilance s’éteint dès que Météo-France la lève.
+
+| Entité | S’allume quand | Exemple d’usage |
+| --- | --- | --- |
+| `sensor.niak_weather_vigilance` | Verte, jaune, orange ou rouge, avec les phénomènes en attribut | Le niveau officiel dans une notification |
+| `sensor.niak_weather_alerte` | La situation la plus marquante, en un mot | Un badge, une couleur de tableau de bord |
+| `sensor.niak_weather_en_bref` | Le titre de la synthèse ; le texte et le bulletin du jour en attributs | Le résumé du matin |
+| `binary_sensor.niak_weather_orage` | Orage ou grêle en cours ou prévu dans les 6 h | Débrancher, abriter le robot tondeuse |
+| `binary_sensor.niak_weather_vent_fort` | Vent ≥ 30 km/h ou rafales ≥ 40 km/h | Rentrer les stores et le parasol |
+| `binary_sensor.niak_weather_pluie_forte` | ≥ 4 mm/h mesurés, ou forte pluie prévue dans les 6 h | Surveiller gouttières et pompe de relevage |
+| `binary_sensor.niak_weather_gel` | Gel mesuré, ou gel au sol possible cette nuit (≤ 3 °C prévus) | Rentrer les plantes, hors-gel |
+| `binary_sensor.niak_weather_canicule` | Ressenti ≥ 34 °C, ou 35 °C prévus dans les 24 h ou demain | Fermer les volets côté soleil |
+| `binary_sensor.niak_weather_uv_fort` · *à activer* | Indice UV ≥ 6 (capteur UV nécessaire) | Rappel crème solaire |
+
+## Prochaines heures
+
+Les prévisions du fournisseur, résumées en chiffres utiles.
+
+| Entité | Ce qu’elle donne | Exemple d’usage |
+| --- | --- | --- |
+| `sensor.niak_weather_pluie_dans` | Les heures avant la prochaine pluie | Lancer une tonte si la pluie est loin |
+| `sensor.niak_weather_pluie_heure` | La pluie prévue dans l’heure, en mm | Fermer avant l’averse |
+| `sensor.niak_weather_pluie_6h` | La pluie prévue sur 6 h | Seuil d’arrosage, récupérateur d’eau |
+| `sensor.niak_weather_pluie_24h_prevue` | La pluie prévue sur 24 h | Annuler l’arrosage du lendemain |
+| `sensor.niak_weather_minimale_nuit` | La température la plus basse d’ici demain 10 h, et son heure | Anticiper le chauffage, le hors-gel |
+| `sensor.niak_weather_maximale_demain` | La plus haute température de demain | Préparer la maison la veille |
+| `sensor.niak_weather_rafales_6h` · *à activer* | La plus forte rafale prévue sur 6 h | Un seuil à soi pour un store, une voile d’ombrage |
+
+## Jardin
+
+| Entité | Ce qu’elle donne | Exemple d’usage |
+| --- | --- | --- |
+| `sensor.niak_weather_pluie_7j` · *à activer* | La pluie mesurée sur 7 jours, aujourd’hui compris | Alerte sécheresse |
+
+L’évapotranspiration et le bilan hydrique arriveront avec le chantier de l’arrosage.
+
+## Bâtiment
+
+| Entité | Ce qu’elle donne | Exemple d’usage |
+| --- | --- | --- |
+| `sensor.niak_weather_degres_jours_chauffe` · *à activer* | Les degrés-jours du jour (base 18 °C), ceux de demain en attribut | Anticiper la chauffe, estimer les granulés |
+| `sensor.niak_weather_degres_jours_clim` · *à activer* | Les degrés-jours de climatisation (base 22 °C) | Programmer la clim, la ventilation de nuit |
+
+## Énergie
+
+| Entité | Ce qu’elle donne | Exemple d’usage |
+| --- | --- | --- |
+| `sensor.niak_weather_ensoleillement_demain` · *à activer* | La part de ciel dégagé demain en journée, en % | Chauffer l’eau au soleil, ou en heures creuses |
+
+## Vie pratique
+
+| Entité | Ce qu’elle donne | Exemple d’usage |
+| --- | --- | --- |
+| `sensor.niak_weather_sechage_linge` · *à activer* | Excellent, bon, moyen, mauvais ou impossible, et jusqu’à quand | « Bon moment pour étendre » |
+| `binary_sensor.niak_weather_givre_pare_brise` · *à activer* | Givre attendu au plus froid de la nuit | Rappel la veille du trajet |
+| `sensor.niak_weather_qualite_air` · *à activer* | L’indice Atmo du jour (1 à 6), le polluant principal en attribut | Ne pas aérer, purificateur |
+| `sensor.niak_weather_pollens` · *à activer* | L’indice pollens Atmo du jour (1 à 6) | Fermer les fenêtres, prévenir les allergiques |
+
+## L’évènement `niak_weather_alerte`
+
+Il part quand une alerte commence (`debut`), change de niveau (`change`) ou se termine (`fin`). Les alertes en cours sont gardées au redémarrage : un redémarrage ne renvoie pas les messages.
+
+```yaml
+event_type: niak_weather_alerte
+data:
+  lieu: Gardanne
+  type: vent_fort     # vigilance, orage, vent_fort, pluie_forte, gel, canicule, uv_fort
+  etat: debut         # debut, change ou fin
+  niveau: 2           # 1 à surveiller, 2 sérieux, 3 vigilance rouge
+  source: station
+  texte: "Rafales mesurées à 70 km/h"
+```
+
+Une notification pour toutes les alertes :
+
+```yaml
+triggers:
+  - trigger: event
+    event_type: niak_weather_alerte
+actions:
+  - action: notify.mobile_app_telephone
+    data:
+      title: Météo
+      message: "{{ trigger.event.data.texte }}"
+```
+
+## L’action `niak_weather.prevision`
+
+Une question précise, une réponse prête à utiliser. `debut` et `fin` acceptent une heure (`"16:15"`) ou une date et heure. Une heure déjà passée vaut pour demain. Une fin avant le début tombe le lendemain.
+
+```yaml
+action: niak_weather.prevision
+data:
+  debut: "16:15"
+  fin: "17:00"
+response_variable: meteo
+# meteo.texte : « Fortes pluies, 6,8 mm de pluie, rafales à 68 km/h, 15 °C »
+# meteo.pluie, condition, ciel, temperature_min/max, ressenti_min/max, vent_max, rafales_max, partiel
+```
+
+Au-delà des prévisions heure par heure, la réponse vient des prévisions par jour, avec `partiel: true`.
+
+## L’entité `weather.niak_weather`
+
+Maintenant : la station (sinon le bulletin), le ressenti de Niak Weather, et le temps observé, où la pluie mesurée chez vous passe devant le bulletin. Prévisions : celles de votre fournisseur, par heure et par jour. Toute carte ou intégration qui accepte une entité météo en profite.
+
+Elle n’est jamais proposée comme source de Niak Weather lui-même.
+
+## Les modèles d’automatisation (blueprints)
+
+Ils sont sur GitHub, à importer en un clic. Vos réglages (téléphones, heure, plantes, appareils) se font dans le modèle, jamais dans l’intégration.
+
+| Modèle | Ce qu’il fait | |
+| --- | --- | --- |
+| **Notifier les alertes** | Un message au début, au changement et à la fin de chaque alerte choisie ; le message de fin remplace celui du début | [![Importer](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FNiakman13%2Fniak-weather-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fniak_weather%2Fnotifier_alertes.yaml) |
+| **Protéger avant le gel** | La veille au soir : ce qu’il faut rentrer, le givre du pare-brise, vos actions hors-gel | [![Importer](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FNiakman13%2Fniak-weather-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fniak_weather%2Fproteger_gel.yaml) |
+| **Le bulletin du matin** | À l’heure du réveil, le bulletin du jour et la vigilance en cours | [![Importer](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FNiakman13%2Fniak-weather-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fniak_weather%2Fbulletin_du_matin.yaml) |

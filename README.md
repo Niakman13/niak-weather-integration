@@ -52,24 +52,34 @@ Chaque champ est déjà rempli avec ce que Home Assistant connaît : vous vérif
 
 Un champ laissé vide est un choix : il n’est jamais rempli à votre place. Tout se modifie ensuite dans **Configurer**. Plusieurs lieux ? Ajoutez l’intégration une fois par lieu. [Détail des sources et des réglages](docs/sources.md).
 
-## Les capteurs
+## Les capteurs et les automatisations
 
-| Capteur | Ce qu’il donne |
+Niak Weather dit ce que la météo implique ; vos automatisations décident quoi en faire. Les entités sont rangées en sept familles :
+
+| Famille | Par exemple |
 | --- | --- |
-| `sensor.niak_weather_ressenti` | La température ressentie, avec ses causes en attributs. |
-| `sensor.niak_weather_point_de_rosee`, `…_point_de_givre`, `…_humidex` | Calculés depuis votre station, ou depuis le bulletin sans station. |
-| `sensor.niak_weather_alerte` | Orage, forte pluie, rafales, canicule, gel, chaleur, froid, UV, ou aucune. |
-| `sensor.niak_weather_en_bref` | Le titre de la synthèse ; le texte complet est en attribut. |
-| `sensor.niak_weather_pluie_dans` | Le nombre d’heures avant la prochaine pluie prévue. |
-| `sensor.niak_weather_tendance_pression` | L’écart de pression sur 3 h, en hPa. |
-| `sensor.niak_weather_pluie_24h`, `…_rafale_max_jour`, `…_tendance_temperature` | Ceux de la station, ou calculés depuis l’historique. |
+| **Maintenant** | Ressenti, point de rosée, temps observé, pluie en cours |
+| **Alertes** | Vigilance Météo-France, orage, vent fort, pluie forte, gel, canicule |
+| **Prochaines heures** | Pluie dans l’heure, sur 6 h et 24 h, minimale de la nuit, maximale de demain |
+| **Jardin** | Pluie des 7 derniers jours |
+| **Bâtiment** | Degrés-jours de chauffe et de climatisation |
+| **Énergie** | Ensoleillement de demain |
+| **Vie pratique** | Séchage du linge, givre sur le pare-brise, qualité de l’air, pollens |
 
-Un deuxième lieu ajoute son nom : `sensor.niak_weather_marseille_ressenti`. Une valeur inconnue reste **inconnue** : rien n’est inventé.
+Chaque entité dit **pourquoi** (attribut `raison`) et **d’où vient** sa valeur (`source`). En plus des capteurs :
+
+- l’évènement **`niak_weather_alerte`**, au début, au changement et à la fin de chaque alerte ;
+- l’action **`niak_weather.prevision`**, qui répond à « quel temps entre 16 h 15 et 17 h ? » ;
+- l’entité **`weather.niak_weather`** : le temps vu par votre station, avec les prévisions du fournisseur ;
+- des **modèles d’automatisation** à importer en un clic : notifier les alertes, protéger avant le gel, le bulletin du matin.
+
+[Toutes les entités, leurs rôles et les modèles à importer](docs/capteurs.md). Un deuxième lieu ajoute son nom : `sensor.niak_weather_marseille_ressenti`. Une valeur inconnue reste **inconnue** : rien n’est inventé.
 
 ## Documentation
 
 | Page | Ce qu’elle explique |
 | --- | --- |
+| [Les capteurs et les automatisations](docs/capteurs.md) | Les sept familles d’entités, l’évènement d’alerte, l’action, l’entité météo, les modèles à importer |
 | [Le ressenti](docs/ressenti.md) | Humidex, effets du vent, du soleil, de la pluie et de la nuit, mots et nuances, alerte de la station |
 | [La synthèse et les alertes](docs/synthese.md) | Les points retenus, leurs seuils, les niveaux, la vigilance officielle |
 | [Le bulletin du jour](docs/bulletin.md) | Comment il est rédigé |

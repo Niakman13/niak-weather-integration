@@ -8,15 +8,17 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN
-from .coordinator import NiakWeatherConfigEntry, NiakWeatherCoordinator
+from .coordinator import NiakWeatherConfigEntry, NiakWeatherCoordinator, alert_store
+from .services import async_setup_services
 from .websocket import async_setup_websocket
 
-PLATFORMS = [Platform.SENSOR]
+PLATFORMS = [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.WEATHER]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     async_setup_websocket(hass)
+    async_setup_services(hass)
     return True
 
 
@@ -31,6 +33,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: NiakWeatherConfigEntry) 
 
 async def async_unload_entry(hass: HomeAssistant, entry: NiakWeatherConfigEntry) -> bool:
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: NiakWeatherConfigEntry) -> None:
+    """The place is removed: its alerts in progress go with it."""
+    await alert_store(hass, entry.entry_id).async_remove()
 
 
 async def _async_reload(hass: HomeAssistant, entry: NiakWeatherConfigEntry) -> None:

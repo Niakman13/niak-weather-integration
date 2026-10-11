@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorEntityDescription, SensorStateClass
-from homeassistant.const import UnitOfPrecipitationDepth, UnitOfPressure, UnitOfSpeed, UnitOfTemperature, UnitOfTime
+from homeassistant.const import PERCENTAGE, UnitOfPrecipitationDepth, UnitOfPressure, UnitOfSpeed, UnitOfTemperature, UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
@@ -16,6 +16,7 @@ from homeassistant.util import slugify
 
 from .const import DOMAIN
 from .coordinator import NiakWeatherConfigEntry, NiakWeatherCoordinator, Snapshot
+from .engine.catalogue import CONDITIONS, DRYING, VIGILANCE, Item
 from .engine.feel import Alert
 from .engine.moisture import humidex
 
@@ -82,7 +83,9 @@ SENSORS: tuple[NiakSensorDescription, ...] = (
     NiakSensorDescription(
         key="brief", translation_key="brief", value=lambda s: s.brief.title[:255],
         attributes=lambda s: {"level": s.brief.label, "severity": s.brief.severity, "summary": s.brief.summary,
-                              "points": [{"key": p.key, "group": p.group, "severity": p.severity, "text": p.text} for p in s.brief.signals]}),
+                              "points": [{"key": p.key, "group": p.group, "severity": p.severity, "text": p.text} for p in s.brief.signals],
+                              # The day's bulletin, as the card writes it: « Ce soir et cette nuit, pluie jusqu’à 20 h (3 mm)… »
+                              "bulletin": (s.view.get("bulletin") or {}).get("summary")}),
     NiakSensorDescription(
         key="next_rain", translation_key="next_rain", device_class=SensorDeviceClass.DURATION, native_unit_of_measurement=UnitOfTime.HOURS,
         value=lambda s: s.local.rain.next_hours, attributes=lambda s: {"amount": s.local.rain.next_amount}),
@@ -102,6 +105,51 @@ SENSORS: tuple[NiakSensorDescription, ...] = (
     NiakSensorDescription(
         key="temperature_trend", translation_key="temperature_trend", state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement="°C/h", suggested_display_precision=1, value=_temperature_trend),
+)
+
+
+def item_attributes(item: Item) -> dict[str, Any]:
+    """The same attributes on every entity of the catalogue: why, from where, when, and whether data was missing."""
+    attributes: dict[str, Any] = {"raison": item.reason, "source": item.source}
+    if item.start:
+        attributes["debut"] = item.start.isoformat()
+    if item.end:
+        attributes["fin"] = item.end.isoformat()
+    return {**attributes, "partiel": item.partial, **item.extra}
+
+
+@dataclass(frozen=True, kw_only=True)
+class CatalogueSensorDescription(SensorEntityDescription):
+    """An entry of the catalogue whose value is a number or a word. The key is also its entity id: sensor.niak_weather_<key>."""
+
+
+_MM = {"device_class": SensorDeviceClass.PRECIPITATION, "native_unit_of_measurement": UnitOfPrecipitationDepth.MILLIMETERS,
+       "suggested_display_precision": 1, "state_class": SensorStateClass.MEASUREMENT}
+_CELSIUS = {"device_class": SensorDeviceClass.TEMPERATURE, "native_unit_of_measurement": UnitOfTemperature.CELSIUS, "suggested_display_precision": 0,
+            "state_class": SensorStateClass.MEASUREMENT}
+_INDEX = {"state_class": SensorStateClass.MEASUREMENT, "suggested_display_precision": 0}
+_DEGREE_DAYS = {"native_unit_of_measurement": "DJU", "state_class": SensorStateClass.MEASUREMENT, "suggested_display_precision": 1}
+
+# Grouped as in the documentation: Maintenant, Alertes, Prochaines heures, Jardin, Bâtiment, Énergie, Vie pratique.
+CATALOGUE_SENSORS: tuple[CatalogueSensorDescription, ...] = (
+    CatalogueSensorDescription(key="temps_observe", translation_key="temps_observe", device_class=SensorDeviceClass.ENUM, options=list(CONDITIONS)),
+    CatalogueSensorDescription(key="vigilance", translation_key="vigilance", device_class=SensorDeviceClass.ENUM, options=list(VIGILANCE)),
+    CatalogueSensorDescription(key="pluie_heure", translation_key="pluie_heure", **_MM),
+    CatalogueSensorDescription(key="pluie_6h", translation_key="pluie_6h", **_MM),
+    CatalogueSensorDescription(key="pluie_24h_prevue", translation_key="pluie_24h_prevue", **_MM),
+    CatalogueSensorDescription(key="minimale_nuit", translation_key="minimale_nuit", **_CELSIUS),
+    CatalogueSensorDescription(key="maximale_demain", translation_key="maximale_demain", **_CELSIUS),
+    CatalogueSensorDescription(key="rafales_6h", translation_key="rafales_6h", device_class=SensorDeviceClass.WIND_SPEED, state_class=SensorStateClass.MEASUREMENT,
+                               native_unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR, suggested_display_precision=0, entity_registry_enabled_default=False),
+    CatalogueSensorDescription(key="pluie_7j", translation_key="pluie_7j", **_MM, entity_registry_enabled_default=False),
+    CatalogueSensorDescription(key="degres_jours_chauffe", translation_key="degres_jours_chauffe", **_DEGREE_DAYS, entity_registry_enabled_default=False),
+    CatalogueSensorDescription(key="degres_jours_clim", translation_key="degres_jours_clim", **_DEGREE_DAYS, entity_registry_enabled_default=False),
+    CatalogueSensorDescription(key="ensoleillement_demain", translation_key="ensoleillement_demain", native_unit_of_measurement=PERCENTAGE,
+                               state_class=SensorStateClass.MEASUREMENT, suggested_display_precision=0, entity_registry_enabled_default=False),
+    CatalogueSensorDescription(key="sechage_linge", translation_key="sechage_linge", device_class=SensorDeviceClass.ENUM, options=list(DRYING),
+                               entity_registry_enabled_default=False),
+    CatalogueSensorDescription(key="qualite_air", translation_key="qualite_air", **_INDEX, entity_registry_enabled_default=False),
+    CatalogueSensorDescription(key="pollens", translation_key="pollens", **_INDEX, entity_registry_enabled_default=False),
 )
 
 
@@ -128,13 +176,20 @@ def rename_place_ids(hass: HomeAssistant, entry: NiakWeatherConfigEntry) -> None
 
 async def async_setup_entry(hass: HomeAssistant, entry: NiakWeatherConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     rename_place_ids(hass, entry)
-    async_add_entities(NiakWeatherSensor(entry.runtime_data, description, prefix(hass, entry), device_name(hass, entry)) for description in SENSORS)
+    place, device = prefix(hass, entry), device_name(hass, entry)
+    async_add_entities([*(NiakWeatherSensor(entry.runtime_data, description, place, device) for description in SENSORS),
+                        *(CatalogueSensor(entry.runtime_data, description, place, device) for description in CATALOGUE_SENSORS)])
+
+
+def device_info(coordinator: NiakWeatherCoordinator, device: str) -> DeviceInfo:
+    return DeviceInfo(identifiers={(DOMAIN, coordinator.config_entry.entry_id)}, name=device, manufacturer="Niakman13", model="Niak Weather",
+                      entry_type=DeviceEntryType.SERVICE)
 
 
 class NiakWeatherSensor(CoordinatorEntity[NiakWeatherCoordinator], SensorEntity):
     _attr_has_entity_name = True
     # The brief's long texts are for automations and dashboards, not for the Recorder.
-    _unrecorded_attributes = frozenset({"summary", "points", "phrase"})
+    _unrecorded_attributes = frozenset({"summary", "points", "phrase", "bulletin"})
     entity_description: NiakSensorDescription
 
     def __init__(self, coordinator: NiakWeatherCoordinator, description: NiakSensorDescription, prefix: str, device: str) -> None:
@@ -144,8 +199,7 @@ class NiakWeatherSensor(CoordinatorEntity[NiakWeatherCoordinator], SensorEntity)
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
         # Only a suggestion: Home Assistant keeps an id the user changed.
         self.entity_id = f"sensor.{prefix}_{OBJECT_IDS[description.key]}"
-        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, entry.entry_id)}, name=device, manufacturer="Niakman13",
-                                            model="Niak Weather", entry_type=DeviceEntryType.SERVICE)
+        self._attr_device_info = device_info(coordinator, device)
 
     @property
     def native_value(self) -> Any:
@@ -162,3 +216,31 @@ class NiakWeatherSensor(CoordinatorEntity[NiakWeatherCoordinator], SensorEntity)
         if self.entity_description.key == "brief" and self.coordinator.data:
             return self.coordinator.data.brief.icon
         return super().icon
+
+
+class CatalogueSensor(CoordinatorEntity[NiakWeatherCoordinator], SensorEntity):
+    _attr_has_entity_name = True
+    # The reason is for notifications and dashboards; its history is not worth the Recorder's space.
+    _unrecorded_attributes = frozenset({"raison"})
+    entity_description: CatalogueSensorDescription
+
+    def __init__(self, coordinator: NiakWeatherCoordinator, description: CatalogueSensorDescription, prefix: str, device: str) -> None:
+        super().__init__(coordinator)
+        self.entity_description = description
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_{description.key}"
+        self.entity_id = f"sensor.{prefix}_{description.key}"
+        self._attr_device_info = device_info(coordinator, device)
+
+    @property
+    def _item(self) -> Item | None:
+        return self.coordinator.data.catalogue.get(self.entity_description.key) if self.coordinator.data else None
+
+    @property
+    def native_value(self) -> Any:
+        item = self._item
+        return item.value if item else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        item = self._item
+        return item_attributes(item) if item else None

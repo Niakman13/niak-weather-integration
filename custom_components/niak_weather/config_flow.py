@@ -95,7 +95,8 @@ class _SourceSteps:
 
     async def async_step_weather(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         states, registry, devices = _context(self.hass)
-        if not any(s.entity_id.startswith("weather.") for s in states):
+        own = sorted(i for i, e in registry.items() if i.startswith("weather.") and e.get("platform") == DOMAIN)
+        if not any(s.entity_id.startswith("weather.") and s.entity_id not in own for s in states):
             return self.async_abort(reason="no_weather")  # type: ignore[attr-defined]
         if user_input is not None:
             advanced = user_input.get("advanced") or {}
@@ -108,7 +109,7 @@ class _SourceSteps:
         weather = self.hass.states.get(filled.get("weather_entity") or "")
         location = filled.get("location") or (place_name(str(weather.attributes.get("friendly_name") or "")) if weather else "")
         schema = vol.Schema({
-            vol.Required("weather_entity"): EntitySelector(EntitySelectorConfig(domain="weather")),
+            vol.Required("weather_entity"): EntitySelector(EntitySelectorConfig(domain="weather", exclude_entities=own)),
             vol.Optional("location"): TextSelector(),
             vol.Optional("vigilance_entity"): _sensor(detection.vigilance_candidates(states, registry), filled.get("vigilance_entity") or ""),
             vol.Optional("season_entity"): _sensor(detection.season_candidates(states, registry), filled.get("season_entity") or ""),

@@ -246,10 +246,18 @@
   },
   "entity": {
     "sensor": {
-      "feels_like": { "name": "Feels like" },
-      "dew_point": { "name": "Dew point" },
-      "frost_point": { "name": "Frost point" },
-      "humidex": { "name": "Humidex" },
+      "feels_like": {
+        "name": "Feels like"
+      },
+      "dew_point": {
+        "name": "Dew point"
+      },
+      "frost_point": {
+        "name": "Frost point"
+      },
+      "humidex": {
+        "name": "Humidex"
+      },
       "alert": {
         "name": "Station alert",
         "state": {
@@ -264,12 +272,198 @@
           "uv": "UV"
         }
       },
-      "brief": { "name": "In brief" },
-      "next_rain": { "name": "Rain in" },
-      "pressure_trend": { "name": "Pressure trend" },
-      "rain_24h": { "name": "Rain over 24 h" },
-      "max_gust_today": { "name": "Strongest gust today" },
-      "temperature_trend": { "name": "Temperature trend" }
+      "brief": {
+        "name": "In brief"
+      },
+      "next_rain": {
+        "name": "Rain in"
+      },
+      "pressure_trend": {
+        "name": "Pressure trend"
+      },
+      "rain_24h": {
+        "name": "Rain over 24 h"
+      },
+      "max_gust_today": {
+        "name": "Strongest gust today"
+      },
+      "temperature_trend": {
+        "name": "Temperature trend"
+      },
+      "temps_observe": {
+        "name": "Observed weather",
+        "state": {
+          "clear-night": "Clear night",
+          "cloudy": "Cloudy",
+          "exceptional": "Exceptional",
+          "fog": "Fog",
+          "hail": "Hail",
+          "lightning": "Lightning",
+          "lightning-rainy": "Lightning, rainy",
+          "partlycloudy": "Partly cloudy",
+          "pouring": "Pouring",
+          "rainy": "Rainy",
+          "snowy": "Snowy",
+          "snowy-rainy": "Snowy, rainy",
+          "sunny": "Sunny",
+          "windy": "Windy",
+          "windy-variant": "Windy, cloudy"
+        }
+      },
+      "vigilance": {
+        "name": "Météo-France vigilance",
+        "state": {
+          "verte": "Green",
+          "jaune": "Yellow",
+          "orange": "Orange",
+          "rouge": "Red"
+        }
+      },
+      "pluie_heure": {
+        "name": "Rain within the hour"
+      },
+      "pluie_6h": {
+        "name": "Rain forecast over 6 h"
+      },
+      "pluie_24h_prevue": {
+        "name": "Rain forecast over 24 h"
+      },
+      "minimale_nuit": {
+        "name": "Tonight’s low"
+      },
+      "maximale_demain": {
+        "name": "Tomorrow’s high"
+      },
+      "rafales_6h": {
+        "name": "Strongest gusts over 6 h"
+      },
+      "pluie_7j": {
+        "name": "Rain over the last 7 days"
+      },
+      "degres_jours_chauffe": {
+        "name": "Heating degree days"
+      },
+      "degres_jours_clim": {
+        "name": "Cooling degree days"
+      },
+      "ensoleillement_demain": {
+        "name": "Tomorrow’s sunshine"
+      },
+      "sechage_linge": {
+        "name": "Drying laundry outside",
+        "state": {
+          "excellent": "Excellent",
+          "bon": "Good",
+          "moyen": "Fair",
+          "mauvais": "Poor",
+          "impossible": "Impossible"
+        }
+      },
+      "qualite_air": {
+        "name": "Air quality"
+      },
+      "pollens": {
+        "name": "Pollen"
+      }
+    },
+    "binary_sensor": {
+      "pluie_en_cours": {
+        "name": "Raining now",
+        "state": {
+          "on": "Yes",
+          "off": "No"
+        }
+      },
+      "brouillard": {
+        "name": "Fog likely",
+        "state": {
+          "on": "Yes",
+          "off": "No"
+        }
+      },
+      "orage": {
+        "name": "Thunderstorm nearby",
+        "state": {
+          "on": "Yes",
+          "off": "No"
+        }
+      },
+      "vent_fort": {
+        "name": "Strong wind",
+        "state": {
+          "on": "Yes",
+          "off": "No"
+        }
+      },
+      "pluie_forte": {
+        "name": "Heavy rain",
+        "state": {
+          "on": "Yes",
+          "off": "No"
+        }
+      },
+      "gel": {
+        "name": "Frost",
+        "state": {
+          "on": "Yes",
+          "off": "No"
+        }
+      },
+      "canicule": {
+        "name": "Heatwave",
+        "state": {
+          "on": "Yes",
+          "off": "No"
+        }
+      },
+      "uv_fort": {
+        "name": "High UV",
+        "state": {
+          "on": "Yes",
+          "off": "No"
+        }
+      },
+      "givre_pare_brise": {
+        "name": "Windscreen frost",
+        "state": {
+          "on": "Yes",
+          "off": "No"
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "unknown_place": {
+      "message": "Niak Weather place not found."
+    },
+    "choose_place": {
+      "message": "Several Niak Weather places: set « lieu »."
+    },
+    "end_before_start": {
+      "message": "The end must come after the start."
+    },
+    "no_forecast": {
+      "message": "No forecast covers this window."
+    }
+  },
+  "services": {
+    "prevision": {
+      "name": "Forecast for a time window",
+      "description": "The weather between two moments: rain, sky, temperature, feel, wind, and a sentence ready to send.",
+      "fields": {
+        "debut": {
+          "name": "Start",
+          "description": "A time (16:15) or a date and time."
+        },
+        "fin": {
+          "name": "End",
+          "description": "A time (17:00) or a date and time. An end before the start is the next day."
+        },
+        "lieu": {
+          "name": "Place",
+          "description": "Only when you have several Niak Weather places."
+        }
+      }
     }
   }
 }

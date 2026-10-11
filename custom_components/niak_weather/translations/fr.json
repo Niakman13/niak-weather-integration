@@ -246,10 +246,18 @@
   },
   "entity": {
     "sensor": {
-      "feels_like": { "name": "Ressenti" },
-      "dew_point": { "name": "Point de rosée" },
-      "frost_point": { "name": "Point de givre" },
-      "humidex": { "name": "Humidex" },
+      "feels_like": {
+        "name": "Ressenti"
+      },
+      "dew_point": {
+        "name": "Point de rosée"
+      },
+      "frost_point": {
+        "name": "Point de givre"
+      },
+      "humidex": {
+        "name": "Humidex"
+      },
       "alert": {
         "name": "Alerte de la station",
         "state": {
@@ -264,12 +272,198 @@
           "uv": "UV"
         }
       },
-      "brief": { "name": "En bref" },
-      "next_rain": { "name": "Pluie dans" },
-      "pressure_trend": { "name": "Tendance de la pression" },
-      "rain_24h": { "name": "Pluie sur 24 h" },
-      "max_gust_today": { "name": "Rafale maximale du jour" },
-      "temperature_trend": { "name": "Tendance de la température" }
+      "brief": {
+        "name": "En bref"
+      },
+      "next_rain": {
+        "name": "Pluie dans"
+      },
+      "pressure_trend": {
+        "name": "Tendance de la pression"
+      },
+      "rain_24h": {
+        "name": "Pluie sur 24 h"
+      },
+      "max_gust_today": {
+        "name": "Rafale maximale du jour"
+      },
+      "temperature_trend": {
+        "name": "Tendance de la température"
+      },
+      "temps_observe": {
+        "name": "Temps observé",
+        "state": {
+          "clear-night": "Nuit claire",
+          "cloudy": "Nuageux",
+          "exceptional": "Exceptionnel",
+          "fog": "Brouillard",
+          "hail": "Grêle",
+          "lightning": "Orage",
+          "lightning-rainy": "Orage et pluie",
+          "partlycloudy": "Éclaircies",
+          "pouring": "Fortes pluies",
+          "rainy": "Pluie",
+          "snowy": "Neige",
+          "snowy-rainy": "Pluie et neige",
+          "sunny": "Ensoleillé",
+          "windy": "Venteux",
+          "windy-variant": "Venteux et nuageux"
+        }
+      },
+      "vigilance": {
+        "name": "Vigilance Météo-France",
+        "state": {
+          "verte": "Verte",
+          "jaune": "Jaune",
+          "orange": "Orange",
+          "rouge": "Rouge"
+        }
+      },
+      "pluie_heure": {
+        "name": "Pluie dans l’heure"
+      },
+      "pluie_6h": {
+        "name": "Pluie prévue sur 6 h"
+      },
+      "pluie_24h_prevue": {
+        "name": "Pluie prévue sur 24 h"
+      },
+      "minimale_nuit": {
+        "name": "Minimale de la nuit"
+      },
+      "maximale_demain": {
+        "name": "Maximale de demain"
+      },
+      "rafales_6h": {
+        "name": "Rafales max. sur 6 h"
+      },
+      "pluie_7j": {
+        "name": "Pluie des 7 derniers jours"
+      },
+      "degres_jours_chauffe": {
+        "name": "Degrés-jours de chauffe"
+      },
+      "degres_jours_clim": {
+        "name": "Degrés-jours de climatisation"
+      },
+      "ensoleillement_demain": {
+        "name": "Ensoleillement de demain"
+      },
+      "sechage_linge": {
+        "name": "Séchage du linge dehors",
+        "state": {
+          "excellent": "Excellent",
+          "bon": "Bon",
+          "moyen": "Moyen",
+          "mauvais": "Mauvais",
+          "impossible": "Impossible"
+        }
+      },
+      "qualite_air": {
+        "name": "Qualité de l’air"
+      },
+      "pollens": {
+        "name": "Pollens"
+      }
+    },
+    "binary_sensor": {
+      "pluie_en_cours": {
+        "name": "Pluie en cours",
+        "state": {
+          "on": "Oui",
+          "off": "Non"
+        }
+      },
+      "brouillard": {
+        "name": "Brouillard probable",
+        "state": {
+          "on": "Oui",
+          "off": "Non"
+        }
+      },
+      "orage": {
+        "name": "Orage proche",
+        "state": {
+          "on": "Oui",
+          "off": "Non"
+        }
+      },
+      "vent_fort": {
+        "name": "Vent fort",
+        "state": {
+          "on": "Oui",
+          "off": "Non"
+        }
+      },
+      "pluie_forte": {
+        "name": "Pluie forte",
+        "state": {
+          "on": "Oui",
+          "off": "Non"
+        }
+      },
+      "gel": {
+        "name": "Gel",
+        "state": {
+          "on": "Oui",
+          "off": "Non"
+        }
+      },
+      "canicule": {
+        "name": "Canicule",
+        "state": {
+          "on": "Oui",
+          "off": "Non"
+        }
+      },
+      "uv_fort": {
+        "name": "UV forts",
+        "state": {
+          "on": "Oui",
+          "off": "Non"
+        }
+      },
+      "givre_pare_brise": {
+        "name": "Givre sur le pare-brise",
+        "state": {
+          "on": "Oui",
+          "off": "Non"
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "unknown_place": {
+      "message": "Lieu Niak Weather introuvable."
+    },
+    "choose_place": {
+      "message": "Plusieurs lieux Niak Weather : précisez « lieu »."
+    },
+    "end_before_start": {
+      "message": "La fin doit venir après le début."
+    },
+    "no_forecast": {
+      "message": "Aucune prévision ne couvre ce créneau."
+    }
+  },
+  "services": {
+    "prevision": {
+      "name": "Prévision d’un créneau",
+      "description": "Le temps prévu entre deux moments : pluie, ciel, température, ressenti, vent, et une phrase prête à envoyer.",
+      "fields": {
+        "debut": {
+          "name": "Début",
+          "description": "Une heure (16:15) ou une date et heure."
+        },
+        "fin": {
+          "name": "Fin",
+          "description": "Une heure (17:00) ou une date et heure. Une fin avant le début tombe le lendemain."
+        },
+        "lieu": {
+          "name": "Lieu",
+          "description": "Seulement si vous avez plusieurs lieux Niak Weather."
+        }
+      }
     }
   }
 }

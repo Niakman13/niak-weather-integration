@@ -19,18 +19,23 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.debounce import Debouncer
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event, async_track_time_interval
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .const import DEBOUNCE_SECONDS, DOMAIN, FORECAST_INTERVAL, FORECAST_RETRY, HISTORY_INTERVAL, LOGGER, RAIN_INTERVAL, TICK
 from .engine.brief import Brief
+from .engine.catalogue import Item
 from .engine.compute import compute
-from .engine.forecast import Day, Hour, Units, parse_days, parse_hours
+from .engine.forecast import Day, Hour, Units, engine_rows, parse_days, parse_hours
 from .engine.local import LocalWeather
 from .engine.settings import Settings
 from .engine.station import Derived, Statistic, midnight
 from .engine.trends import Change
 from .engine.view import to_json
+from .engine.watch import AlertState, AlertWatch
+
+ALERT_EVENT = f"{DOMAIN}_alerte"
 
 RAIN_UNITS = ("mm", "in", "inch")
 FORECAST_KINDS = (("daily", 1), ("hourly", 2))
@@ -45,10 +50,18 @@ class Snapshot:
     brief: Brief
     derived: Derived | None
     view: dict[str, Any]
+    catalogue: dict[str, Item]
+    alerts: dict[str, AlertState]
+    """The alerts in progress, held a little after they stop being observed."""
     computed: datetime = field(compare=False)
 
 
 type NiakWeatherConfigEntry = ConfigEntry[NiakWeatherCoordinator]
+
+
+def alert_store(hass: HomeAssistant, entry_id: str) -> Store[dict[str, Any]]:
+    """The alerts in progress of one place, kept across restarts so that a restart neither repeats nor forgets them."""
+    return Store(hass, 1, f"{DOMAIN}.alertes.{entry_id}")
 
 
 class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
@@ -60,6 +73,11 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         self.settings = Settings.from_options(entry.options)
         self.hours: list[Hour] = []
         self.days: list[Day] = []
+        self.forecast_rows: dict[str, list[dict[str, Any]]] = {"hourly": [], "daily": []}
+        """The provider's forecasts in the engine's units, passed on by the Niak Weather weather entity."""
+        self.forecast_version = 0
+        self.watch = AlertWatch()
+        self._store = alert_store(hass, entry.entry_id)
         self.history: dict[str, list[Change]] = {}
         self.rain_history: dict[str, list[Change]] = {}
         self.statistics: list[Statistic] = []
@@ -76,6 +94,7 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         ids = self.settings.entity_ids()
         self.platforms = {e.entity_id: e.platform for e in registry.entities.values() if e.entity_id in ids}
         entry = self.config_entry
+        self.watch = AlertWatch(await self._store.async_load())
         # Listen first: a weather service that starts while the first fetches run is caught at once.
         entry.async_on_unload(async_track_state_change_event(self.hass, sorted(ids), self._on_state_change))
         await asyncio.gather(self._load_forecasts(), self._load_history(), self._load_rain())
@@ -148,7 +167,13 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         now = dt_util.now()
         result = compute(hass.states.get, self.settings, self.hours, self.days, self.history, self.rain_history, self.statistics, self.statistics_unit,
                          now, ZoneInfo(hass.config.time_zone), hass.config.latitude, hass.config.elevation or 0, self.platforms)
-        return Snapshot(result.local, result.brief, result.derived, to_json(result.view), now)
+        events = self.watch.update(result.catalogue, now)
+        if events:
+            self._store.async_delay_save(self.watch.as_dict, 10)
+        for event in events:
+            hass.bus.async_fire(ALERT_EVENT, {"lieu": self.config_entry.title, "entry_id": self.config_entry.entry_id, "type": event.type,
+                                              "etat": event.phase, "niveau": event.level, "source": event.source, "texte": event.text})
+        return Snapshot(result.local, result.brief, result.derived, to_json(result.view), result.catalogue, self.watch.states(), now)
 
     # ---- Sources ----
 
@@ -181,12 +206,16 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
 
         daily, hourly = await asyncio.gather(*(fetch(kind, bit) for kind, bit in FORECAST_KINDS))
         attributes = state.attributes
-        units = Units(attributes.get("temperature_unit") or "°C", attributes.get("precipitation_unit") or "mm", attributes.get("wind_speed_unit") or "km/h")
+        units = Units(attributes.get("temperature_unit") or "°C", attributes.get("precipitation_unit") or "mm", attributes.get("wind_speed_unit") or "km/h",
+                      attributes.get("pressure_unit") or "hPa")
         # A failed request keeps the previous forecast rather than replacing it with nothing.
         if hourly or not failed:
             self.hours = parse_hours(hourly, units)
+            self.forecast_rows["hourly"] = engine_rows(hourly, units)
         if daily or not failed:
             self.days = parse_days(daily, units)
+            self.forecast_rows["daily"] = engine_rows(daily, units)
+        self.forecast_version += 1
         self._cancel_forecast_retry()
         if failed:
             self._schedule_forecast_retry()
