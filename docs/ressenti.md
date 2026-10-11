@@ -1,6 +1,6 @@
 # Le ressenti
 
-[Accueil](../README.md) · [La synthèse et les alertes](synthese.md) · [Le bulletin du jour](bulletin.md) · [Sources et réglages](sources.md) · [Pluie, vent, pression](mesures.md) · [Fonctionnement technique](technique.md)
+[Accueil](../README.md) · [Les capteurs](capteurs.md) · [La synthèse et les alertes](synthese.md) · [Le bulletin du jour](bulletin.md) · [Sources et réglages](sources.md) · [Pluie, vent, pression](mesures.md) · [Fonctionnement technique](technique.md)
 
 Le ressenti dit quelle température l’air **donne l’impression** d’avoir : plus chaude quand l’air est lourd ou le soleil fort, plus froide sous le vent ou la pluie. Niak Weather le calcule lui-même : **aucune intégration Thermal Comfort n’est nécessaire**.
 

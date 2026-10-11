@@ -22,6 +22,7 @@ class Hour:
     wind_gust: float | None = None
     wind_bearing: float | None = None
     humidity: float | None = None
+    cloud_coverage: float | None = None
 
 
 @dataclass(frozen=True)
@@ -42,6 +43,29 @@ class Units:
     temperature: str = "°C"
     precipitation: str = "mm"
     wind: str = "km/h"
+    pressure: str = "hPa"
+
+
+# Forecast fields carrying a measure, converted to the engine's units when Niak Weather passes a forecast on.
+_ROW_KINDS = {"temperature": Kind.TEMPERATURE, "templow": Kind.TEMPERATURE, "apparent_temperature": Kind.TEMPERATURE, "dew_point": Kind.TEMPERATURE,
+              "precipitation": Kind.RAIN, "wind_speed": Kind.WIND, "wind_gust_speed": Kind.WIND, "pressure": Kind.PRESSURE}
+
+
+def engine_rows(rows: Iterable[Mapping[str, Any]], units: Units) -> list[dict[str, Any]]:
+    """The provider's forecast as it came, its measures in °C, mm, km/h and hPa; a measure that cannot be read is left out."""
+    unit = {Kind.TEMPERATURE: units.temperature, Kind.RAIN: units.precipitation, Kind.WIND: units.wind, Kind.PRESSURE: units.pressure}
+    out = []
+    for row in rows:
+        converted = dict(row)
+        for key, kind in _ROW_KINDS.items():
+            if key in converted:
+                value = measurement(converted[key], unit[kind], kind)
+                if value is None:
+                    del converted[key]
+                else:
+                    converted[key] = round(value, 2)
+        out.append(converted)
+    return out
 
 
 def parse_time(value: Any) -> datetime | None:
@@ -60,7 +84,8 @@ def parse_hours(rows: Iterable[Mapping[str, Any]], units: Units = Units()) -> li
     return [Hour(time=parse_time(r.get("datetime")), temperature=measurement(r.get("temperature"), units.temperature, Kind.TEMPERATURE),
                  precipitation=measurement(r.get("precipitation"), units.precipitation, Kind.RAIN), condition=_condition(r.get("condition")),
                  wind_speed=measurement(r.get("wind_speed"), units.wind, Kind.WIND), wind_gust=measurement(r.get("wind_gust_speed"), units.wind, Kind.WIND),
-                 wind_bearing=finite(r.get("wind_bearing")), humidity=finite(r.get("humidity"))) for r in rows]
+                 wind_bearing=finite(r.get("wind_bearing")), humidity=finite(r.get("humidity")), cloud_coverage=finite(r.get("cloud_coverage")))
+            for r in rows]
 
 
 def parse_days(rows: Iterable[Mapping[str, Any]], units: Units = Units()) -> list[Day]:

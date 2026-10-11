@@ -1,6 +1,6 @@
 # Pluie, vent, pression
 
-[Accueil](../README.md) · [Le ressenti](ressenti.md) · [La synthèse et les alertes](synthese.md) · [Le bulletin du jour](bulletin.md) · [Sources et réglages](sources.md) · [Fonctionnement technique](technique.md)
+[Accueil](../README.md) · [Les capteurs](capteurs.md) · [Le ressenti](ressenti.md) · [La synthèse et les alertes](synthese.md) · [Le bulletin du jour](bulletin.md) · [Sources et réglages](sources.md) · [Fonctionnement technique](technique.md)
 
 Les mesures de la station passent toujours en premier ; le bulletin complète ce qui manque, en le disant. Les historiques viennent **seulement** des capteurs enregistrés : ils ne sont jamais reconstitués à partir des prévisions.
 

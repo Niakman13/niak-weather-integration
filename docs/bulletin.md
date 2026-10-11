@@ -1,6 +1,6 @@
 # Le bulletin du jour
 
-[Accueil](../README.md) · [Le ressenti](ressenti.md) · [La synthèse et les alertes](synthese.md) · [Sources et réglages](sources.md) · [Pluie, vent, pression](mesures.md) · [Fonctionnement technique](technique.md)
+[Accueil](../README.md) · [Les capteurs](capteurs.md) · [Le ressenti](ressenti.md) · [La synthèse et les alertes](synthese.md) · [Sources et réglages](sources.md) · [Pluie, vent, pression](mesures.md) · [Fonctionnement technique](technique.md)
 
 Le bulletin raconte la suite de la journée comme un prévisionniste, en **deux phrases** au plus, à partir des prévisions heure par heure de votre entité météo.
 

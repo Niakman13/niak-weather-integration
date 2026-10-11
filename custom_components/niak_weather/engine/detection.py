@@ -253,7 +253,8 @@ def vigilance_candidates(states: Sequence[StateLike], registry: Registry) -> lis
 def detect_sources(states: Sequence[StateLike], registry: Registry, options: Mapping[str, Any]) -> dict[str, str]:
     """The weather service (Météo-France first), its vigilance, the sun and the season, each only when there is a single choice."""
     detected: dict[str, str] = {}
-    weather = [s for s in states if s.entity_id.startswith("weather.")]
+    # Niak Weather's own weather entity is a result, never a source.
+    weather = [s for s in states if s.entity_id.startswith("weather.") and (registry.get(s.entity_id) or {}).get("platform") != "niak_weather"]
     preferred = [s for s in weather if (registry.get(s.entity_id) or {}).get("platform") == "meteo_france"
                  or re.search(r"meteo.france", normal(s.attributes.get("attribution")))]
     choices = preferred if len(preferred) == 1 else weather

@@ -8,6 +8,7 @@ from typing import Any, Callable, Mapping, Sequence
 from zoneinfo import ZoneInfo
 
 from .brief import Brief, build_brief
+from .catalogue import Item, build_catalogue
 from .forecast import Day, Hour
 from .local import LocalWeather, build_local
 from .settings import Settings
@@ -22,6 +23,7 @@ class Result:
     brief: Brief
     derived: Derived | None
     view: WeatherView
+    catalogue: dict[str, Item]
 
 
 def compute(get: Callable[[str], Any], settings: Settings, hours: Sequence[Hour], days: Sequence[Day], history: Mapping[str, Sequence[Change]],
@@ -34,4 +36,5 @@ def compute(get: Callable[[str], Any], settings: Settings, hours: Sequence[Hour]
     derived = derive_station(get, settings, statistics, statistics_unit, {**history, **rain_history}, now, zone) if settings.station_history else None
     brief = build_brief(local, settings, get, hours, days, now, zone, platforms)
     view = build_view(get, settings, local, brief, hours, days, history, rain_history, derived, now, zone, latitude, elevation)
-    return Result(local, brief, derived, view)
+    catalogue = build_catalogue(local, brief, derived, settings, get, hours, days, now, zone, platforms)
+    return Result(local, brief, derived, view, catalogue)

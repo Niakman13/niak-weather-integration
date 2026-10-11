@@ -1,6 +1,6 @@
 # La synthèse et les alertes
 
-[Accueil](../README.md) · [Le ressenti](ressenti.md) · [Le bulletin du jour](bulletin.md) · [Sources et réglages](sources.md) · [Pluie, vent, pression](mesures.md) · [Fonctionnement technique](technique.md)
+[Accueil](../README.md) · [Les capteurs](capteurs.md) · [Le ressenti](ressenti.md) · [Le bulletin du jour](bulletin.md) · [Sources et réglages](sources.md) · [Pluie, vent, pression](mesures.md) · [Fonctionnement technique](technique.md)
 
 La synthèse transforme les mesures et les prévisions en quelques points clairs : **ce que l’on ressent maintenant, ce qui arrive, et ce qui mérite l’attention**. Elle n’utilise ni IA, ni abonnement, ni clé : ses règles sont explicables et testées.
 

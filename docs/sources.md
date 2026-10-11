@@ -1,6 +1,6 @@
 # Sources et réglages
 
-[Accueil](../README.md) · [Le ressenti](ressenti.md) · [La synthèse et les alertes](synthese.md) · [Le bulletin du jour](bulletin.md) · [Pluie, vent, pression](mesures.md) · [Fonctionnement technique](technique.md)
+[Accueil](../README.md) · [Les capteurs](capteurs.md) · [Le ressenti](ressenti.md) · [La synthèse et les alertes](synthese.md) · [Le bulletin du jour](bulletin.md) · [Pluie, vent, pression](mesures.md) · [Fonctionnement technique](technique.md)
 
 Niak Weather assemble des données **déjà présentes** dans Home Assistant. Il ne remplace pas vos intégrations : il lit leurs entités et leurs prévisions. Seule l’entité météo est obligatoire ; le reste enrichit.
 

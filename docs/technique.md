@@ -1,6 +1,6 @@
 # Fonctionnement technique
 
-[Accueil](../README.md) · [Le ressenti](ressenti.md) · [La synthèse et les alertes](synthese.md) · [Le bulletin du jour](bulletin.md) · [Sources et réglages](sources.md) · [Pluie, vent, pression](mesures.md)
+[Accueil](../README.md) · [Les capteurs](capteurs.md) · [Le ressenti](ressenti.md) · [La synthèse et les alertes](synthese.md) · [Le bulletin du jour](bulletin.md) · [Sources et réglages](sources.md) · [Pluie, vent, pression](mesures.md)
 
 Cette page s’adresse à qui veut comprendre ou modifier Niak Weather.
 
@@ -18,9 +18,9 @@ Les calculs sont faits **une fois, dans Home Assistant**, au lieu de l’être d
 | Dossier | Rôle |
 | --- | --- |
 | `custom_components/niak_weather/engine` | **Le moteur**, en Python pur, sans Home Assistant : unités, humidité, ressenti, conditions, prévisions, tendances, historiques, saisons, Atmo, synthèse, bulletin, modèle de vue. Il se teste seul. |
-| `custom_components/niak_weather` | **La couche Home Assistant**, mince : parcours de configuration, coordinateur, capteurs, API websocket. |
+| `custom_components/niak_weather` | **La couche Home Assistant**, mince : parcours de configuration, coordinateur, capteurs, oui/non, entité météo, action, API websocket. |
 
-Fichiers principaux du moteur : `feel.py` (ressenti et alerte de la station), `local.py` (la météo locale assemblée), `brief.py` (synthèse), `alerts.py` (ce que montrent les bulles et la frise), `bulletin.py` (bulletin du jour), `station.py` et `series.py` (historiques), `view.py` (ce que reçoit la carte), `detection.py` (reconnaissance de la station et des sources).
+Fichiers principaux du moteur : `feel.py` (ressenti et alerte de la station), `local.py` (la météo locale assemblée), `brief.py` (synthèse), `alerts.py` (ce que montrent les bulles et la frise), `bulletin.py` (bulletin du jour), `station.py` et `series.py` (historiques), `view.py` (ce que reçoit la carte), `detection.py` (reconnaissance de la station et des sources), `catalogue.py` (les entités pour les automatisations), `watch.py` (début, changement et fin des alertes), `prevision.py` (la réponse de l’action).
 
 ## Le coordinateur
 
@@ -31,9 +31,11 @@ Fichiers principaux du moteur : `feel.py` (ressenti et alerte de la station), `l
 
 ## Les capteurs
 
-Onze capteurs par lieu, aux identifiants fixes : `sensor.niak_weather_ressenti`, `…_point_de_rosee`, `…_point_de_givre`, `…_humidex`, `…_alerte`, `…_en_bref`, `…_pluie_dans`, `…_tendance_pression`, `…_pluie_24h`, `…_rafale_max_jour`, `…_tendance_temperature`. Pour un deuxième lieu, son nom s’ajoute : `sensor.niak_weather_marseille_ressenti`.
+Par lieu : 26 capteurs, 9 oui/non et une entité météo, aux identifiants fixes (`sensor.niak_weather_ressenti`, `binary_sensor.niak_weather_gel`, `weather.niak_weather`…). Pour un deuxième lieu, son nom s’ajoute : `sensor.niak_weather_marseille_ressenti`. La liste complète, rangée par famille, est dans [Les capteurs et les automatisations](capteurs.md). Les identifiants des onze capteurs de la 2.0.0 ne changent jamais.
 
-Une valeur inconnue reste **inconnue** : rien n’est inventé. Les longs textes de la synthèse sont en attributs, non enregistrés par le Recorder.
+Une valeur inconnue reste **inconnue** : rien n’est inventé. Les longs textes (synthèse, bulletin, raisons) sont en attributs, non enregistrés par le Recorder.
+
+Les alertes en cours (`engine/watch.py`) sont gardées dans `.storage/niak_weather.alertes.<entry_id>` : un redémarrage ne renvoie pas l’évènement `debut`, et une valeur inconnue (station ou prévisions indisponibles) ne termine jamais une alerte.
 
 ## L’API websocket
 

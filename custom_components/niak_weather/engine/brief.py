@@ -90,6 +90,34 @@ def clock(when: datetime, now: datetime, zone: ZoneInfo) -> str:
 
 
 @dataclass(frozen=True)
+class Vigilance:
+    level: int
+    """0 green to 3 red."""
+    phenomena: tuple[tuple[str, int], ...]
+    """Each phenomenon above green with its own level, the most serious first."""
+
+    @property
+    def text(self) -> str:
+        """One text for every format: « Vigilance jaune · vent violent »; a phenomenon below the overall level says its own colour."""
+        names = [f"{k.lower()}{'' if c == self.level else f' ({COLOR_NAMES[c]})'}" for k, c in self.phenomena]
+        return f"Vigilance {COLOR_NAMES[self.level]}{' · ' + ', '.join(names) if names else ''}"
+
+
+def read_vigilance(settings: Settings, get: Callable[[str], Any], now: datetime, platforms: Mapping[str, str] | None = None) -> Vigilance | None:
+    """The Météo-France vigilance, or None when it is not configured, not recognised or more than 48 hours old."""
+    official = get(settings.vigilance_entity) if settings.vigilance_entity else None
+    recognised = official is not None and (bool(re.search(r"meteo.?france", atmo.normal(official.attributes.get("attribution"))))
+                                           or (platforms or {}).get(settings.vigilance_entity or "") == "meteo_france")
+    level = known_color(official.state) if recognised else None
+    updated = getattr(official, "last_updated", None)
+    if level is None or (isinstance(updated, datetime) and now - updated > timedelta(hours=48)):
+        return None
+    phenomena = sorted(((k, known_color(v)) for k, v in official.attributes.items() if k not in ("attribution", "friendly_name", "icon")),
+                       key=lambda x: -(x[1] or 0))
+    return Vigilance(level, tuple((k, c) for k, c in phenomena if c))
+
+
+@dataclass(frozen=True)
 class _Point:
     hours: float
     hour: Hour
@@ -266,20 +294,11 @@ def build_brief(w: LocalWeather, settings: Settings, get: Callable[[str], Any], 
                 add(Signal(f"legacy-{pollen.entity_id}", "environment", 2 if level == 4 else 1, f"{pollen.name} : pollens {'très élevés' if level == 4 else 'élevés'}",
                            "Niveau Polleninformation, sur une échelle de 0 à 4.", "mdi:flower-pollen", pollen.entity_id))
     if settings.vigilance_entity:
-        official = get(settings.vigilance_entity)
-        recognised = official is not None and (bool(re.search(r"meteo.?france", atmo.normal(official.attributes.get("attribution"))))
-                                               or (platforms or {}).get(settings.vigilance_entity) == "meteo_france")
-        level = known_color(official.state) if recognised else None
-        updated = getattr(official, "last_updated", None)
-        old = isinstance(updated, datetime) and now - updated > timedelta(hours=48)
-        if level is None or old:
+        official = read_vigilance(settings, get, now, platforms)
+        if official is None:
             caveats.append("Vigilance indisponible ou trop ancienne : consultez Météo-France.")
-        elif level > 0:
-            # One text for every format: « Vigilance jaune · vent violent »; a phenomenon below the overall level says its own colour.
-            phenomena = sorted(((k, known_color(v)) for k, v in official.attributes.items() if k not in ("attribution", "friendly_name", "icon")),
-                               key=lambda x: -(x[1] or 0))
-            names = [f"{k.lower()}{'' if c == level else f' ({COLOR_NAMES[c]})'}" for k, c in phenomena if c]
-            add(Signal("official", "official", level, f"Vigilance {COLOR_NAMES[level]}{' · ' + ', '.join(names) if names else ''}",
+        elif official.level > 0:
+            add(Signal("official", "official", official.level, official.text,
                        "Vigilance officielle de votre département. Ouvrez le capteur pour lire les consignes.", "mdi:alert-outline", settings.vigilance_entity))
 
     severity = max((s.severity for s in signals), default=0)
