@@ -250,7 +250,9 @@ def _sky(moments: Sequence[_Moment], night: bool) -> str:
     if first[0] == last[0]:
         return (STEADY_NIGHT if night else STEADY_DAY)[first[0]]
     start = (STEADY_NIGHT if night else SHORT_DAY)[first[0]]
-    return f"{start} {_when(first[1])}, puis {_change(first[0], last[0], night)} {_when(last[1])}"
+    before, after = _when(first[1]), _when(last[1])
+    # Both in the same part of the day: « quelques nuages, puis le ciel se dégage en début de soirée », the part said once.
+    return f"{start}{'' if before == after else ' ' + before}, puis {_change(first[0], last[0], night)} {after}"
 
 
 def _after_rain(moments: Sequence[_Moment], night: bool) -> str:
@@ -300,6 +302,11 @@ def _rain(episodes: Sequence[Sequence[_Moment]], first: int, last: int, night: b
             # Rain carried over from the part before: it stops, it does not start again under another name.
             stops = {"orages": "les orages cessent", "neige": "la neige cesse"}.get(kind, "la pluie cesse")
             parts.append((stops, f"vers {_clock(end)}"))
+        elif parts and parts[0][0].endswith(("cesse", "cessent")) and word == kind:
+            # « Les orages cessent vers 9 h et reprennent à partir de midi », not « … et orages à partir de midi ».
+            again = "reprennent" if kind == "orages" else "reprend"
+            parts.append((again, f"à partir de {_clock(start)}" if e[-1].hour == last else f"vers {_clock(start)}" if len(e) <= 2
+                          else f"de {_clock(start)} à {_clock(end)}"))
         elif e[0].hour == first:
             parts.append((word, f"jusqu’à {_clock(end)}"))
         elif e[-1].hour == last:
@@ -313,7 +320,8 @@ def _rain(episodes: Sequence[Sequence[_Moment]], first: int, last: int, night: b
     return " et ".join(f"{w} {t}" for w, t in parts) + amount
 
 
-def _temperature(moments: Sequence[_Moment], night: bool) -> str:
+def _temperature(moments: Sequence[_Moment], night: bool, said: str = "") -> str:
+    """`said` is the rest of the sentence: a moment it already names is given by its hour instead (« frais vers 19 h »)."""
     temps = [(m.temperature, m.hour) for m in moments if m.temperature is not None]
     if not temps:
         return ""
@@ -324,6 +332,8 @@ def _temperature(moments: Sequence[_Moment], night: bool) -> str:
         low = min(t for t, _ in temps)
         hour = [h for t, h in temps if t == low][-1]
         value, when = _degrees(low), "au petit matin" if 3 <= hour < 8 else _when(hour)
+        if when in said:
+            when = f"vers {_clock(hour)}"
         if low >= 20:
             return f"nuit chaude, pas moins de {value} °C"
         return (f"gel {when} ({value} °C)" if low <= 0 else f"froid {when} ({value} °C), gelée possible" if low <= 3
@@ -398,7 +408,7 @@ def narrate(hours: Sequence[Hour], now: datetime, zone: ZoneInfo, parts: int = 2
         # The same wind twice is said once: it keeps blowing, or it drops.
         told = "vent toujours fort" if wind and windy_before else "le vent faiblit" if windy_before else wind
         windy_before = bool(wind)
-        facts = [x for x in (_temperature(moments, night), told) if x]
+        facts = [x for x in (_temperature(moments, night, weather), told) if x]
         if dry_everywhere and i == len(usable) - 1:
             facts.append("sans pluie")
         text = " ; ".join(x for x in (weather, ", ".join(facts)) if x)

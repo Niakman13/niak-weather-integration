@@ -112,3 +112,31 @@ def test_fog_frost_heat_and_a_wind_that_keeps_blowing() -> None:
                                                                        "precipitation": 2.5 if h < 11 else 0, "wind_speed": 45, "wind_gust_speed": 90, "wind_bearing": 330})
     assert storm == ("Aujourd’hui, pluie toute la journée (28 mm) ; jusqu’à 11 °C, vent fort du nord-ouest et rafales à 90 km/h. "
                      "Ce soir et cette nuit, ciel couvert ; vent toujours fort.")
+
+
+def test_a_change_within_the_same_part_of_the_day_names_that_part_once() -> None:
+    # The test bench of 11 Oct 2026: a few clouds at 18 h and 19 h, a clear sky from 20 h, rain after midnight.
+    def at(h: int) -> dict[str, Any]:
+        return {"condition": "partlycloudy" if h < 2 else "rainy" if 6 <= h < 11 else "clear-night", "temperature": 16 - h * 0.2,
+                "precipitation": 2.6 if 6 <= h < 11 else 0, "wind_speed": 5}
+    text = summary("2026-10-11T18:00", "2026-10-11T17:50", at, n=12)
+    assert text.startswith("Ce soir et cette nuit, quelques nuages, puis le ciel se dégage en début de soirée, pluie de minuit à 5 h (13 mm)")
+    assert text.count("en début de soirée") == 1
+
+
+def test_storms_that_stop_then_start_again_are_said_to_start_again() -> None:
+    # Storms all night, stopping at 8 h, then back from 14 h to 17 h.
+    def at(h: int) -> dict[str, Any]:
+        storm = h < 12 or 18 <= h < 21
+        return {"condition": "lightning-rainy" if storm else "cloudy", "precipitation": 4 if storm else 0, "temperature": 14, "wind_speed": 5}
+    text = summary("2026-10-11T20:00", "2026-10-11T19:50", at, n=22)
+    assert "les orages cessent vers 8 h et reprennent vers 14 h" in text or "les orages cessent vers 8 h et reprennent de 14 h à 17 h" in text, text
+    assert "et orages" not in text
+
+
+def test_the_night_minimum_does_not_repeat_the_moment_of_the_sky() -> None:
+    # A night that only cools in the evening, then warms up: the minimum comes early, when the fog lifts.
+    def at(h: int) -> dict[str, Any]:
+        return {"condition": "fog" if h < 2 else "clear-night", "temperature": 7 if h == 1 else 9 + h * 0.1, "precipitation": 0, "wind_speed": 5}
+    text = summary("2026-10-11T18:00", "2026-10-11T17:50", at, n=14)
+    assert text.count("en début de soirée") == 1 and "frais vers 19 h (7 °C)" in text
