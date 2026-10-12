@@ -6,6 +6,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
+from homeassistant.loader import async_get_integration
 
 from .const import DOMAIN
 from .coordinator import NiakWeatherConfigEntry, NiakWeatherCoordinator, alert_store
@@ -17,7 +18,8 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    async_setup_websocket(hass)
+    # The card compares it with the version it needs, to say when the integration was not updated with it.
+    async_setup_websocket(hass, str((await async_get_integration(hass, DOMAIN)).version or ""))
     async_setup_services(hass)
     return True
 

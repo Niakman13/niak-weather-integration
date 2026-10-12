@@ -12,9 +12,13 @@ from homeassistant.core import HomeAssistant, callback
 from .const import DOMAIN, VIEW_VERSION
 from .coordinator import NiakWeatherConfigEntry
 
+# This integration's version (manifest.json), sent with every view.
+VERSION_KEY = f"{DOMAIN}_version"
+
 
 @callback
-def async_setup_websocket(hass: HomeAssistant) -> None:
+def async_setup_websocket(hass: HomeAssistant, version: str) -> None:
+    hass.data[VERSION_KEY] = version
     websocket_api.async_register_command(hass, ws_entries)
     websocket_api.async_register_command(hass, ws_subscribe)
 
@@ -54,8 +58,8 @@ def ws_subscribe(hass: HomeAssistant, connection: websocket_api.ActiveConnection
         if snapshot is None or sent.get("view") is snapshot.view or sent.get("view") == snapshot.view:
             return
         sent["view"] = snapshot.view
-        connection.send_message(websocket_api.event_message(msg["id"], {"version": VIEW_VERSION, "entryId": entry.entry_id, "title": entry.title,
-                                                                        "view": snapshot.view}))
+        connection.send_message(websocket_api.event_message(msg["id"], {"version": VIEW_VERSION, "integration": hass.data.get(VERSION_KEY, ""),
+                                                                        "entryId": entry.entry_id, "title": entry.title, "view": snapshot.view}))
 
     @callback
     def stopped() -> None:

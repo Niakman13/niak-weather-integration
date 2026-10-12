@@ -5,7 +5,7 @@
 Input: {"options": {...}, "states": {"weather.x": {"state": "sunny", "attributes": {...}}, ...}, "hourly": [...], "daily": [...],
         "history": {"sensor.x": [{"s": "12", "lu": 1791500000}, ...]}, "now": "2026-10-08T17:40:00+02:00",
         "time_zone": "Europe/Paris", "latitude": 43.45, "elevation": 0}
-Output: {"version": 1, "view": {...}}, as the integration sends it to the card."""
+Output: {"version": 1, "integration": "2.0.9", "view": {...}}, as the integration sends it to the card."""
 from __future__ import annotations
 
 import json
@@ -25,6 +25,7 @@ from engine.trends import Change  # noqa: E402
 from engine.view import to_json  # noqa: E402
 
 VIEW_VERSION = 1
+INTEGRATION = json.loads((Path(__file__).resolve().parent.parent / "custom_components" / "niak_weather" / "manifest.json").read_text())["version"]
 
 
 @dataclass
@@ -49,7 +50,7 @@ def main() -> None:
     now = parse_time(data["now"]) or datetime.now(zone)
     result = compute(states.get, settings, parse_hours(data.get("hourly") or [], units), parse_days(data.get("daily") or [], units), history, history,
                      [], None, now, zone, data.get("latitude"), data.get("elevation") or 0)
-    json.dump({"version": VIEW_VERSION, "view": to_json(result.view)}, sys.stdout, ensure_ascii=False)
+    json.dump({"version": VIEW_VERSION, "integration": INTEGRATION, "view": to_json(result.view)}, sys.stdout, ensure_ascii=False)
 
 
 if __name__ == "__main__":
