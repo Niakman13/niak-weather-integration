@@ -37,7 +37,7 @@ def needs(settings: Settings) -> dict[str, str]:
         "max_gust_today": not (settings.max_daily_gust_entity or settings.wind_gust_entity) and "un capteur de rafales",
         "temperature_trend": not (settings.temperature_trend_entity or settings.temperature_entity) and "un thermomètre extérieur",
         "qualite_air": not settings.atmo.get("atmo_air_entity") and "Atmo France",
-        "pollens": not (legacy or atmo_pollen) and "Atmo France ou Polleninformation",
+        "pollens": not (legacy or atmo_pollen) and "Atmo France, Polleninformation ou IRM KMI",
     }
     return {key: text for key, text in missing.items() if text}
 

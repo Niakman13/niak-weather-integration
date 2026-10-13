@@ -61,3 +61,15 @@ def test_listeners_follow_the_place_and_can_be_removed():
     remove()
     assert e.listeners == []
     assert api.add_listener("absent", lambda: None)() is None
+
+
+def test_a_brick_that_says_who_it_is_shows_linked_to_its_place_until_it_stops():
+    a, b = entry("a", "Maison", Settings(weather_entity="weather.home")), entry("b", "Chalet", Settings(weather_entity="weather.home"))
+    api = NiakWeatherApi(hass_with(a, b))
+    stop = api.add_listener("a", lambda: None, brick="niak_comfort")
+    other = api.add_listener("a", lambda: None)
+    assert api.linked("a") == {"niak_comfort": 1, "": 1} and api.linked("b") == {}
+    stop(); stop()  # a second stop changes nothing
+    assert api.linked("a") == {"": 1} and a.listeners != []
+    other()
+    assert api.linked("a") == {} and a.listeners == []

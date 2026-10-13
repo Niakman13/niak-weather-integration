@@ -23,7 +23,7 @@ Un guide en quatre étapes, chacune préremplie avec ce que Home Assistant conna
 0. **Bienvenue** : ce que fait Niak Weather et ce qu’il faut. Si vous aviez déjà la carte, **Reprendre les réglages d’une carte** : ils sont affichés à chaque étape, pour vérification.
 1. **Météo** : l’entité météo, le nom du lieu, la vigilance, la saison.
 2. **Station météo** : le modèle reconnu, puis chaque capteur. Laissez vide ce que la station ne mesure pas.
-3. **Qualité de l’air**, puis **Pollens** : la commune Atmo France pour l’air (ou aucune), puis la source des pollens : Atmo France, Polleninformation ou aucune. Avec Polleninformation, vous choisissez ensuite ses capteurs.
+3. **Qualité de l’air**, puis **Pollens** : la commune Atmo France pour l’air (ou aucune), puis la source des pollens : Atmo France, Polleninformation, IRM KMI (Belgique) ou aucune. Avec Polleninformation ou IRM KMI, vous choisissez ensuite ses capteurs.
 4. **Capteurs et automatisations** : les familles d’entités à activer (Maintenant, Alertes, Prochaines heures, Jardin…).
 5. **Récapitulatif** : ce qui a été trouvé, et ce qui manque à certaines entités (un capteur UV, Atmo France…).
 
@@ -79,7 +79,16 @@ Niak Weather lit, pour aujourd’hui et pour demain, **19 mesures** : l’indice
 - Échelle : **0 (aucun) à 4 (très élevé)**, gardée telle quelle : la carte affiche « Niveau 2 sur 4 ».
 - Le panneau Pollens de la carte, le capteur `sensor.niak_weather_pollens` et la synthèse les utilisent.
 - Le niveau du jour est le risque d’allergie global quand il est choisi, sinon l’espèce la plus élevée.
-- Une seule source de pollens à la fois : Atmo France ou Polleninformation.
+- Une seule source de pollens à la fois : Atmo France, Polleninformation ou IRM KMI.
+
+### IRM KMI, les pollens en Belgique
+
+[IRM KMI](https://github.com/jdejaegh/irm-kmi-ha) (version HACS) donne un capteur par espèce : aulne, frêne, bouleau, graminées, noisetier, armoise et chêne. Choisissez **IRM KMI (Belgique)** dans **Pollens** : Niak propose ses capteurs, vous vérifiez, ajoutez ou retirez.
+
+- Ses couleurs sont lues sur la même échelle **0 à 4** : vert ou « aucun » = 0, jaune = 1, orange = 2, rouge = 3, violet = 4.
+- Pas de risque global : le niveau du jour est celui de l’espèce la plus élevée.
+- Pollens du jour seulement : le panneau « Pollens demain » reste vide.
+- Sa météo peut aussi servir d’entité météo de Niak Weather.
 
 ## Historique (Recorder)
 
@@ -105,9 +114,10 @@ Les clés sont les mêmes que dans le YAML de la carte avant la 2.0 : les régla
 | `solar_radiation_entity`, `uv_index_entity`, `illuminance_entity` | Rayonnement, UV, luminosité |
 | `atmo_area` | Commune Atmo France |
 | `atmo_<mesure>_entity`, `atmo_<mesure>_tomorrow_entity` | Les mesures Atmo du jour et de demain (`air`, `pm25`, `grass`, `grass_concentration`…) |
-| `pollen_source` | `atmo`, `legacy` (Polleninformation) ou `none` |
+| `pollen_source` | `atmo`, `legacy` (un capteur par espèce : Polleninformation ou IRM KMI) ou `none` |
+| `pollen_provider` | `polleninformation` (par défaut) ou `irm_kmi` : d’où viennent les capteurs par espèce |
 | `air_source` | `none` : pas de qualité de l’air, même si la zone Atmo sert aux pollens |
-| `pollens`, `pollen_risk_entity` | Les capteurs Polleninformation : les espèces suivies, le risque d’allergie global |
+| `pollens`, `pollen_risk_entity` | Les capteurs par espèce suivis, et le risque d’allergie global de Polleninformation |
 | `families` | Les familles d’entités choisies à l’installation (elles décident des entités activées au départ) |
 
 Les anciens réglages Thermal Comfort sont ignorés : Niak Weather calcule lui-même humidex, point de rosée et point de givre.

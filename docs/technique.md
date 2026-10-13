@@ -61,7 +61,10 @@ Niak Weather publie pour les autres briques (Niak Confort, futur Niak Chauffage�
 | `places()` | Les lieux configurés (`entry_id`, `title`). |
 | `station(entry_id)` | Les capteurs de la station choisis dans Niak Weather, par rôle : `temperature`, `humidity`, `rain_rate`, `wind_speed`, `wind_gust`, `wind_bearing`, `solar_radiation`, `uv_index`, `pressure`. |
 | `hourly(entry_id)` | Les prévisions horaires lues par Niak Weather : heure ISO, °C, %, mm, km/h, direction du vent en degrés, condition. |
-| `add_listener(entry_id, rappel)` | Prévient quand le lieu est recalculé ; renvoie la fonction qui arrête l’écoute. |
+| `add_listener(entry_id, rappel, brick=None)` | Prévient quand le lieu est recalculé ; renvoie la fonction qui arrête l’écoute. `brick` : le domaine de la brique qui écoute (`niak_comfort`), pour qu’elle apparaisse « reliée » dans les réglages de Niak Weather. |
+| `linked(entry_id)` | Les briques qui écoutent ce lieu, par domaine. |
+
+Dans Niak Weather, **Configurer → Écosystème Niak** montre chaque brique : reliée à ce lieu, installée mais pas reliée, non installée, ou à venir.
 
 Sans `entry_id`, le seul lieu configuré est utilisé ; avec plusieurs lieux, la brique doit en choisir un. Les entités restent l’autre moyen de lecture : elles sont reconnues par leur identifiant interne `<entrée>_<clé>`.
 

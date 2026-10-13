@@ -26,6 +26,8 @@ class NiakWeatherApi:
 
     def __init__(self, hass: HomeAssistant) -> None:
         self.hass = hass
+        # How many listeners each brick has on each place: (entry_id, brick) → count.
+        self._links: dict[tuple[str, str], int] = {}
 
     def _entries(self):
         return [e for e in self.hass.config_entries.async_entries(DOMAIN) if getattr(e.state, "value", e.state) == "loaded"]
@@ -59,9 +61,28 @@ class NiakWeatherApi:
                  "wind_bearing": h.wind_bearing, "condition": h.condition}
                 for h in entry.runtime_data.hours if h.time is not None]
 
-    def add_listener(self, entry_id: str | None, update: Callable[[], None]) -> Callable[[], None]:
-        """Calls `update` whenever this place is recomputed (new measures or forecasts)."""
+    def add_listener(self, entry_id: str | None, update: Callable[[], None], brick: str | None = None) -> Callable[[], None]:
+        """Calls `update` whenever this place is recomputed (new measures or forecasts).
+
+        `brick`: the listener's own domain (« niak_comfort »), so that Niak Weather's settings show it linked to this place."""
         entry = self._entry(entry_id)
         if entry is None:
             return lambda: None
-        return entry.runtime_data.async_add_listener(update)
+        remove = entry.runtime_data.async_add_listener(update)
+        key = (entry.entry_id, brick or "")
+        self._links[key] = self._links.get(key, 0) + 1
+
+        stopped = False
+
+        def stop() -> None:
+            nonlocal stopped
+            if stopped:
+                return
+            stopped = True
+            remove()
+            self._links[key] -= 1
+        return stop
+
+    def linked(self, entry_id: str) -> dict[str, int]:
+        """The bricks listening to this place, by domain ("" for those that did not say who they are)."""
+        return {brick: n for (place, brick), n in self._links.items() if place == entry_id and n}

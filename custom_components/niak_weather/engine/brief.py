@@ -291,7 +291,7 @@ def build_brief(w: LocalWeather, settings: Settings, get: Callable[[str], Any], 
             if level is not None and 3 <= level <= 4:
                 label = polleninfo.name(pollen, state)
                 add(Signal(f"legacy-{pollen.entity_id}", "environment", 2 if level == 4 else 1, f"{label} : pollens {'très élevés' if level == 4 else 'élevés'}",
-                           "Niveau Polleninformation, sur une échelle de 0 à 4. Ce n’est pas une mesure faite chez vous.", "mdi:flower-pollen", pollen.entity_id,
+                           f"Niveau {polleninfo.provider_name(settings)}, sur une échelle de 0 à 4. Ce n’est pas une mesure faite chez vous.", "mdi:flower-pollen", pollen.entity_id,
                            short=f"Pollens : {label.lower()} {'très élevés' if level == 4 else 'élevés'}", index=level))
     if settings.vigilance_entity:
         official = read_vigilance(settings, get, now, platforms)
