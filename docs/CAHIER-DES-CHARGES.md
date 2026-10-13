@@ -4,7 +4,7 @@ Version 1 — 13 octobre 2026. Document vivant : il évolue avec le projet, et t
 
 ## 1. Objet
 
-Niak Weather est **le cerveau météo local** du logement. Il lit la station, le fournisseur de prévisions, la vigilance Météo-France et Atmo France ; il calcule une seule fois, dans Home Assistant ; il dit **ce que la météo implique** (ressenti, synthèse, bulletin, alertes) ; il donne ses résultats à la carte et aux autres systèmes. Version stable actuelle : intégration 2.0.9, carte 2.0.8.
+Niak Weather est **le cerveau météo local** du logement. Il lit la station, le fournisseur de prévisions, la vigilance Météo-France, Atmo France et les pollens de Polleninformation ou d'IRM KMI ; il calcule une seule fois, dans Home Assistant ; il dit **ce que la météo implique** (ressenti, synthèse, bulletin, alertes) ; il donne ses résultats à la carte et aux autres systèmes. Version stable actuelle : intégration 2.0.9, carte 2.0.8.
 
 ## 2. Principes
 
@@ -20,7 +20,9 @@ Référence commune : [Écosystème Niak](../../niak-ecosysteme/ECOSYSTEME.md).
 
 **Rôle** : producteur de données météo pour tout l'écosystème. Il ne dépend d'aucune autre brique Niak.
 
-**Ce qu'il consomme** : Home Assistant (station, entité météo du fournisseur, vigilance, Atmo France, soleil). Aucune brique Niak.
+**Ce qu'il consomme** : Home Assistant (station, entité météo du fournisseur, vigilance, Atmo France, Polleninformation ou IRM KMI, soleil). Aucune brique Niak.
+
+**Liens visibles** : **Configurer → Écosystème Niak** montre chaque brique, reliée à ce lieu, installée mais pas reliée, non installée, ou à venir. Une brique est « reliée » quand elle écoute ce lieu par l'interface et donne son domaine (`brick`).
 
 **Ce qu'il fournit**
 | Destinataire | Ce qu'il fournit | Intensité |
@@ -36,7 +38,7 @@ Référence commune : [Écosystème Niak](../../niak-ecosysteme/ECOSYSTEME.md).
 ## 4. Interfaces publiées (contrat pour les autres briques)
 
 Ces interfaces sont stables ; un changement incompatible change la version majeure.
-- **Interface Python versionnée** `hass.data["niak_weather_api"]` (version 1) : `places()`, `station()`, `hourly()`, `add_listener()` — détail dans [technique.md](technique.md).
+- **Interface Python versionnée** `hass.data["niak_weather_api"]` (version 1) : `places()`, `station()`, `hourly()`, `add_listener(…, brick=)`, `linked()` — détail dans [technique.md](technique.md). Une brique qui écoute un lieu donne son domaine (`brick`) : elle apparaît alors « reliée » dans **Configurer → Écosystème Niak**, qui montre aussi les briques installées non reliées, absentes ou à venir (règle 4 de l'écosystème).
 - **Entités** : `sensor.niak_weather_<clé>` et `binary_sensor.niak_weather_<clé>` (deuxième lieu : `niak_weather_<lieu>_<clé>`). Identifiant interne stable : `<entrée>_<clé>`. Les autres briques les reconnaissent par cet identifiant, jamais par le nom. Liste et attributs communs (`raison`, `source`, `debut`, `fin`, `partiel`, `niveau`) : [capteurs.md](capteurs.md).
 - **Entité météo** `weather.niak_weather` (désactivée par défaut) : prévisions horaires et journalières.
 - **Action** `niak_weather.prevision` (`debut`, `fin`, `lieu`) : la météo d'une fenêtre de temps.
@@ -50,9 +52,11 @@ Ces interfaces sont stables ; un changement incompatible change la version majeu
 | 1 | Catalogue de capteurs (7 familles), évènement d'alerte, blueprints alertes / gel / bulletin | ✅ |
 | 2 | Action `niak_weather.prevision`, entité `weather.niak_weather` | ✅ |
 | **2 bis** | **Interfaces pour l'écosystème** : objet versionné `hass.data["niak_weather_api"]` (lieux, station par rôle dont la **direction du vent**, prévisions horaires avec direction du vent, abonnement) — voir [technique.md](technique.md) | ✅ 2.1.0b1 |
+| 2 ter | Écran **Écosystème Niak** dans les réglages ; pollens **IRM KMI** (Belgique), 3ᵉ source à côté d'Atmo France et de Polleninformation | ✅ 2.1.0b2 |
 | 3 | Données pour les autres briques : évapotranspiration (ET0), bilan hydrique, ensoleillement prévu par heure. Les décisions (aérer, rafraîchir, arroser, production solaire) partent dans les briques concernées | à décider |
 | — | Correction locale des prévisions par la station | abandonnée le 11 oct. 2026 (gain ~5 %, défauts d'emplacement des capteurs) |
 
 ## 6. Historique
 
 - **v1 — 13 octobre 2026** : première version du cahier des charges, centrée sur la place de Niak Weather dans l'écosystème Niak et ses interfaces publiées.
+- **v1.1 — 14 octobre 2026** : liens visibles dans les réglages (écran Écosystème Niak, `add_listener(…, brick=)`, `linked()`) ; pollens IRM KMI.

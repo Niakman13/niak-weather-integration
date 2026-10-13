@@ -213,7 +213,7 @@ def detect_station(states: Sequence[StateLike], registry: Registry, devices: Dev
             selected[field] = best
     selected.update(atmo.detect(states, registry, options, devices))
     if options.get("pollens") is None and options.get("pollen_source") == "legacy":
-        found = polleninfo.detect(states, registry)
+        found = polleninfo.detect(states, registry, options.get("pollen_provider") or polleninfo.POLLENINFORMATION)
         selected.update({k: v for k, v in found.items() if options.get(k) is None})
     return selected
 

@@ -438,15 +438,16 @@ def _drying(w: LocalWeather, raining: Item, upcoming: Sequence[Hour], now: datet
 
 
 def _polleninformation(get: Callable[[str], Any], settings: Settings, now: datetime, zone: ZoneInfo) -> Item:
-    """Polleninformation's level of the day, on its own scale of 0 to 4, and the species that weighs most."""
+    """The level of the day given per species (Polleninformation or IRM KMI), on its own scale of 0 to 4, and the species that weighs most."""
+    source, name = polleninfo.provider(settings), polleninfo.provider_name(settings)
     if not settings.pollens and not settings.pollen_risk_entity:
-        return Item(None, "Capteurs Polleninformation non choisis", "polleninformation")
+        return Item(None, f"Capteurs {name} non choisis", source)
     value, main = polleninfo.worst(*polleninfo.readings(get, settings, False, now, zone))
     if value is None:
-        return Item(None, "Polleninformation indisponible", "polleninformation")
+        return Item(None, f"{name} indisponible", source)
     tomorrow, _ = polleninfo.worst(*polleninfo.readings(get, settings, True, now, zone))
     word = polleninfo.WORDS[value]
-    return Item(value, f"{word} ({value}/4)" + (f" · {main}" if main else ""), "polleninformation",
+    return Item(value, f"{word} ({value}/4)" + (f" · {main}" if main else ""), source,
                 extra={"libelle": word, "principal": main, "echelle": polleninfo.SCALE, "demain": tomorrow})
 
 

@@ -109,8 +109,8 @@
         }
       },
       "pollen_sensors": {
-        "title": "Step 3 of 4 · Polleninformation sensors",
-        "description": "The species to follow and the overall allergy risk, proposed by Niak: check, add or remove.",
+        "title": "Step 3 of 4 · {source} sensors",
+        "description": "The species to follow (and, for Polleninformation, the overall allergy risk), proposed by Niak: check, add or remove. Without an overall risk, Niak keeps the highest species.",
         "data": {
           "pollens": "Species",
           "pollen_risk_entity": "Overall allergy risk"
@@ -139,7 +139,7 @@
       },
       "pollen": {
         "title": "Step 3 of 4 · Pollen",
-        "description": "Where the pollen comes from: Atmo France (index 1 to 6) or Polleninformation (levels 0 to 4). With Polleninformation, you will choose its sensors next.",
+        "description": "Where the pollen comes from: Atmo France (index 1 to 6), Polleninformation or IRM KMI for Belgium (levels 0 to 4). With Polleninformation or IRM KMI, you will choose its sensors next.",
         "data": {
           "pollen_source": "Pollen source"
         }
@@ -154,19 +154,21 @@
     },
     "error": {
       "atmo_missing": "Atmo France is not installed. Install the Atmo France integration (github.com/sebcaps/atmofrance), then come back.",
-      "polleninformation_missing": "Polleninformation is not installed. Install the Polleninformation EU integration (github.com/krissen/polleninformation), then come back."
+      "polleninformation_missing": "Polleninformation is not installed. Install the Polleninformation EU integration (github.com/krissen/polleninformation), then come back.",
+      "irm_kmi_missing": "IRM KMI is not installed, or gives no pollen. Install the IRM KMI integration from HACS (github.com/jdejaegh/irm-kmi-ha), then come back."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Niak Weather",
-        "description": "**Weather**: {weather}\n**Station**: {station}\n**Air quality**: {air}\n**Pollen**: {pollen}\n**Sensors**: {entities}\n\nChange what you want: nothing is saved before « Save and close ».",
+        "description": "**Weather**: {weather}\n**Station**: {station}\n**Air quality**: {air}\n**Pollen**: {pollen}\n**Sensors**: {entities}\n**Niak ecosystem**: {ecosystem}\n\nChange what you want: nothing is saved before « Save and close ».",
         "menu_options": {
           "weather": "Weather",
           "station": "Weather station",
           "air": "Air quality and pollen",
           "entities": "Sensors and automations",
+          "ecosystem": "Niak ecosystem",
           "save": "Save and close"
         }
       },
@@ -269,8 +271,8 @@
         }
       },
       "pollen_sensors": {
-        "title": "Polleninformation sensors",
-        "description": "The species to follow and the overall allergy risk, proposed by Niak: check, add or remove.",
+        "title": "{source} sensors",
+        "description": "The species to follow (and, for Polleninformation, the overall allergy risk), proposed by Niak: check, add or remove. Without an overall risk, Niak keeps the highest species.",
         "data": {
           "pollens": "Species",
           "pollen_risk_entity": "Overall allergy risk"
@@ -302,7 +304,7 @@
       },
       "pollen": {
         "title": "Pollen",
-        "description": "Where the pollen comes from: Atmo France (index 1 to 6) or Polleninformation (levels 0 to 4). With Polleninformation, you will choose its sensors next.",
+        "description": "Where the pollen comes from: Atmo France (index 1 to 6), Polleninformation or IRM KMI for Belgium (levels 0 to 4). With Polleninformation or IRM KMI, you will choose its sensors next.",
         "data": {
           "pollen_source": "Pollen source"
         }
@@ -313,11 +315,16 @@
         "data": {
           "atmo_area": "Atmo France zone"
         }
+      },
+      "ecosystem": {
+        "title": "Niak ecosystem",
+        "description": "Niak Weather shares its weather with the other Niak bricks. Each brick links itself to this place in its own settings; Niak Weather never changes the others.\n\n{links}\n\nSubmit to go back to the menu."
       }
     },
     "error": {
       "atmo_missing": "Atmo France is not installed. Install the Atmo France integration (github.com/sebcaps/atmofrance), then come back.",
-      "polleninformation_missing": "Polleninformation is not installed. Install the Polleninformation EU integration (github.com/krissen/polleninformation), then come back."
+      "polleninformation_missing": "Polleninformation is not installed. Install the Polleninformation EU integration (github.com/krissen/polleninformation), then come back.",
+      "irm_kmi_missing": "IRM KMI is not installed, or gives no pollen. Install the IRM KMI integration from HACS (github.com/jdejaegh/irm-kmi-ha), then come back."
     }
   },
   "selector": {

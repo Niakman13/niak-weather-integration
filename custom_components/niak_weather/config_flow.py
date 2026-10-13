@@ -18,7 +18,8 @@ from homeassistant.helpers.selector import (BooleanSelector, EntitySelector, Ent
                                             SelectSelectorConfig, SelectSelectorMode, TextSelector)
 
 from .const import CARD_TYPE, DOMAIN, LOGGER
-from .engine import atmo, detection, families, polleninfo
+from .api import API_KEY
+from .engine import atmo, detection, ecosystem, families, polleninfo
 from .engine.settings import ATMO_KEYS, Settings, atmo_key
 from .engine.view import place_name
 
@@ -230,10 +231,12 @@ class _SourceSteps:
                                     description_placeholders={"hint": hint})
 
     async def async_step_pollen(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """The pollens: from Atmo France, from Polleninformation, or none. Both sources are always offered; one not installed says so."""
+        """The pollens: from Atmo France, Polleninformation or IRM KMI, or none. Every source is always offered; one not installed says so.
+        Polleninformation and IRM KMI both give one sensor per species: stored as the « legacy » source, told apart by pollen_provider."""
         states, registry, _ = _context(self.hass)
-        areas, legacy = self._areas(), bool(polleninfo.candidates(states, registry)[0])
-        if user_input is None and not areas and not legacy and self.skip_empty:
+        areas = self._areas()
+        found = {p: bool(polleninfo.candidates(states, registry, p)[0]) for p in polleninfo.PROVIDERS}
+        if user_input is None and not areas and not any(found.values()) and self.skip_empty:
             self.sources["pollen_source"] = NONE
             self._apply_atmo()
             return await self._done("pollen")
@@ -242,9 +245,16 @@ class _SourceSteps:
             source = user_input.get("pollen_source", NONE)
             if source == "atmo" and not areas:
                 errors["base"] = "atmo_missing"
-            elif source == "legacy" and not legacy:
-                errors["base"] = "polleninformation_missing"
+            elif source in found and not found[source]:
+                errors["base"] = f"{source}_missing"
             else:
+                if source in found:
+                    if source != polleninfo.provider(Settings.from_options(_clean(self.sources))):
+                        # Another integration: its own sensors are proposed, not the other one's.
+                        self.sources.pop("pollens", None)
+                        self.sources.pop("pollen_risk_entity", None)
+                    self.sources["pollen_provider"] = source
+                    source = "legacy"
                 self.sources["pollen_source"] = source
                 if source == "atmo" and not self.sources.get("atmo_area"):
                     return await self.async_step_pollen_area()
@@ -254,9 +264,13 @@ class _SourceSteps:
                 return await self._done("pollen")
         missing = " — pas encore installée"
         options = [SelectOptionDict(value="atmo", label="Atmo France" + ("" if areas else missing)),
-                   SelectOptionDict(value="legacy", label="Polleninformation" + ("" if legacy else missing)),
+                   SelectOptionDict(value=polleninfo.POLLENINFORMATION, label="Polleninformation" + ("" if found[polleninfo.POLLENINFORMATION] else missing)),
+                   SelectOptionDict(value=polleninfo.IRM_KMI, label="IRM KMI (Belgique)" + ("" if found[polleninfo.IRM_KMI] else missing)),
                    SelectOptionDict(value=NONE, label="Pas de pollens")]
-        current = (user_input or {}).get("pollen_source") or self.sources.get("pollen_source") or ("atmo" if areas else "legacy" if legacy else NONE)
+        stored = self.sources.get("pollen_source")
+        current = ((user_input or {}).get("pollen_source")
+                   or (polleninfo.provider(Settings.from_options(_clean(self.sources))) if stored == "legacy" else stored)
+                   or ("atmo" if areas else next((p for p, ok in found.items() if ok), NONE)))
         schema = vol.Schema({vol.Required("pollen_source"): SelectSelector(SelectSelectorConfig(options=options, mode=SelectSelectorMode.LIST))})
         return self.async_show_form(step_id="pollen", data_schema=self.add_suggested_values_to_schema(schema, {"pollen_source": current}),  # type: ignore[attr-defined]
                                     errors=errors)
@@ -273,22 +287,28 @@ class _SourceSteps:
         return self.async_show_form(step_id="pollen_area", data_schema=schema)  # type: ignore[attr-defined]
 
     async def async_step_pollen_sensors(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Polleninformation: its species sensors and its overall allergy risk, proposed, to check or change."""
+        """Polleninformation or IRM KMI: its species sensors (and Polleninformation's overall allergy risk), proposed, to check or change."""
         states, registry, _ = _context(self.hass)
-        species, risks = polleninfo.candidates(states, registry)
+        provider = polleninfo.provider(Settings.from_options(_clean(self.sources)))
+        species, risks = polleninfo.candidates(states, registry, provider)
         if user_input is not None:
             by_id = {s.entity_id: s for s in states}
-            self.sources["pollens"] = [polleninfo.pollen_option(i, by_id.get(i)) for i in user_input.get("pollens") or []]
+            self.sources["pollens"] = [polleninfo.pollen_option(i, by_id.get(i), registry) for i in user_input.get("pollens") or []]
             self.sources["pollen_risk_entity"] = user_input.get("pollen_risk_entity") or ""
             return await self._done("pollen")
         chosen = [p.get("id") for p in self.sources.get("pollens") or [] if isinstance(p, dict)]
-        schema = vol.Schema({
-            vol.Optional("pollens"): EntitySelector(EntitySelectorConfig(domain="sensor", multiple=True, include_entities=sorted(set(species) | set(chosen)))),
-            vol.Optional("pollen_risk_entity"): EntitySelector(EntitySelectorConfig(domain="sensor", include_entities=sorted(set(risks) | (
-                {self.sources["pollen_risk_entity"]} if self.sources.get("pollen_risk_entity") else set())))),
-        })
+        if "pollens" not in self.sources:
+            # First time with this source: all its species, as found.
+            chosen = species
+        fields: dict[Any, Any] = {
+            vol.Optional("pollens"): EntitySelector(EntitySelectorConfig(domain="sensor", multiple=True, include_entities=sorted(set(species) | set(chosen))))}
+        # IRM KMI has no overall risk: Niak keeps the highest species.
+        if provider == polleninfo.POLLENINFORMATION:
+            fields[vol.Optional("pollen_risk_entity")] = EntitySelector(EntitySelectorConfig(domain="sensor", include_entities=sorted(set(risks) | (
+                {self.sources["pollen_risk_entity"]} if self.sources.get("pollen_risk_entity") else set()))))
         suggested = {"pollens": chosen, **({"pollen_risk_entity": self.sources["pollen_risk_entity"]} if self.sources.get("pollen_risk_entity") else {})}
-        return self.async_show_form(step_id="pollen_sensors", data_schema=self.add_suggested_values_to_schema(schema, suggested))  # type: ignore[attr-defined]
+        return self.async_show_form(step_id="pollen_sensors", data_schema=self.add_suggested_values_to_schema(vol.Schema(fields), suggested),  # type: ignore[attr-defined]
+                                    description_placeholders={"source": polleninfo.PROVIDERS[provider]})
 
     def _summary(self) -> dict[str, str]:
         """One line per part, for the menu and the last step: what is set, in a few words."""
@@ -298,7 +318,8 @@ class _SourceSteps:
         model = {"gw2000a": "GW2000A", "ws90": "WS90", "manual": "Station"}.get(s.get("station_model") or "", "")
         count = len(s.get("pollens") or [])
         area = next((a["label"] for a in self._areas() if a["value"] == s.get("atmo_area")), s.get("atmo_area") or "")
-        pollens = {"atmo": f"Atmo France · {area}", "legacy": f"Polleninformation · {count} espèce{'s' if count > 1 else ''}"}.get(
+        provider = polleninfo.PROVIDERS[polleninfo.provider(Settings.from_options(_clean(s)))]
+        pollens = {"atmo": f"Atmo France · {area}", "legacy": f"{provider} · {count} espèce{'s' if count > 1 else ''}"}.get(
             s.get("pollen_source") or "", "aucune source")
         return {
             "weather": (str(weather.attributes.get("friendly_name") or s.get("weather_entity")) if weather else "à choisir")
@@ -382,8 +403,9 @@ class NiakWeatherOptionsFlow(_SourceSteps, OptionsFlow):
             self._started, self.sources = True, dict(self.config_entry.options)
         entries = self._entities()
         enabled = self._enabled if self._enabled is not None else {k for k, e in entries.items() if e.disabled_by is None}
-        return self.async_show_menu(step_id="init", menu_options=["weather", "station", "air", "entities", "save"],
-                                    description_placeholders={**self._summary(), "entities": f"{len(enabled)} actives sur {len(entries)}"})
+        return self.async_show_menu(step_id="init", menu_options=["weather", "station", "air", "entities", "ecosystem", "save"],
+                                    description_placeholders={**self._summary(), "entities": f"{len(enabled)} actives sur {len(entries)}",
+                                                              "ecosystem": ecosystem.summary(self._linked())})
 
     async def _done(self, step: str) -> ConfigFlowResult:
         return await (self.async_step_air() if step in ("air", "pollen") else self.async_step_init())
@@ -417,6 +439,18 @@ class NiakWeatherOptionsFlow(_SourceSteps, OptionsFlow):
         notes = "\n".join(f"- {key_name(k)} : il faut {text}" for k, text in needs.items() if k in entries) or "- Chaque entité a sa source."
         return self.async_show_form(step_id="entities", data_schema=self.add_suggested_values_to_schema(vol.Schema(schema), suggested),  # type: ignore[attr-defined]
                                     description_placeholders={"needs": notes})
+
+    def _linked(self) -> dict[str, int]:
+        api = self.hass.data.get(API_KEY)
+        return api.linked(self.config_entry.entry_id) if api is not None else {}
+
+    async def async_step_ecosystem(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """The other Niak bricks and their link with this place: Niak Weather only publishes, each brick links itself in its own settings."""
+        if user_input is not None:
+            return await self.async_step_init()
+        installed = {e.domain for e in self.hass.config_entries.async_entries() if e.domain.startswith("niak_")}
+        return self.async_show_form(step_id="ecosystem", data_schema=vol.Schema({}),
+                                    description_placeholders={"links": ecosystem.links(self._linked(), installed)})
 
     async def async_step_save(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Everything at once: the entities switched on or off, the place's name, then the settings (which restart the place)."""

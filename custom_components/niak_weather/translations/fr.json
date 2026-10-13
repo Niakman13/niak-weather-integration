@@ -109,8 +109,8 @@
         }
       },
       "pollen_sensors": {
-        "title": "Étape 3 sur 4 · Capteurs Polleninformation",
-        "description": "Les espèces à suivre et le risque d’allergie global. Niak les a proposés : vérifiez, ajoutez ou retirez.",
+        "title": "Étape 3 sur 4 · Capteurs {source}",
+        "description": "Les espèces à suivre (et, pour Polleninformation, le risque d’allergie global). Niak les a proposées : vérifiez, ajoutez ou retirez. Sans risque global, Niak retient l’espèce la plus élevée.",
         "data": {
           "pollens": "Espèces",
           "pollen_risk_entity": "Risque d’allergie global"
@@ -139,7 +139,7 @@
       },
       "pollen": {
         "title": "Étape 3 sur 4 · Pollens",
-        "description": "D’où viennent les pollens : Atmo France (indice de 1 à 6) ou Polleninformation (niveaux de 0 à 4). Avec Polleninformation, vous choisirez ses capteurs juste après.",
+        "description": "D’où viennent les pollens : Atmo France (indice de 1 à 6), Polleninformation ou IRM KMI pour la Belgique (niveaux de 0 à 4). Avec Polleninformation ou IRM KMI, vous choisirez ses capteurs juste après.",
         "data": {
           "pollen_source": "Source des pollens"
         }
@@ -154,19 +154,21 @@
     },
     "error": {
       "atmo_missing": "Atmo France n’est pas installée. Installez l’intégration Atmo France (github.com/sebcaps/atmofrance), puis revenez choisir cette source.",
-      "polleninformation_missing": "Polleninformation n’est pas installée. Installez l’intégration Polleninformation EU (github.com/krissen/polleninformation), puis revenez choisir cette source."
+      "polleninformation_missing": "Polleninformation n’est pas installée. Installez l’intégration Polleninformation EU (github.com/krissen/polleninformation), puis revenez choisir cette source.",
+      "irm_kmi_missing": "IRM KMI n’est pas installée, ou ne donne pas de pollens. Installez l’intégration IRM KMI depuis HACS (github.com/jdejaegh/irm-kmi-ha), puis revenez choisir cette source."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Niak Weather",
-        "description": "**Météo** : {weather}\n**Station** : {station}\n**Qualité de l’air** : {air}\n**Pollens** : {pollen}\n**Capteurs** : {entities}\n\nChangez ce que vous voulez : rien n’est enregistré avant « Enregistrer et fermer ».",
+        "description": "**Météo** : {weather}\n**Station** : {station}\n**Qualité de l’air** : {air}\n**Pollens** : {pollen}\n**Capteurs** : {entities}\n**Écosystème Niak** : {ecosystem}\n\nChangez ce que vous voulez : rien n’est enregistré avant « Enregistrer et fermer ».",
         "menu_options": {
           "weather": "Météo",
           "station": "Station météo",
           "air": "Qualité de l’air et pollens",
           "entities": "Capteurs et automatisations",
+          "ecosystem": "Écosystème Niak",
           "save": "Enregistrer et fermer"
         }
       },
@@ -269,8 +271,8 @@
         }
       },
       "pollen_sensors": {
-        "title": "Capteurs Polleninformation",
-        "description": "Les espèces à suivre et le risque d’allergie global. Niak les a proposés : vérifiez, ajoutez ou retirez.",
+        "title": "Capteurs {source}",
+        "description": "Les espèces à suivre (et, pour Polleninformation, le risque d’allergie global). Niak les a proposées : vérifiez, ajoutez ou retirez. Sans risque global, Niak retient l’espèce la plus élevée.",
         "data": {
           "pollens": "Espèces",
           "pollen_risk_entity": "Risque d’allergie global"
@@ -302,7 +304,7 @@
       },
       "pollen": {
         "title": "Pollens",
-        "description": "D’où viennent les pollens : Atmo France (indice de 1 à 6) ou Polleninformation (niveaux de 0 à 4). Avec Polleninformation, vous choisirez ses capteurs juste après.",
+        "description": "D’où viennent les pollens : Atmo France (indice de 1 à 6), Polleninformation ou IRM KMI pour la Belgique (niveaux de 0 à 4). Avec Polleninformation ou IRM KMI, vous choisirez ses capteurs juste après.",
         "data": {
           "pollen_source": "Source des pollens"
         }
@@ -313,11 +315,16 @@
         "data": {
           "atmo_area": "Zone Atmo France"
         }
+      },
+      "ecosystem": {
+        "title": "Écosystème Niak",
+        "description": "Niak Weather partage sa météo avec les autres briques Niak. Chaque brique se relie à ce lieu dans ses propres réglages ; Niak Weather ne modifie jamais les autres.\n\n{links}\n\nValidez pour revenir au menu."
       }
     },
     "error": {
       "atmo_missing": "Atmo France n’est pas installée. Installez l’intégration Atmo France (github.com/sebcaps/atmofrance), puis revenez choisir cette source.",
-      "polleninformation_missing": "Polleninformation n’est pas installée. Installez l’intégration Polleninformation EU (github.com/krissen/polleninformation), puis revenez choisir cette source."
+      "polleninformation_missing": "Polleninformation n’est pas installée. Installez l’intégration Polleninformation EU (github.com/krissen/polleninformation), puis revenez choisir cette source.",
+      "irm_kmi_missing": "IRM KMI n’est pas installée, ou ne donne pas de pollens. Installez l’intégration IRM KMI depuis HACS (github.com/jdejaegh/irm-kmi-ha), puis revenez choisir cette source."
     }
   },
   "selector": {

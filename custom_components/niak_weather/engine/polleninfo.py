@@ -1,5 +1,7 @@
-"""Pollens from Polleninformation EU (krissen/polleninformation): one sensor per species and an overall allergy risk, each on its own
-scale from 0 (none) to 4 (very high), today and tomorrow. Said as it is, never converted to Atmo's scale of 1 to 6."""
+"""Pollens given one sensor per species, each on a scale from 0 (none) to 4 (very high). Said as it is, never converted to Atmo's scale of 1 to 6.
+
+- Polleninformation EU (krissen/polleninformation): words or numbers, an overall allergy risk, today and tomorrow.
+- IRM KMI (jdejaegh/irm-kmi-ha, Belgium): a colour per species, green to purple, today only; no overall risk."""
 from __future__ import annotations
 
 import re
@@ -12,16 +14,30 @@ from .settings import LegacyPollen, Settings
 from .units import finite
 
 SCALE = 4
+POLLENINFORMATION, IRM_KMI = "polleninformation", "irm_kmi"
+PROVIDERS = {POLLENINFORMATION: "Polleninformation", IRM_KMI: "IRM KMI"}
 WORDS = ("Aucun", "Faible", "Modéré", "Élevé", "Très élevé")
 COLORS = atmo.COLORS[1:6]
 # The sensor's word, in any of the languages it writes (French words are feminine: « élevée », « très élevée »).
 _WORDS = {"none": 0, "aucun": 0, "aucune": 0, "low": 1, "faible": 1, "moderate": 2, "modere": 2, "moderee": 2, "high": 3, "eleve": 3, "elevee": 3,
-          "fort": 3, "forte": 3, "very high": 4, "very_high": 4, "tres eleve": 4, "tres elevee": 4}
+          "fort": 3, "forte": 3, "very high": 4, "very_high": 4, "tres eleve": 4, "tres elevee": 4,
+          # IRM KMI's colours (green: present but no risk; « none »: out of season).
+          "green": 0, "yellow": 1, "orange": 2, "red": 3, "purple": 4}
 SPECIES = {"grasses": ("Graminées", "mdi:grass"), "ragweed": ("Ambroisie", "mdi:flower-pollen"), "mugwort": ("Armoise", "mdi:flower-pollen"),
            "olive": ("Olivier", "mdi:leaf-circle"), "birch": ("Bouleau", "mdi:tree-outline"), "alder": ("Aulne", "mdi:tree-outline"),
            "hazel": ("Noisetier", "mdi:tree-outline"), "ash": ("Frêne", "mdi:tree-outline"), "plane": ("Platane", "mdi:tree-outline"),
            "cypress": ("Cyprès", "mdi:pine-tree"), "oak": ("Chêne", "mdi:tree-outline"), "poplar": ("Peuplier", "mdi:tree-outline")}
 _RISK = re.compile(r"_allergy_risk$")
+_IRM = re.compile(r"-pollen-([a-z]+)$")
+
+
+def provider(settings: Settings) -> str:
+    """The integration the species sensors come from."""
+    return IRM_KMI if settings.pollen_provider == IRM_KMI else POLLENINFORMATION
+
+
+def provider_name(settings: Settings) -> str:
+    return PROVIDERS[provider(settings)]
 
 
 def level(state: Any, tomorrow: bool = False) -> int | None:
@@ -89,8 +105,10 @@ def worst(risk: atmo.Reading | None, species: Sequence[tuple[str, atmo.Reading]]
 
 # ---- Detection, for the configuration form ----
 
-def candidates(states: Sequence[Any], registry: Mapping[str, Mapping[str, Any]]) -> tuple[list[str], list[str]]:
-    """Polleninformation species sensors and allergy-risk sensors, by their integration or their name."""
+def candidates(states: Sequence[Any], registry: Mapping[str, Mapping[str, Any]], source: str = POLLENINFORMATION) -> tuple[list[str], list[str]]:
+    """The species sensors and the allergy-risk sensors of a source, by their integration (or, for Polleninformation, their name)."""
+    if source == IRM_KMI:
+        return sorted(state.entity_id for state in states if _irm_species(state.entity_id, registry)), []
     species, risks = [], []
     for state in states:
         entity_id = state.entity_id
@@ -107,6 +125,15 @@ def candidates(states: Sequence[Any], registry: Mapping[str, Mapping[str, Any]])
     return sorted(species), sorted(risks)
 
 
+def _irm_species(entity_id: str, registry: Mapping[str, Mapping[str, Any]]) -> str:
+    """The species of an IRM KMI pollen sensor (its unique id ends with « -pollen-birch »), else ""."""
+    entry = registry.get(entity_id) or {}
+    if not entity_id.startswith("sensor.") or entry.get("platform") != IRM_KMI or entry.get("disabled_by"):
+        return ""
+    match = _IRM.search(str(entry.get("unique_id") or ""))
+    return match.group(1) if match else ""
+
+
 def place_of(entity_id: str, state: Any) -> str:
     slug = state.attributes.get("location_slug") if state is not None else None
     if slug:
@@ -115,10 +142,13 @@ def place_of(entity_id: str, state: Any) -> str:
     return match.group(1) if match else ""
 
 
-def detect(states: Sequence[Any], registry: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
+def detect(states: Sequence[Any], registry: Mapping[str, Mapping[str, Any]], source: str = POLLENINFORMATION) -> dict[str, Any]:
     """The species and the risk of the only place, when there is just one: with several, the user chooses."""
-    species, risks = candidates(states, registry)
+    species, risks = candidates(states, registry, source)
     by_id = {s.entity_id: s for s in states}
+    if source == IRM_KMI:
+        places = {(registry.get(i) or {}).get("config_entry_id") for i in species}
+        return {"pollens": [pollen_option(i, by_id.get(i), registry) for i in species]} if len(places) == 1 else {}
     places = {place_of(i, by_id.get(i)) for i in (*species, *risks)}
     if len(places) != 1:
         return {}
@@ -128,9 +158,9 @@ def detect(states: Sequence[Any], registry: Mapping[str, Mapping[str, Any]]) -> 
     return found
 
 
-def pollen_option(entity_id: str, state: Any) -> dict[str, str]:
+def pollen_option(entity_id: str, state: Any, registry: Mapping[str, Mapping[str, Any]] | None = None) -> dict[str, str]:
     """A species as the settings store it."""
-    slug = str(state.attributes.get("allergen_slug") or "") if state is not None else ""
+    slug = _irm_species(entity_id, registry or {}) or (str(state.attributes.get("allergen_slug") or "") if state is not None else "")
     if not slug:
         match = re.search(r"_([a-z]+)$", entity_id)
         slug = match.group(1) if match else ""

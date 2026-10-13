@@ -171,7 +171,9 @@ class AirPanel:
     updated: str
     stale: bool
     scale: int = 6
-    """The top of the index: 6 for Atmo France, 4 for Polleninformation."""
+    """The top of the index: 6 for Atmo France, 4 for Polleninformation and IRM KMI."""
+    source: str | None = None
+    """Who gives it, when it is not Atmo France: « Polleninformation », « IRM KMI »."""
 
 
 @dataclass(frozen=True)
@@ -456,7 +458,7 @@ def _extras(get: Getter, settings: Settings, w: LocalWeather) -> tuple[Chip, ...
         dew = w.dew_point
         out.append(Chip("cold", "mdi:thermometer-water", "rosée · très lourd" if dew >= 20 else "rosée · lourd" if dew >= 18 else "rosée",
                         f"{french(dew, 1, 1)} °C", sources.get("dew_point")))
-    # Polleninformation sensors (older source): only the species that are present.
+    # Pollens given per species (Polleninformation, IRM KMI): only the species that are present.
     if not settings.atmo_pollens and settings.pollen_source != "none":
         for pollen in settings.pollens:
             s = get(pollen.entity_id)
@@ -504,7 +506,8 @@ def _air(get: Getter, settings: Settings, now: datetime, zone: ZoneInfo, tomorro
 
 
 def _legacy_pollen(get: Getter, settings: Settings, now: datetime, zone: ZoneInfo, tomorrow: bool) -> tuple[AirPanel, ...]:
-    """The Polleninformation panel: the overall risk (or the worst species) on its scale of 0 to 4, then each species."""
+    """The panel of the pollens given per species (Polleninformation, IRM KMI): the overall risk (or the worst species) on its scale of 0 to 4,
+    then each species."""
     risk, species = polleninfo.readings(get, settings, tomorrow, now, zone)
     known = [(n, r) for n, r in species if r.value is not None]
     if risk is None and not known:
@@ -515,7 +518,8 @@ def _legacy_pollen(get: Getter, settings: Settings, now: datetime, zone: ZoneInf
     worse = top if top is not None and primary is not None and (top.reading.value or 0) > (primary.value or 0) else None
     readings = [r for r in (primary, *(d.reading for d in details)) if r is not None]
     return (AirPanel("pollen", tomorrow, " / ".join(dict.fromkeys(r.zone for r in readings if r.zone)), primary, worse, details,
-                     " / ".join(dict.fromkeys(r.updated for r in readings if r.updated)), any(r.stale for r in readings), polleninfo.SCALE),)
+                     " / ".join(dict.fromkeys(r.updated for r in readings if r.updated)), any(r.stale for r in readings), polleninfo.SCALE,
+                     polleninfo.provider_name(settings)),)
 
 
 def _camel(name: str) -> str:
