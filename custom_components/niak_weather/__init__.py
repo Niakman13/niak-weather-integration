@@ -8,6 +8,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.loader import async_get_integration
 
+from .api import API_KEY, NiakWeatherApi
 from .const import DOMAIN
 from .coordinator import NiakWeatherConfigEntry, NiakWeatherCoordinator, alert_store
 from .services import async_setup_services
@@ -21,6 +22,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     # The card compares it with the version it needs, to say when the integration was not updated with it.
     async_setup_websocket(hass, str((await async_get_integration(hass, DOMAIN)).version or ""))
     async_setup_services(hass)
+    # The contract for the other Niak bricks (Niak Confort, future Niak Chauffage…).
+    hass.data[API_KEY] = NiakWeatherApi(hass)
     return True
 
 
