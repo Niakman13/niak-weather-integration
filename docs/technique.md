@@ -52,6 +52,19 @@ La **vue** contient tout ce que la carte affiche, déjà calculé et rédigé en
 - elle est décrite par `engine/view.py`, et côté carte par `src/view.ts` ;
 - `version` monte seulement si une carte plus ancienne ne peut plus la lire : elle demande alors sa mise à jour.
 
+## L’interface pour les autres briques Niak
+
+Niak Weather publie pour les autres briques (Niak Confort, futur Niak Chauffage…) un objet versionné, `hass.data["niak_weather_api"]` (`api.py`, version 1). Les autres briques vérifient `version` et ne lisent jamais les réglages internes de Niak Weather.
+
+| Méthode | Ce qu’elle donne |
+| --- | --- |
+| `places()` | Les lieux configurés (`entry_id`, `title`). |
+| `station(entry_id)` | Les capteurs de la station choisis dans Niak Weather, par rôle : `temperature`, `humidity`, `rain_rate`, `wind_speed`, `wind_gust`, `wind_bearing`, `solar_radiation`, `uv_index`, `pressure`. |
+| `hourly(entry_id)` | Les prévisions horaires lues par Niak Weather : heure ISO, °C, %, mm, km/h, direction du vent en degrés, condition. |
+| `add_listener(entry_id, rappel)` | Prévient quand le lieu est recalculé ; renvoie la fonction qui arrête l’écoute. |
+
+Sans `entry_id`, le seul lieu configuré est utilisé ; avec plusieurs lieux, la brique doit en choisir un. Les entités restent l’autre moyen de lecture : elles sont reconnues par leur identifiant interne `<entrée>_<clé>`.
+
 ## Tests
 
 ```sh
