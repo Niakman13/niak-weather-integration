@@ -13,7 +13,9 @@
 
 **Le cerveau de la météo chez vous.** L’intégration lit vos prévisions, votre station et la qualité de l’air. Elle calcule ce qu’ils veulent dire : ressenti, alertes, bulletin du jour, pluie à venir, tendances, bilans.
 
-Elle donne le résultat à la [carte Niak Weather](https://github.com/Niakman13/niak-weather) et à vos automatisations.
+Elle donne le résultat à **sa carte**, fournie avec elle, et à vos automatisations.
+
+![Niak Weather — votre station météo et les prévisions, réunies en une carte qui parle](docs/carte/images/niak-weather-banner.png)
 
 ## Pourquoi
 
@@ -37,7 +39,7 @@ Tout est calculé une fois, dans Home Assistant : la carte affiche, vos automati
 1. Dans HACS, ⋮ → **Dépôts personnalisés** : ajoutez `https://github.com/Niakman13/niak-weather-integration`, catégorie **Intégration**.
 2. Installez **Niak Weather (intégration)**, puis redémarrez Home Assistant.
 3. **Paramètres → Appareils et services → Ajouter une intégration → Niak Weather.**
-4. Installez la [carte Niak Weather](https://github.com/Niakman13/niak-weather) pour l’afficher.
+4. Sur un tableau de bord : **Ajouter une carte → Niak Weather**. La carte est fournie par l’intégration (depuis la 2.3) : rien d’autre à installer.
 
 [![Ouvrir dans HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Niakman13&repository=niak-weather-integration&category=integration)
 
@@ -57,6 +59,14 @@ Vous utilisez déjà la carte Niak Weather ? Le guide propose de reprendre ses r
 **Configurer** ouvre un menu qui reste ouvert : on change chaque partie, puis **Enregistrer et fermer**. On y active aussi chaque entité, par famille. Plusieurs lieux ? Ajoutez l’intégration une fois par lieu. [Détail des sources et des réglages](docs/sources.md).
 
 **Panneau Niak** (préversion 2.2) : les mêmes réglages se trouvent aussi dans l’entrée **Niak** de la barre latérale, onglet **Météo**, étape par étape, avec les capteurs proposés et ce qu’il reste à vérifier. L’onglet **Accueil** dit en une phrase si tout est suivi. Le panneau est commun aux briques Niak : avec Niak Confort, chacune a son onglet. **Configurer** reste disponible pendant la transition.
+
+## La carte
+
+Sept cartes à choisir dans **Ajouter une carte** : complète, tuile, tuile dépliée, mini, prévisions, pluie et alerte. Toutes s’écrivent `type: custom:niak-weather-card`, seul `format` change. [La carte en détail : formats, réglages, visuel](docs/carte/README.md).
+
+![Niak Weather — tuile pleine et demi-largeur repliées, puis tuile dépliée, par temps d’orage avec vigilance jaune](docs/carte/images/niak-weather-formats.png)
+
+Vous aviez installé la carte depuis HACS ? **Retirez-la de HACS**, puis rechargez la page : vos cartes restent en place. Tant qu’elle reste installée, l’accueil du panneau **Niak** l’indique en orange.
 
 ## Les capteurs et les automatisations
 
@@ -85,13 +95,14 @@ Chaque entité dit **pourquoi** (attribut `raison`) et **d’où vient** sa vale
 
 | Page | Ce qu’elle explique |
 | --- | --- |
+| [La carte](docs/carte/README.md) | Les sept cartes, le bandeau, les réglages, le visuel, les messages |
 | [Les capteurs et les automatisations](docs/capteurs.md) | Les sept familles d’entités, l’évènement d’alerte, l’action, l’entité météo, les modèles à importer |
 | [Le ressenti](docs/ressenti.md) | Humidex, effets du vent, du soleil, de la pluie et de la nuit, mots et nuances, alerte de la station |
 | [La synthèse et les alertes](docs/synthese.md) | Les points retenus, leurs seuils, les niveaux, la vigilance officielle |
 | [Le bulletin du jour](docs/bulletin.md) | Comment il est rédigé |
 | [Sources et réglages](docs/sources.md) | Météo-France, station, soleil, Atmo France, historique, toutes les clés |
 | [Pluie, vent, pression](docs/mesures.md) | Cumuls, courbes, tendances, ce qui est calculé depuis l’historique |
-| [Fonctionnement technique](docs/technique.md) | Moteur, coordinateur, capteurs, API, tests |
+| [Fonctionnement technique](docs/technique.md) | Moteur, coordinateur, capteurs, API, tests ; le code de la carte est dans `card/` |
 
 ## Limites
 

@@ -11,7 +11,7 @@ from typing import Any
 
 import voluptuous as vol
 
-from homeassistant.components import websocket_api
+from homeassistant.components import frontend, websocket_api
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
@@ -28,6 +28,8 @@ from .socle import async_register_brick
 
 ASSETS = f"/{DOMAIN}-assets"
 CARD_REPOSITORY = "Niakman13/niak-weather"
+"""The former card's repository: since 2.3 the card comes with the integration."""
+CARD_FILE = "niak-weather-card.js"
 FAILED = (ConfigEntryState.SETUP_ERROR, ConfigEntryState.SETUP_RETRY, ConfigEntryState.MIGRATION_ERROR, ConfigEntryState.FAILED_UNLOAD)
 
 
@@ -38,6 +40,8 @@ async def async_setup_panel(hass: HomeAssistant, version: str) -> None:
         await hass.http.async_register_static_paths([StaticPathConfig(ASSETS, str(Path(__file__).parent / "frontend"), False)])
         for command in (ws_places, ws_open, ws_change, ws_save):
             websocket_api.async_register_command(hass, command)
+        # The card is loaded on every dashboard, like a declared resource would be: it is always the integration's version.
+        frontend.add_extra_js_url(hass, f"{ASSETS}/niak-weather-card.js?v={version}")
         hass.data[f"{DOMAIN}_panel"] = True
     await async_register_brick(hass, {
         "domain": DOMAIN, "name": "Niak Weather", "slug": "meteo", "tab": "Météo", "version": version, "icon": "mdi:weather-partly-cloudy",
@@ -68,7 +72,7 @@ def _minutes(now: datetime, moment: datetime | None) -> float | None:
     return (now - moment).total_seconds() / 60 if moment else None
 
 
-def facts(hass: HomeAssistant, entry: Any) -> health.Facts:
+def facts(hass: HomeAssistant, entry: Any, card_twice: bool = False) -> health.Facts:
     """What the tab's home page shows about one place, read from Home Assistant and this place's own settings."""
     sources, now, get = dict(entry.options), dt_util.utcnow(), hass.states.get
     states, registry, devices = _context(hass)
@@ -143,12 +147,12 @@ def facts(hass: HomeAssistant, entry: Any) -> health.Facts:
         pollen_ok=any(get(i) is not None and get(i).state not in GONE for i in pollen_ids),
         pollen_available=bool(areas) or any(polleninfo.candidates(states, registry, p)[0] for p in polleninfo.PROVIDERS),
         entities=entities, needs=needs, ready_families=ready, integration=str(hass.data.get(VERSION_KEY, "")),
-        card=card_version(hass), links=names)
+        card_twice=card_twice, links=names)
 
 
-def place(hass: HomeAssistant, entry: Any) -> tuple[dict[str, Any], home.Place]:
+def place(hass: HomeAssistant, entry: Any, card_twice: bool = False) -> tuple[dict[str, Any], home.Place]:
     """One place, for the tab's home page and for the panel's home page: both say the same."""
-    f = facts(hass, entry)
+    f = facts(hass, entry, card_twice)
     enabled = {key for key, _, _, on, _ in f.entities if on}
     info = {"entry_id": entry.entry_id, "title": entry.title, "loaded": entry.state is ConfigEntryState.LOADED,
             "failed": f.failed, "health": health.report(f)}
@@ -159,24 +163,31 @@ def place(hass: HomeAssistant, entry: Any) -> tuple[dict[str, Any], home.Place]:
     return info, status
 
 
-def card_version(hass: HomeAssistant) -> str | None:
-    """The Niak Weather card's version as HACS installed it; "" when HACS knows it is not installed; None when unknown."""
-    hacs = hass.data.get("hacs")
+async def card_twice(hass: HomeAssistant) -> bool:
+    """Whether the former card is still installed next to the one the integration serves: both would load.
+
+    A dashboard resource naming the card (HACS declares one, so does a card copied by hand), or HACS saying it is installed.
+    """
     try:
+        lovelace = hass.data.get("lovelace")
+        resources = getattr(lovelace, "resources", None) or (lovelace.get("resources") if isinstance(lovelace, dict) else None)
+        if resources is not None:
+            if not getattr(resources, "loaded", True):
+                await resources.async_get_info()  # Resources kept by the UI load on first use.
+            if any(CARD_FILE in str(item.get("url", "")) for item in resources.async_items() or []):
+                return True
+        hacs = hass.data.get("hacs")
         repository = hacs.repositories.get_by_full_name(CARD_REPOSITORY) if hacs is not None else None
-        if repository is None:
-            return None
-        if not repository.data.installed:
-            return ""
-        return str(repository.data.installed_version or "").removeprefix("v") or None
-    except Exception:  # noqa: BLE001 - HACS's insides may change: the card's version is then simply unknown
-        LOGGER.debug("Card version not read from HACS", exc_info=True)
-        return None
+        return bool(repository is not None and repository.data.installed)
+    except Exception:  # noqa: BLE001 - Lovelace's and HACS's insides may change: nothing is then said
+        LOGGER.debug("Former card not looked for", exc_info=True)
+        return False
 
 
 async def weather_status(hass: HomeAssistant) -> dict[str, Any]:
     """What the « Niak » home page says about Niak Weather, from its own settings only."""
-    return home.status([place(hass, e)[1] for e in _entries(hass)], card_version(hass))
+    twice = await card_twice(hass)
+    return home.status([place(hass, e, twice)[1] for e in _entries(hass)], twice)
 
 
 def _has_weather(hass: HomeAssistant) -> bool:
@@ -187,7 +198,8 @@ def _has_weather(hass: HomeAssistant) -> bool:
 @websocket_api.require_admin
 @websocket_api.async_response
 async def ws_places(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
-    connection.send_result(msg["id"], {"places": [place(hass, e)[0] for e in _entries(hass)], "can_add": _has_weather(hass)})
+    twice = await card_twice(hass)
+    connection.send_result(msg["id"], {"places": [place(hass, e, twice)[0] for e in _entries(hass)], "can_add": _has_weather(hass)})
 
 
 def _send_draft(connection: websocket_api.ActiveConnection, msg: dict[str, Any], draft: Draft, error: str = "", **extra: Any) -> None:

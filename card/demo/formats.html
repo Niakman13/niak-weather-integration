@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Niak Weather — formats</title>
+<style>
+  :root {font:14px/1.5 Roboto,system-ui,sans-serif;color-scheme:light;--primary-text-color:#253047;--secondary-text-color:#606b7c;--primary-color:#308ddd;--card-background-color:#fff;--divider-color:#e8ebef;--page:#f1f3f6;background:var(--page);color:var(--primary-text-color)}
+  :root.dark {color-scheme:dark;--primary-text-color:#edf1f7;--secondary-text-color:#a8b3c3;--card-background-color:#222932;--divider-color:#36404c;--page:#151c25}
+  body {margin:0;padding:24px 16px 60px;max-width:1450px;margin-inline:auto}
+  h1 {font-size:24px;letter-spacing:-.5px;margin:0} header>p {margin:4px 0 16px;color:var(--secondary-text-color);max-width:80ch}
+  .controls {display:flex;align-items:end;flex-wrap:wrap;gap:12px 18px;margin-bottom:26px;position:sticky;top:0;z-index:20;padding:10px 0;background:var(--page)}
+  label {display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--secondary-text-color)}
+  select {font:inherit;font-size:14px;padding:8px 26px 8px 10px;border:1px solid var(--divider-color);border-radius:7px;background:var(--card-background-color);color:var(--primary-text-color)}
+  label.toggle {flex-direction:row;align-items:center;padding:8px 0;color:var(--primary-text-color)}
+  h2.fmt {font-size:18px;margin:34px 0 2px;letter-spacing:-.3px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap} h2.fmt span{font-size:12px;font-weight:500;color:var(--secondary-text-color)}
+  p.why {margin:0 0 14px;color:var(--secondary-text-color);max-width:90ch}
+  .row {display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+  .w680 {width:680px;max-width:100%} .w330 {width:332px;max-width:100%} .phone .w680, .phone .full {width:375px;max-width:100%}
+</style></head>
+<body>
+<header><h1>Niak Weather · trois formats</h1>
+<p>La vraie carte, avec les données de démonstration partagées. <b>Appui</b> sur la tuile : elle se déplie. <b>Appui long</b> : la carte complète s'ouvre par-dessus la page.</p></header>
+<div class="controls">
+  <label>Météo<select id="condition"><option value="partlycloudy">Éclaircies</option><option value="sunny">Soleil</option><option value="cloudy">Ciel couvert</option><option value="rainy">Pluie</option><option value="pouring">Fortes pluies</option><option value="lightning-rainy">Orage et pluie</option><option value="snowy">Neige</option><option value="fog">Brouillard</option><option value="windy">Vent</option><option value="clear-night">Nuit claire</option></select></label>
+  <label>Moment<select id="phase"><option value="day">Journée</option><option value="twilight">Crépuscule</option><option value="night">Nuit</option></select></label>
+  <label>Vigilance<select id="vigilance"><option value="">Aucune</option><option>Jaune</option><option>Orange</option><option>Rouge</option></select></label>
+  <label>Station<select id="station"><option value="yes">Station locale</option><option value="no">Bulletin seul</option></select></label>
+  <label>Thème<select id="theme"><option value="light">Clair</option><option value="dark">Sombre</option></select></label>
+  <label>Largeur<select id="width"><option value="tablet">Tablette</option><option value="phone">Téléphone (375 px)</option></select></label>
+  <label class="toggle"><input type="checkbox" id="motion" checked> Animations</label>
+</div>
+
+<h2 class="fmt">1 · Tuile <span>pleine et demi-largeur</span></h2>
+<p class="why">Repliée : le lieu, l'alerte, la bulle du brief qui défile et la météo du moment. Dépliée : le bulletin, les quatre moments et les prévisions (heures ou jours).</p>
+<div class="row"><div class="w680" data-format="tile"></div><div class="w330" data-format="tile"></div></div>
+<h2 class="fmt">2 · Intermédiaire <span>la même tuile, dépliée au départ</span></h2>
+<div class="row"><div class="w680" data-format="intermediate"></div></div>
+<h2 class="fmt">3 · Complète <span>la page météo</span></h2>
+<div class="full" data-format="full"></div>
+<script type="module">
+  const icons=await fetch('/icons.json').then(r=>r.json());
+  customElements.define('ha-icon',class extends HTMLElement {
+    static get observedAttributes(){return ['icon'];}
+    connectedCallback(){if(!this.shadowRoot)this.attachShadow({mode:'open'});this.draw();}
+    attributeChangedCallback(){if(this.shadowRoot)this.draw();}
+    draw(){const key='mdi'+(this.getAttribute('icon')?.split(':')[1]??'').split('-').map(s=>s[0]?.toUpperCase()+s.slice(1)).join('');
+      // Like Home Assistant: ha-icon itself is inline, its inner icon is an inline-flex box.
+      this.shadowRoot.innerHTML=`<style>:host{fill:currentcolor}span{display:var(--ha-icon-display,inline-flex);vertical-align:middle;width:var(--mdc-icon-size,24px);height:var(--mdc-icon-size,24px)}svg{width:100%;height:100%;fill:currentColor}</style><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${icons[key]??''}"></path></svg></span>`;}
+  });
+  customElements.define('ha-card',class extends HTMLElement {connectedCallback(){if(!this.shadowRoot)this.attachShadow({mode:'open'}).innerHTML='<style>:host{display:block;border-radius:var(--ha-card-border-radius,12px);background:var(--card-background-color);border:1px solid var(--divider-color);overflow:hidden;container-type:inline-size}</style><slot></slot>';}});
+  await import('/card.js');
+  const { scenarioHass, scenarioConfig } = await import('/demo-hass.js');
+  const $=id=>document.getElementById(id);
+  // Each scenario gets new cards: the integration's view arrives once per subscription.
+  const slots=[...document.querySelectorAll('[data-format]')];
+  // A tap on a value of the full card asks Home Assistant for the sensor's details: shown here as a note.
+  document.addEventListener('hass-more-info',e=>{const s=document.createElement('div');s.textContent='Détails de '+e.detail.entityId;Object.assign(s.style,{position:'fixed',bottom:'16px',left:'50%',transform:'translateX(-50%)',background:'var(--card-background-color)',border:'1px solid var(--divider-color)',padding:'10px 18px',borderRadius:'8px',zIndex:30});document.body.append(s);setTimeout(()=>s.remove(),1600);});
+  function refresh(){
+    const condition=$('condition').value,phase=condition==='clear-night'?'night':$('phase').value;
+    document.documentElement.classList.toggle('dark',$('theme').value==='dark');document.body.classList.toggle('phone',$('width').value==='phone');
+    const scenario={condition,phase,vigilance:$('vigilance').value||undefined,season:'autumn',station:$('station').value==='yes',animated:$('motion').checked};
+    for(const slot of slots){
+      const card=document.createElement('niak-weather-card');slot.replaceChildren(card);
+      const config={...scenarioConfig({...scenario,format:slot.dataset.format})};delete config.weather_path;
+      card.setConfig(config);card.hass=scenarioHass(scenario);
+    }
+  }
+  for(const id of ['condition','phase','vigilance','station','theme','width','motion'])$(id).addEventListener('change',refresh);
+  refresh();
+</script>
+</body></html>
