@@ -48,6 +48,13 @@ def links(linked: Mapping[str, int], installed: Collection[str]) -> str:
     return "\n".join(lines)
 
 
+def states(linked: Mapping[str, int], installed: Collection[str]) -> list[dict[str, str]]:
+    """The same as `links`, one entry per brick, for the Niak panel: `state` is linked, installed, missing or future."""
+    return [{"domain": b.domain, "name": b.name, "takes": b.takes, "url": b.url,
+             "state": "linked" if linked.get(b.domain) else "installed" if b.domain in installed else "missing" if b.url else "future"}
+            for b in BRICKS]
+
+
 def summary(linked: Mapping[str, int]) -> str:
     """The menu's line: the bricks linked to this place, or none."""
     names = [b.name for b in BRICKS if linked.get(b.domain)]

@@ -25,3 +25,11 @@ def test_a_listener_that_does_not_say_who_it_is_is_counted_apart():
     text = links({"": 2}, set())
     assert text.splitlines()[-1] == "- 2 autres liens actifs vers ce lieu."
     assert summary({"": 2}) == "aucune brique reliée"
+
+
+def test_the_niak_panel_gets_the_same_states_one_brick_at_a_time():
+    from engine.ecosystem import states
+    found = {b["domain"]: b["state"] for b in states({"niak_comfort": 1}, {"niak_comfort"})}
+    assert found["niak_comfort"] == "linked" and found["niak_heating"] == "future"
+    assert {b["domain"]: b["state"] for b in states({}, set())}["niak_comfort"] == "missing"
+    assert {b["domain"]: b["state"] for b in states({}, {"niak_comfort"})}["niak_comfort"] == "installed"

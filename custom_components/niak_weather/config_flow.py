@@ -352,6 +352,10 @@ class NiakWeatherConfigFlow(_SourceSteps, ConfigFlow, domain=DOMAIN):
         self._cards = await find_cards(self.hass)
         return self.async_show_menu(step_id="user", menu_options=["import_card", "weather"] if self._cards else ["weather"])
 
+    async def async_step_panel(self, user_input: dict[str, Any]) -> ConfigFlowResult:
+        """A place set up in the « Météo » tab of the Niak panel (draft.py), which went through the same steps."""
+        return self.async_create_entry(title=user_input["title"], data={}, options=_clean(user_input["options"]))
+
     async def async_step_import_card(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Start from a card's settings: each step then shows them, to check before saving."""
         if user_input is not None:

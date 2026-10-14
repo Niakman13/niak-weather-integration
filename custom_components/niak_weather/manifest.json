@@ -4,11 +4,11 @@
   "after_dependencies": ["lovelace"],
   "codeowners": ["@Niakman13"],
   "config_flow": true,
-  "dependencies": ["recorder", "websocket_api"],
+  "dependencies": ["frontend", "http", "recorder", "websocket_api"],
   "documentation": "https://github.com/Niakman13/niak-weather-integration",
   "integration_type": "service",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/Niakman13/niak-weather-integration/issues",
   "requirements": [],
-  "version": "2.1.0b2"
+  "version": "2.2.0b1"
 }

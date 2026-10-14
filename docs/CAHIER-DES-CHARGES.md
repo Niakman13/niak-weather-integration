@@ -24,6 +24,8 @@ Référence commune : [Écosystème Niak](../../niak-ecosysteme/ECOSYSTEME.md).
 
 **Liens visibles** : **Configurer → Écosystème Niak** montre chaque brique, reliée à ce lieu, installée mais pas reliée, non installée, ou à venir. Une brique est « reliée » quand elle écoute ce lieu par l'interface et donne son domaine (`brick`).
 
+**Panneau commun « Niak »** (depuis 2.2.0b1, [écosystème § 8](../../niak-ecosysteme/ECOSYSTEME.md)) : Niak Weather embarque le socle et s'y inscrit avec l'onglet **Météo** (`/niak/meteo`) : réglages de chaque lieu par étapes (Prévisions, Station, Air, Pollens, Capteurs, Récapitulatif), mêmes détections que l'assistant de Paramètres, qui reste disponible (pas d'ancienne adresse de panneau : **Configurer** l'ouvre toujours). Sur l'Accueil : bleu quand chaque lieu est calculé avec sa station qui répond ; orange pour une station ou un capteur qui ne répond pas, des prévisions pas reçues, une entité active sans source, une carte plus ancienne que 2.0.8 (version lue dans HACS) ; plus les briques reliées.
+
 **Ce qu'il fournit**
 | Destinataire | Ce qu'il fournit | Intensité |
 |---|---|---|
@@ -53,6 +55,7 @@ Ces interfaces sont stables ; un changement incompatible change la version majeu
 | 2 | Action `niak_weather.prevision`, entité `weather.niak_weather` | ✅ |
 | **2 bis** | **Interfaces pour l'écosystème** : objet versionné `hass.data["niak_weather_api"]` (lieux, station par rôle dont la **direction du vent**, prévisions horaires avec direction du vent, abonnement) — voir [technique.md](technique.md) | ✅ 2.1.0b1 |
 | 2 ter | Écran **Écosystème Niak** dans les réglages ; pollens **IRM KMI** (Belgique), 3ᵉ source à côté d'Atmo France et de Polleninformation | ✅ 2.1.0b2 |
+| 2 quater | Onglet **Météo** du panneau commun « Niak » et état sur son Accueil (socle 1.1) | 🧪 2.2.0b1 |
 | 3 | Données pour les autres briques : évapotranspiration (ET0), bilan hydrique, ensoleillement prévu par heure. Les décisions (aérer, rafraîchir, arroser, production solaire) partent dans les briques concernées | à décider |
 | — | Correction locale des prévisions par la station | abandonnée le 11 oct. 2026 (gain ~5 %, défauts d'emplacement des capteurs) |
 
@@ -60,3 +63,4 @@ Ces interfaces sont stables ; un changement incompatible change la version majeu
 
 - **v1 — 13 octobre 2026** : première version du cahier des charges, centrée sur la place de Niak Weather dans l'écosystème Niak et ses interfaces publiées.
 - **v1.1 — 14 octobre 2026** : liens visibles dans les réglages (écran Écosystème Niak, `add_listener(…, brick=)`, `linked()`) ; pollens IRM KMI.
+- **v1.2 — 14 octobre 2026** : Niak Weather rejoint le panneau commun « Niak » (onglet Météo, état sur l'Accueil) ; l'assistant de Paramètres reste en secours.
