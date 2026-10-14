@@ -2,7 +2,7 @@
 // Copied unchanged into each brick from niak-ecosysteme/socle/ (see ECOSYSTEME.md § 8).
 import {LitElement,html,css,nothing,type PropertyValues} from 'lit';
 
-export const ELEMENT='niak-socle-1-1';
+export const ELEMENT='niak-socle-1-2';
 type Level='ok'|'action'|'unknown';
 export interface BrickStatus {level:Level;summary:string;details:string[];links:string[]}
 export interface Brick {domain:string;name:string;slug:string;version:string;icon:string;module_url:string;element:string;status:BrickStatus;tab?:string|null}
