@@ -11,7 +11,7 @@ from typing import Any
 
 import voluptuous as vol
 
-from homeassistant.components import frontend, websocket_api
+from homeassistant.components import websocket_api
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
@@ -24,12 +24,13 @@ from .draft import Draft, ecosystem_of, entity_keys, entity_label, family_label,
 from .engine import atmo, detection, families, health, home, polleninfo
 from .engine.settings import Settings
 from .websocket import VERSION_KEY
-from .socle import async_register_brick
+from .socle import async_register_brick, async_register_card
 
 ASSETS = f"/{DOMAIN}-assets"
 CARD_REPOSITORY = "Niakman13/niak-weather"
 """The former card's repository: since 2.3 the card comes with the integration."""
 CARD_FILE = "niak-weather-card.js"
+CARD_URL = f"{ASSETS}/{CARD_FILE}"
 FAILED = (ConfigEntryState.SETUP_ERROR, ConfigEntryState.SETUP_RETRY, ConfigEntryState.MIGRATION_ERROR, ConfigEntryState.FAILED_UNLOAD)
 
 
@@ -40,8 +41,8 @@ async def async_setup_panel(hass: HomeAssistant, version: str) -> None:
         await hass.http.async_register_static_paths([StaticPathConfig(ASSETS, str(Path(__file__).parent / "frontend"), False)])
         for command in (ws_places, ws_open, ws_change, ws_save):
             websocket_api.async_register_command(hass, command)
-        # The card is loaded on every dashboard, like a declared resource would be: it is always the integration's version.
-        frontend.add_extra_js_url(hass, f"{ASSETS}/niak-weather-card.js?v={version}")
+        # The card on every dashboard, always at the integration's version (an extra module and a dashboard resource).
+        await async_register_card(hass, CARD_URL, version)
         hass.data[f"{DOMAIN}_panel"] = True
     await async_register_brick(hass, {
         "domain": DOMAIN, "name": "Niak Weather", "slug": "meteo", "tab": "Météo", "version": version, "icon": "mdi:weather-partly-cloudy",
@@ -167,6 +168,7 @@ async def card_twice(hass: HomeAssistant) -> bool:
     """Whether the former card is still installed next to the one the integration serves: both would load.
 
     A dashboard resource naming the card (HACS declares one, so does a card copied by hand), or HACS saying it is installed.
+    The integration's own resource (CARD_URL) does not count.
     """
     try:
         lovelace = hass.data.get("lovelace")
@@ -174,7 +176,8 @@ async def card_twice(hass: HomeAssistant) -> bool:
         if resources is not None:
             if not getattr(resources, "loaded", True):
                 await resources.async_get_info()  # Resources kept by the UI load on first use.
-            if any(CARD_FILE in str(item.get("url", "")) for item in resources.async_items() or []):
+            urls = [str(item.get("url", "")) for item in resources.async_items() or []]
+            if any(CARD_FILE in u and not u.startswith(CARD_URL) for u in urls):
                 return True
         hacs = hass.data.get("hacs")
         repository = hacs.repositories.get_by_full_name(CARD_REPOSITORY) if hacs is not None else None

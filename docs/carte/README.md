@@ -2,9 +2,11 @@
 
 **La météo chez vous, en une carte qui parle.** La carte affiche ce que calcule l’intégration : la vigilance, le bulletin du jour, les alertes à leur heure, le ressenti, la pluie, le vent, la pression, l’air et les pollens, sur un ciel animé.
 
-Depuis la 2.3, **la carte est fournie par l’intégration** : rien à installer en plus, et elle a toujours la même version que l’intégration. Sur un tableau de bord : **Ajouter une carte → Niak Weather**.
+Depuis la 2.3, **la carte est fournie par l’intégration** : rien à installer en plus, et elle a toujours la même version que l’intégration. L’intégration l’ajoute elle-même aux ressources des tableaux de bord (`/niak_weather-assets/niak-weather-card.js`) et la tient à jour, pour que l’application mobile la trouve aussi. Sur un tableau de bord : **Ajouter une carte → Niak Weather**.
 
 Vous aviez installé la carte depuis HACS ? Retirez-la (HACS → Niak Weather → ⋮ → **Supprimer**), puis rechargez la page. Vos cartes restent en place : elles s’écrivent toujours `type: custom:niak-weather-card`. Tant qu’elle reste installée, l’accueil du panneau **Niak** l’indique en orange.
+
+Dans l’application Home Assistant, une carte reste invisible juste après une mise à jour ? Réinitialisez son cache : **Paramètres → Application compagnon → Dépannage → Réinitialiser le cache du frontend**.
 
 ![Niak Weather — votre station météo et les prévisions, réunies en une carte qui parle](images/niak-weather-banner.png)
 

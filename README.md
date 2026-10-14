@@ -68,6 +68,8 @@ Sept cartes à choisir dans **Ajouter une carte** : complète, tuile, tuile dép
 
 Vous aviez installé la carte depuis HACS ? **Retirez-la de HACS**, puis rechargez la page : vos cartes restent en place. Tant qu’elle reste installée, l’accueil du panneau **Niak** l’indique en orange.
 
+Dans l’application Home Assistant, une carte reste invisible juste après une mise à jour ? Réinitialisez son cache : **Paramètres → Application compagnon → Dépannage → Réinitialiser le cache du frontend**.
+
 ## Les capteurs et les automatisations
 
 Niak Weather dit ce que la météo implique ; vos automatisations décident quoi en faire. Les entités sont rangées en sept familles :

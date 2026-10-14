@@ -11,7 +11,8 @@ from homeassistant.loader import async_get_integration
 from .api import API_KEY, NiakWeatherApi
 from .const import DOMAIN
 from .coordinator import NiakWeatherConfigEntry, NiakWeatherCoordinator, alert_store
-from .panel import async_setup_panel
+from .panel import CARD_URL, async_setup_panel
+from .socle import async_remove_card
 from .services import async_setup_services
 from .websocket import async_setup_websocket
 
@@ -45,8 +46,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: NiakWeatherConfigEntry)
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: NiakWeatherConfigEntry) -> None:
-    """The place is removed: its alerts in progress go with it."""
+    """The place is removed: its alerts in progress go with it; with the last place, the card's dashboard resource."""
     await alert_store(hass, entry.entry_id).async_remove()
+    if not [e for e in hass.config_entries.async_entries(DOMAIN) if e.entry_id != entry.entry_id]:
+        await async_remove_card(hass, CARD_URL)
 
 
 async def _async_reload(hass: HomeAssistant, entry: NiakWeatherConfigEntry) -> None:
