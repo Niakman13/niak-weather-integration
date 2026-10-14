@@ -56,6 +56,8 @@ Vous utilisez déjà la carte Niak Weather ? Le guide propose de reprendre ses r
 
 **Configurer** ouvre un menu qui reste ouvert : on change chaque partie, puis **Enregistrer et fermer**. On y active aussi chaque entité, par famille. Plusieurs lieux ? Ajoutez l’intégration une fois par lieu. [Détail des sources et des réglages](docs/sources.md).
 
+**Panneau Niak** (préversion 2.2) : les mêmes réglages se trouvent aussi dans l’entrée **Niak** de la barre latérale, onglet **Météo**, étape par étape, avec les capteurs proposés et ce qu’il reste à vérifier. L’onglet **Accueil** dit en une phrase si tout est suivi. Le panneau est commun aux briques Niak : avec Niak Confort, chacune a son onglet. **Configurer** reste disponible pendant la transition.
+
 ## Les capteurs et les automatisations
 
 Niak Weather dit ce que la météo implique ; vos automatisations décident quoi en faire. Les entités sont rangées en sept familles :

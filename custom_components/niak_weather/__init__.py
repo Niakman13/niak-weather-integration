@@ -11,6 +11,7 @@ from homeassistant.loader import async_get_integration
 from .api import API_KEY, NiakWeatherApi
 from .const import DOMAIN
 from .coordinator import NiakWeatherConfigEntry, NiakWeatherCoordinator, alert_store
+from .panel import async_setup_panel
 from .services import async_setup_services
 from .websocket import async_setup_websocket
 
@@ -20,10 +21,13 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     # The card compares it with the version it needs, to say when the integration was not updated with it.
-    async_setup_websocket(hass, str((await async_get_integration(hass, DOMAIN)).version or ""))
+    version = str((await async_get_integration(hass, DOMAIN)).version or "")
+    async_setup_websocket(hass, version)
     async_setup_services(hass)
     # The contract for the other Niak bricks (Niak Confort, future Niak Chauffage…).
     hass.data[API_KEY] = NiakWeatherApi(hass)
+    # The « Météo » tab of the shared « Niak » panel, and Niak Weather's line on its home page.
+    await async_setup_panel(hass, version)
     return True
 
 

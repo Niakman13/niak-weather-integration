@@ -1,0 +1,19 @@
+{
+  "name": "niak-weather-panel",
+  "version": "2.2.0-beta.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit",
+    "build": "node build.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "validate": "npm run check && npm run test && npm run build"
+  },
+  "dependencies": {
+    "lit": "3.3.3"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12",
+    "typescript": "5.9.3"
+  }
+}
