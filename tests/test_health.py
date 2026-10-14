@@ -1,0 +1,82 @@
+"""The technical state shown on the « Météo » tab: orange only for what stops working, tips for what could be better."""
+from engine.health import Facts, Sensor, ago, report
+
+ENTITIES = (("feels_like", "Ressenti", "Maintenant", True, True), ("vigilance", "Vigilance Météo-France", "Alertes", True, False),
+            ("pluie_7j", "Pluie des 7 derniers jours", "Jardin", False, False))
+
+
+def place(**changes):
+    base = dict(title="Gardanne", weather="Gardanne", forecast_age=12, vigilance="Gardanne 13 Weather alert", station="GW2000A",
+                sensors=[Sensor("Température extérieure", "GW2000A Outdoor Temperature", "ok", 1)], air="Atmo France · Gardanne",
+                pollen="Atmo France · Gardanne", entities=ENTITIES[:1] + ENTITIES[2:], integration="2.2.0b1", card="2.0.9-beta.1",
+                links=["Niak Confort"], season="Saison", atmo_installed=True)
+    return Facts(**{**base, **changes})
+
+
+def test_everything_answering_is_blue_and_says_so():
+    r = report(place())
+    assert r["level"] == "ok" and r["summary"] == "Tout est suivi" and r["todo"] == []
+    assert [s["level"] for s in r["sources"]] == ["ok"] * 6
+    assert r["sources"][0]["text"] == "Gardanne · reçues il y a 12 min"
+    assert r["sources"][2]["text"] == "GW2000A · 1 capteur, tous répondent"
+    assert r["versions"][1] == {"level": "ok", "text": "Carte 2.0.9-beta.1", "why": "en accord avec l’intégration"}
+
+
+def test_silent_sensors_are_to_fix_with_since_when():
+    r = report(place(sensors=[Sensor("Température extérieure", "T", "ok", 1), Sensor("Rafales", "G", "silent", 180),
+                              Sensor("Direction du vent", "D", "silent", 175)]))
+    assert r["level"] == "action" and r["summary"] == "1 point à régler"
+    assert r["todo"][0]["text"] == "2 capteurs de la station ne répondent pas"
+    assert r["todo"][0]["why"] == "Rafales, Direction du vent · depuis 3 h." and r["todo"][0]["stage"] == 1
+    assert [s["label"] for s in r["sensors"]][:2] == ["Rafales", "Direction du vent"]  # those that do not answer first
+    assert r["sensors"][0]["text"] == "ne répond pas · 3 h"
+    assert r["sources"][2] == {"label": "Station", "level": "bad", "text": "GW2000A · 1 capteur sur 3 répond"}
+
+
+def test_a_whole_silent_station_is_one_line():
+    r = report(place(sensors=[Sensor("A", "a", "silent", 30), Sensor("B", "b", "missing")]))
+    assert [t["text"] for t in r["todo"]] == ["La station ne répond pas"]
+
+
+def test_an_enabled_entity_without_its_source_is_to_fix_at_the_right_step():
+    r = report(place(vigilance="", entities=ENTITIES, needs={"vigilance": "la vigilance Météo-France"}))
+    assert r["todo"][0] == {"level": "bad", "text": "Vigilance Météo-France : active sans source",
+                            "why": "Il faut la vigilance Météo-France : elle reste vide.", "stage": 0}
+    assert r["sources"][1]["level"] == "bad"
+    assert not any("vigilance" in t["text"].lower() for t in r["tips"])  # already said once
+
+
+def test_without_a_station_a_station_is_the_first_tip_not_an_error():
+    r = report(place(station="", sensors=[]))
+    assert r["level"] == "ok" and r["tips"][0]["text"] == "Ajouter une station météo"
+    assert r["sources"][2] == {"label": "Station", "level": "none", "text": "pas de station"}
+
+
+def test_tips_name_what_home_assistant_already_has():
+    r = report(place(unused=[("pressure_entity", "Pression", "GW2000A Relative Pressure")], vigilance="", vigilance_found="Gardanne 13 Weather alert",
+                     air="", atmo_installed=False, pollen="", pollen_available=True, ready_families=["Jardin"], history=False))
+    texts = [t["text"] for t in r["tips"]]
+    assert texts == ["Ajouter : pression", "Calculer depuis l’historique", "Choisir la vigilance Météo-France", "Ajouter la qualité de l’air",
+                     "Suivre les pollens", "Famille prête à activer : Jardin"]
+    assert "« GW2000A Relative Pressure »" in r["tips"][0]["why"] and r["tips_summary"] == "6 réglages à améliorer"
+    assert all(t["level"] == "tip" for t in r["tips"])
+
+
+def test_forecast_missing_old_or_service_down():
+    assert report(place(forecast_age=None))["todo"][0]["text"] == "Prévisions pas encore reçues"
+    assert report(place(forecast_age=None, restarting=True))["todo"] == []
+    assert report(place(forecast_age=200))["todo"][0]["text"] == "Prévisions anciennes"
+    assert report(place(weather_ok=False))["todo"][0]["text"] == "Le service météo ne répond pas"
+
+
+def test_entities_versions_and_links():
+    r = report(place(entities=ENTITIES, card="2.0.7", links=[]))
+    assert [e["text"] for e in r["entities"]] == ["2 actives sur 3", "1 active sans valeur", "1 désactivée"]
+    assert r["entities"][2]["why"] == "Jardin"
+    assert r["versions"][1]["level"] == "bad" and any("Carte Niak Weather 2.0.7" in t["text"] for t in r["todo"])
+    assert r["versions"][-1]["text"] == "Aucune brique Niak reliée"
+    assert report(place(card=None))["versions"][1]["text"] == "Carte : version inconnue"
+
+
+def test_ages_read_naturally():
+    assert [ago(0.5), ago(12), ago(180), ago(3 * 1440)] == ["à l’instant", "il y a 12 min", "il y a 3 h", "il y a 3 j"]

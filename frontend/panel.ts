@@ -3,7 +3,7 @@
 import {LitElement,html,unsafeCSS,nothing,type TemplateResult} from 'lit';
 import {customElement,property,state} from 'lit/decorators.js';
 import styles from './styles.css';
-import {NONE,stages,brickState,enabledKeys,provenance,sameSet,entityLine,grouped,capital,type Change,type Choice,type DraftReply,type Field,type Hass,type Place,type Places,type Sources,type View} from './model';
+import {NONE,stages,enabledKeys,provenance,sameSet,entityLine,grouped,capital,type Change,type Choice,type DraftReply,type Field,type Hass,type Line,type Place,type Places,type Sources,type View} from './model';
 
 @customElement('niak-weather-setup')
 export class WeatherSetup extends LitElement {
@@ -22,7 +22,7 @@ export class WeatherSetup extends LitElement {
  @state() private error='';
  @state() private saved='';
  @state() private confirmLeave=false;
- @state() private openEco='';
+ @state() private allSensors='';
  @state() private placeTitle='';
  private initial='';
  private initialEnabled:string[]=[];
@@ -211,27 +211,38 @@ export class WeatherSetup extends LitElement {
  // ---- Pages ----
  private home(){
   const p=this.places!;
-  return html`<main><h1>Ma météo</h1>
-   <p class="muted">Le service météo, votre station et l’air de votre ville : Niak Weather les réunit et calcule ce qu’ils annoncent.</p>
+  return html`<main>
    ${this.saved?html`<p class="notice" role="status">${this.saved}</p>`:nothing}
-   ${p.places.map(place=>this.place(place))}
-   ${p.places.length?html`<h2>Ajouter un lieu</h2><p class="muted">Une résidence secondaire, un jardin éloigné : chaque lieu a ses prévisions et sa station.</p>`
-    :html`<h2>Votre lieu</h2><p class="muted">Niak Weather propose ce qu’il trouve dans Home Assistant ; vous vérifiez chaque étape avant de créer le lieu.</p>`}
-   ${p.can_add?html`<button class=${p.places.length?'':'primary'} ?disabled=${this.busy} @click=${()=>void this.open(null)}>${p.places.length?'Ajouter un lieu':'Configurer mon lieu'}</button>`
-    :html`<p class="notice">Aucun service météo dans Home Assistant : installez Météo-France (Paramètres → Appareils et services), puis revenez ici.</p>`}
-   <p class="hint fallback">L’ancien assistant reste disponible pendant la transition : Paramètres → Appareils et services → Niak Weather → Configurer.</p></main>`;
+   ${p.places.length?p.places.map(place=>this.place(place)):html`<h1>Ma météo</h1>
+    <section class="card"><h2>Votre lieu</h2><p class="muted">Niak Weather propose ce qu’il trouve dans Home Assistant ; vous vérifiez chaque étape avant de créer le lieu.</p>
+     ${p.can_add?html`<button class="primary" ?disabled=${this.busy} @click=${()=>void this.open(null)}>Configurer mon lieu</button>`
+      :html`<p class="warn">Aucun service météo dans Home Assistant : installez Météo-France (Paramètres → Appareils et services), puis revenez ici.</p>`}</section>`}
+   <div class="footer">${p.places.length&&p.can_add?html`<button class="link" ?disabled=${this.busy} @click=${()=>void this.open(null)}>Ajouter un lieu</button>`:nothing}
+    <span class="hint">L’ancien assistant reste dans Paramètres → Appareils et services → Niak Weather → Configurer.</span></div></main>`;
+ }
+ // One line of a frame: its state, what it means, and the step of the assistant that changes it.
+ private line(entryId:string,l:Line){
+  return html`<li class=${l.level}><span class="dot"></span><div><strong>${l.text}</strong>${l.why?html`<span class="why">${l.why}</span>`:nothing}</div>
+   ${l.stage!==null&&l.stage!==undefined?html`<button class="link go" ?disabled=${this.busy} @click=${()=>void this.open(entryId,l.stage!)}>${stages[l.stage]}</button>`:nothing}</li>`;
  }
  private place(p:Place){
-  const open=this.openEco===p.entry_id;
-  return html`<section><h2>${p.title}</h2>
-   ${p.failed?html`<p class="warn">Calcul arrêté : Home Assistant n’a pas pu démarrer ce lieu. Vérifiez ses réglages ou les journaux (cherchez « niak »).</p>`
-    :p.loaded?nothing:html`<p class="muted" role="status">Le lieu redémarre…</p>`}
-   ${p.rows.map(r=>html`<div class="row"><div><h3>${r.title}</h3><p class="muted">${r.text}</p>${r.todo.map(t=>html`<p class="warn">${t}</p>`)}</div>
-    <button ?disabled=${this.busy} @click=${()=>void this.open(p.entry_id,r.stage)}>Modifier</button></div>`)}
-   <div class="row"><div><h3>Écosystème Niak</h3><p class="muted">${p.ecosystem.text}</p>
-    ${open?html`<ul class="bricks">${p.ecosystem.bricks.map(b=>html`<li><strong>${b.name}</strong> · ${brickState[b.state]}. ${b.state==='linked'?'Il reprend':b.state==='future'?'Il reprendra':'Il reprendrait'} ${b.takes}.${b.state==='missing'?html` <a href=${b.url} target="_blank" rel="noreferrer">L’installer</a>`:nothing}</li>`)}</ul>
-     <p class="hint">Chaque brique se relie à ce lieu dans ses propres réglages ; Niak Weather ne modifie jamais les autres.</p>`:nothing}</div>
-    <button class="link" aria-expanded=${open?'true':'false'} @click=${()=>{this.openEco=open?'':p.entry_id;}}>${open?'Masquer':'Voir le détail'}</button></div></section>`;
+  const h=p.health,all=this.allSensors===p.entry_id,sensors=all?h.sensors:h.sensors.slice(0,8);
+  return html`<section class="place" aria-labelledby=${'p-'+p.entry_id}>
+   <div class="head"><div><h1 id=${'p-'+p.entry_id}>${p.title}</h1>
+    <p class="state ${h.level==='ok'?'ok':'bad'}"><span class="dot"></span>${h.summary}${h.tips_summary?html`<span class="muted"> · ${h.tips_summary}</span>`:nothing}</p></div>
+    <button class="primary" ?disabled=${this.busy} @click=${()=>void this.open(p.entry_id,0)}>Modifier</button></div>
+   ${!p.loaded&&!p.failed?html`<p class="notice" role="status">Le lieu redémarre…</p>`:nothing}
+   <p class="legend"><span class="ok"><span class="dot"></span>fonctionne</span><span class="bad"><span class="dot"></span>à régler</span><span class="tip"><span class="dot"></span>à améliorer</span><span class="none"><span class="dot"></span>non utilisé</span></p>
+   <div class="grid">
+    ${h.todo.length?html`<section class="card wide todo"><h2>À régler</h2><ul class="lines">${h.todo.map(l=>this.line(p.entry_id,l))}</ul></section>`:nothing}
+    ${h.tips.length?html`<section class="card wide"><h2>À améliorer <small>facultatif</small></h2><ul class="lines">${h.tips.map(l=>this.line(p.entry_id,l))}</ul></section>`:nothing}
+    <section class="card"><h2>Sources</h2><ul class="lines">${h.sources.map(s=>html`<li class=${s.level}><span class="dot"></span><div><strong>${s.label}</strong><span class="why">${s.text}</span></div></li>`)}</ul></section>
+    ${h.sensors.length?html`<section class="card"><h2>Capteurs de la station <small>${h.sensors.length}</small></h2>
+     <ul class="sensors">${sensors.map(s=>html`<li class=${s.level} title=${s.name}><span class="dot"></span><span>${s.label}</span><span class="v">${s.text}</span></li>`)}</ul>
+     ${h.sensors.length>8?html`<button class="link" aria-expanded=${all?'true':'false'} @click=${()=>{this.allSensors=all?'':p.entry_id;}}>${all?'Masquer':`Voir les ${h.sensors.length} capteurs`}</button>`:nothing}</section>`:nothing}
+    <section class="card"><h2>Entités Niak Weather</h2><ul class="lines">${h.entities.map(l=>this.line(p.entry_id,{...l,stage:null}))}</ul></section>
+    <section class="card"><h2>Versions et liens</h2><ul class="lines">${h.versions.map(l=>this.line(p.entry_id,{...l,stage:null}))}</ul></section>
+   </div></section>`;
  }
  private editor(){
   const v=this.view!;

@@ -3,9 +3,12 @@ export interface Hass {callWS<T>(msg:Record<string,unknown>):Promise<T>;themes?:
 export interface Entity {id:string;name:string;state:string;available:boolean;missing:boolean}
 export interface Field {key:string;label:string;help:string;value:string;entity:Entity|null;need:string;options:Entity[];warning:string;better:Entity|null;recognized:string[]}
 export interface Choice {value:string;label:string;hint?:string;available?:boolean}
-export interface Row {key:string;title:string;text:string;stage:number;todo:string[]}
-export interface Brick {domain:string;name:string;takes:string;url:string;state:'linked'|'installed'|'missing'|'future'}
-export interface Place {entry_id:string;title:string;loaded:boolean;failed:boolean;rows:Row[];ecosystem:{text:string;bricks:Brick[]}}
+// The technical state of a place (engine/health.py): orange (bad) stops something, tip could be better, none is not used.
+export type Level='ok'|'bad'|'tip'|'none';
+export interface Line {level:Level;text:string;why:string;stage:number|null}
+export interface Health {title:string;level:'ok'|'action';summary:string;tips_summary:string;todo:Line[];tips:Line[];
+ sources:{label:string;level:Level;text:string}[];sensors:{label:string;name:string;level:Level;text:string}[];entities:Line[];versions:Line[]}
+export interface Place {entry_id:string;title:string;loaded:boolean;failed:boolean;health:Health}
 export interface Places {places:Place[];can_add:boolean}
 export interface Species extends Entity {label:string;chosen:boolean}
 export interface EntityItem {key:string;name:string;hint:string;enabled:boolean;need:string}
@@ -26,7 +29,6 @@ export type Change={op:string;key?:string;value?:unknown;area?:string};
 
 export const NONE='none';
 export const stages=['Prévisions','Station','Air','Pollens','Capteurs','Récapitulatif'];
-export const brickState:Record<Brick['state'],string>={linked:'relié à ce lieu',installed:'installé, pas relié à ce lieu',missing:'non installé',future:'à venir'};
 
 // The entities switched on, by key, as the « Capteurs » step shows them.
 export function enabledKeys(view:View):string[]{
