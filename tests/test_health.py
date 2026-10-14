@@ -8,7 +8,7 @@ ENTITIES = (("feels_like", "Ressenti", "Maintenant", True, True), ("vigilance", 
 def place(**changes):
     base = dict(title="Gardanne", weather="Gardanne", forecast_age=12, vigilance="Gardanne 13 Weather alert", station="GW2000A",
                 sensors=[Sensor("Température extérieure", "GW2000A Outdoor Temperature", "ok", 1)], air="Atmo France · Gardanne",
-                pollen="Atmo France · Gardanne", entities=ENTITIES[:1] + ENTITIES[2:], integration="2.2.0b1", card="2.0.9-beta.1",
+                pollen="Atmo France · Gardanne", entities=ENTITIES[:1] + ENTITIES[2:], integration="2.3.0b1",
                 links=["Niak Confort"], season="Saison", atmo_installed=True)
     return Facts(**{**base, **changes})
 
@@ -19,7 +19,7 @@ def test_everything_answering_is_blue_and_says_so():
     assert [s["level"] for s in r["sources"]] == ["ok"] * 6
     assert r["sources"][0]["text"] == "Gardanne · reçues il y a 12 min"
     assert r["sources"][2]["text"] == "GW2000A · 1 capteur, tous répondent"
-    assert r["versions"][1] == {"level": "ok", "text": "Carte 2.0.9-beta.1", "why": "en accord avec l’intégration"}
+    assert r["versions"][1] == {"level": "ok", "text": "Carte 2.3.0b1", "why": "fournie par l’intégration"}
 
 
 def test_silent_sensors_are_to_fix_with_since_when():
@@ -70,12 +70,14 @@ def test_forecast_missing_old_or_service_down():
 
 
 def test_entities_versions_and_links():
-    r = report(place(entities=ENTITIES, card="2.0.7", links=[]))
+    r = report(place(entities=ENTITIES, links=[]))
     assert [e["text"] for e in r["entities"]] == ["2 actives sur 3", "1 active sans valeur", "1 désactivée"]
     assert r["entities"][2]["why"] == "Jardin"
-    assert r["versions"][1]["level"] == "bad" and any("Carte Niak Weather 2.0.7" in t["text"] for t in r["todo"])
+    assert r["versions"][1] == {"level": "ok", "text": "Carte 2.3.0b1", "why": "fournie par l’intégration"}
     assert r["versions"][-1]["text"] == "Aucune brique Niak reliée"
-    assert report(place(card=None))["versions"][1]["text"] == "Carte : version inconnue"
+    twice = report(place(card_twice=True))
+    assert twice["level"] == "action" and twice["versions"][1]["level"] == "bad"
+    assert [t["text"] for t in twice["todo"]] == ["Carte installée deux fois"]
 
 
 def test_ages_read_naturally():

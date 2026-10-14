@@ -1,0 +1,41 @@
+{
+  "name": "niak-weather-card",
+  "version": "2.3.0-beta.1",
+  "private": true,
+  "description": "The Niak Weather card, served by the integration on every dashboard",
+  "type": "module",
+  "scripts": {
+    "build": "node ./scripts/build.mjs",
+    "check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:browser": "npm run build && node scripts/browser-qa.mjs",
+    "preview:weather": "npm run build && node scripts/preview-current-weather.mjs",
+    "validate": "npm run check && npm run test && npm run build",
+    "visual:capture": "npm run build && node scripts/visual/visual.mjs capture",
+    "visual:compare": "node scripts/visual/visual.mjs compare",
+    "visual:sheet": "node scripts/visual/visual.mjs sheet",
+    "visual:docs": "npm run build && node scripts/visual/visual.mjs docs"
+  },
+  "keywords": [
+    "home-assistant",
+    "lovelace",
+    "hacs",
+    "weather-card"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@mdi/js": "^7.4.47",
+    "@vitest/coverage-v8": "^4.1.11",
+    "esbuild": "^0.25.0",
+    "pixelmatch": "^7.2.0",
+    "playwright": "^1.63.0",
+    "pngjs": "^7.0.0",
+    "typescript": "^5.8.0",
+    "vitest": "^4.1.11",
+    "yaml": "^2.9.1"
+  },
+  "dependencies": {
+    "lit": "^3.3.0"
+  }
+}

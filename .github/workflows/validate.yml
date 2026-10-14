@@ -37,6 +37,34 @@ jobs:
         working-directory: frontend
       - run: git diff --exit-code -- custom_components/niak_weather/frontend/
 
+  card:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: card/package-lock.json
+      - run: npm ci
+        working-directory: card
+      - run: npm run validate
+        working-directory: card
+      - run: git diff --exit-code -- custom_components/niak_weather/frontend/niak-weather-card.js
+      # The bench shows what the integration computes: its engine draws the demonstration views.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: npx playwright install --with-deps chromium
+        working-directory: card
+      - run: node scripts/browser-qa.mjs
+        working-directory: card
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: visual-parity
+          path: card/test-results/
+
   hassfest:
     runs-on: ubuntu-latest
     steps:

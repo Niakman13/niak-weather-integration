@@ -1,0 +1,82 @@
+// The banner of the full card, over the animated sky: the official vigilance, the day's bulletin, the weather now,
+// then the timeline of the coming hours with the brief's points.
+import { css, html, nothing, type TemplateResult } from 'lit';
+import type { WeatherView } from '../view';
+import { alertPill, info, label, nf, tint, unbroken } from '../ui/parts';
+import { nowBlock } from './tile';
+
+const GROUPS = [
+  { key: 'official', title: 'Vigilance officielle' },
+  { key: 'now', title: 'Maintenant' },
+  { key: 'future', title: 'À venir' },
+  { key: 'environment', title: 'Air et pollens' },
+] as const;
+
+/** The « i » of the banner: what the brief is, then every point it weighed, by group, with a link to its source. */
+function briefInfo(v: WeatherView, uid: string): TemplateResult {
+  const brief = v.brief;
+  const groups = brief ? GROUPS.map(g => ({ ...g, signals: brief.signals.filter(s => s.group === g.key && (s.severity > 0 || v.points.some(p => p.text === s.text))) }))
+    .filter(g => g.signals.length) : [];
+  return info(`${uid}-brief`, {
+    title: 'Synthèse',
+    text: html`La météo du jour en une phrase, avec ce qui compte maintenant et ce qui arrive.
+      ${groups.map(g => html`<div class="brief-group">${label(g.title)}<ul>${g.signals.map(s => html`<li data-entity=${s.entity ?? nothing}>
+        <ha-icon icon=${s.icon}></ha-icon><span>${s.text}</span></li>`)}</ul></div>`)}
+      ${brief?.caveats.length ? html`<div class="brief-group">${label('À vérifier')}<ul>${brief.caveats.map(c => html`<li><ha-icon icon="mdi:alert-circle-outline"></ha-icon><span>${c}</span></li>`)}</ul></div>` : nothing}`,
+    example: '« Pluie ce soir, puis éclaircies demain matin. »',
+  });
+}
+
+import type { BannerBlock } from '../types';
+
+/** The banner: the place, the vigilance and the weather now, then its blocks drawn by `draw`, in their order. */
+export function renderHero(v: WeatherView, sky: TemplateResult, uid: string, blocks: BannerBlock[], draw: (b: BannerBlock) => unknown): TemplateResult {
+  const trend = v.now.trend === undefined ? nothing : html`<span class="nw-chip" style=${tint(v.now.trend > 0 ? 'heat' : 'cold')}
+    title=${v.now.trend > 0 ? 'La température monte' : 'La température baisse'}><ha-icon icon=${v.now.trend > 0 ? 'mdi:arrow-top-right' : 'mdi:arrow-bottom-right'}></ha-icon>${v.now.trend > 0 ? '+' : '−'}${nf(Math.abs(v.now.trend))} °C/h</span>`;
+  const season = v.season.news ? html`<span class="nw-chip" style=${tint('calm')} title=${v.season.tip}><ha-icon icon=${v.season.info.icon}></ha-icon>${v.season.news}</span>` : nothing;
+  const official = v.alerts.filter(a => a.official);
+  // The bulletin sits next to the weather now when it comes first; the other blocks follow under them, in their order.
+  const bulletin = bulletinBlock(v);
+  const rest = blocks[0] === 'bulletin' ? blocks.slice(1) : blocks;
+  return html`<section class=${`nw-hero${v.now.darkSky ? ' dark-sky' : ''}`} aria-label="Synthèse">
+    <div class="sky" aria-hidden="true">${sky}</div><div class="veil" aria-hidden="true"></div>
+    <header class="fm-head"><h2>Synthèse</h2>${briefInfo(v, uid)}<span>${[v.location, v.dateLabel].filter(Boolean).join(' · ')}</span>${season}</header>
+    <div class="hero-main">
+      ${official.length ? html`<div class="nw-alerts">${official.map(a => alertPill(a))}</div>` : nothing}
+      ${blocks[0] === 'bulletin' ? bulletin : nothing}
+    </div>
+    ${nowBlock(v, true, trend)}
+    ${rest.length ? html`<div class="hero-blocks">${rest.map(draw)}</div>` : nothing}
+  </section>`;
+}
+
+/** « Bulletin du jour » and its text. */
+export const bulletinBlock = (v: WeatherView) => v.bulletin ? html`${label('Bulletin du jour')}<p class="nw-bulletin">${unbroken(v.bulletin.summary)}</p>` : nothing;
+
+export const heroStyles = css`
+  .nw-hero { position:relative; isolation:isolate; overflow:hidden; padding:20px 24px 24px; display:grid; grid-template-columns:minmax(0,1fr) auto;
+    grid-template-areas:"head now" "main now" "blocks blocks"; column-gap:24px; row-gap:12px; color:var(--nw-fg); }
+  .nw-hero .sky { --k:1; }
+  /* The text side stays readable; the bottom fades softly towards the next section, light enough for the ground (puddles, snow) to show. */
+  .nw-hero .veil { background:linear-gradient(90deg, var(--nw-bg) 0%, color-mix(in srgb, var(--nw-bg) 92%, transparent) 30%,
+    color-mix(in srgb, var(--nw-bg) 45%, transparent) 55%, transparent 78%),
+    linear-gradient(0deg, color-mix(in srgb, var(--nw-bg) 55%, transparent) 0%, transparent 30%); }
+  .nw-hero > .fm-head { grid-area:head; cursor:default; flex-wrap:wrap; }
+  .hero-main { grid-area:main; display:flex; flex-direction:column; align-items:flex-start; gap:10px; min-width:0; }
+  .nw-alerts { display:flex; flex-wrap:wrap; gap:8px; max-width:100%; }
+  .nw-hero .nw-bulletin { animation:nw-rise .7s var(--nw-ease) both; }
+  @keyframes nw-rise { from { opacity:0; filter:blur(3px); } }
+  .nw-hero > .nw-now { grid-area:now; align-self:start; gap:4px; }
+  .nw-hero > .nw-now .temp { font-size:var(--nw-fs-temp); }
+  .nw-hero > .nw-now .temp small { font-size:var(--nw-fs-title); }
+  .hero-blocks { grid-area:blocks; display:flex; flex-direction:column; gap:14px; margin-top:4px; min-width:0; }
+  .hero-blocks > .nw-events, .hero-blocks > .hero-bulletin, .hero-blocks > .block { display:flex; flex-direction:column; gap:6px; }
+  .brief-group { margin-top:10px; }
+  .brief-group ul { list-style:none; margin:4px 0 0; padding:0; display:grid; gap:4px; }
+  .brief-group li { display:flex; align-items:flex-start; gap:7px; font-size:var(--nw-fs-small); }
+  .brief-group li ha-icon { --mdc-icon-size:15px; color:var(--nw-fg2); margin-top:1px; }
+  @media (prefers-reduced-motion:reduce) { .nw-hero .nw-bulletin { animation:none; } }
+  @container (max-width:650px) {
+    .nw-hero { grid-template-columns:minmax(0,1fr); grid-template-areas:"head" "now" "main" "blocks"; padding:16px 14px 18px; }
+  }
+`;

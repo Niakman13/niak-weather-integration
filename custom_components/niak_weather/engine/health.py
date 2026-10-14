@@ -8,8 +8,6 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
-from .home import MIN_CARD, card_outdated
-
 STALE_FORECAST = 90
 """Minutes after which a forecast that should come every 15 minutes is old."""
 # Where an entity's missing source is set (an assistant step); the others are station sensors.
@@ -71,7 +69,8 @@ class Facts:
     ready_families: Sequence[str] = ()
     """Families switched off whose entities would all have their source."""
     integration: str = ""
-    card: str | None = None
+    card_twice: bool = False
+    """The card from HACS is still installed next to the one the integration serves."""
     links: Sequence[str] = ()
 
 
@@ -128,8 +127,8 @@ def report(f: Facts) -> dict:
     for key, text in f.needs.items():
         if key in enabled:
             todo.append(_line("bad", f"{names.get(key, key)} : active sans source", f"Il faut {text} : elle reste vide.", NEED_STAGE.get(key, 1)))
-    if f.card and card_outdated(f.card):
-        todo.append(_line("bad", f"Carte Niak Weather {f.card} à mettre à jour", f"Mettez-la à jour dans HACS ({MIN_CARD} ou plus).", None))
+    if f.card_twice:
+        todo.append(_line("bad", "Carte installée deux fois", "Retirez la carte Niak Weather de HACS : l’intégration la fournit maintenant.", None))
 
     # ---- What could be set better ----
     if not f.station:
@@ -207,14 +206,8 @@ def report(f: Facts) -> dict:
 
     # ---- Versions and links ----
     versions = [{"level": "ok", "text": f"Intégration {f.integration}", "why": "préversion" if "b" in f.integration else ""}]
-    if f.card is None:
-        versions.append({"level": "none", "text": "Carte : version inconnue", "why": "installée hors de HACS, ou HACS ne la connaît pas"})
-    elif f.card == "":
-        versions.append({"level": "none", "text": "Carte non installée", "why": "elle affiche sur vos tableaux de bord tout ce que calcule l’intégration"})
-    else:
-        outdated = card_outdated(f.card)
-        versions.append({"level": "bad" if outdated else "ok", "text": f"Carte {f.card}",
-                         "why": f"à mettre à jour ({MIN_CARD} ou plus)" if outdated else "en accord avec l’intégration"})
+    versions.append({"level": "bad" if f.card_twice else "ok", "text": f"Carte {f.integration}",
+                     "why": "installée deux fois : retirez celle de HACS" if f.card_twice else "fournie par l’intégration"})
     versions += [{"level": "ok", "text": f"Relié à {name}", "why": ""} for name in f.links] or [
         {"level": "none", "text": "Aucune brique Niak reliée", "why": "Niak Confort peut reprendre la station, les alertes et les prévisions de ce lieu"}]
 

@@ -5,13 +5,8 @@ Grey (`unknown`) is left to the socle, for when this status cannot be computed a
 """
 from __future__ import annotations
 
-import re
 from collections.abc import Sequence
 from dataclasses import dataclass
-
-MIN_CARD = "2.0.8"
-"""The oldest Niak Weather card that shows everything this integration sends."""
-
 
 @dataclass(frozen=True)
 class Place:
@@ -33,18 +28,8 @@ def _plural(n: int, word: str) -> str:
     return f"{n} {word}{'s' if n > 1 else ''}"
 
 
-def _version(text: str) -> tuple[int, ...]:
-    # A beta counts as its release (2.0.9-beta.1 ≥ 2.0.9), as the card does for the integration.
-    found = re.match(r"\d+(?:\.\d+)*", text or "")
-    return tuple(int(p) for p in found.group(0).split(".")) if found else ()
-
-
-def card_outdated(version: str, minimum: str = MIN_CARD) -> bool:
-    return _version(version) < _version(minimum)
-
-
-def status(places: Sequence[Place], card: str | None) -> dict:
-    """`card`: the installed card's version, "" when it is not installed, None when Niak Weather cannot tell."""
+def status(places: Sequence[Place], card_twice: bool = False) -> dict:
+    """`card_twice`: the card from HACS is still installed next to the one the integration serves."""
     if not places:
         return {"level": "action", "summary": "Aucun lieu suivi pour l’instant.",
                 "details": ["Ajoutez votre lieu dans l’onglet Météo."], "links": []}
@@ -63,12 +48,8 @@ def status(places: Sequence[Place], card: str | None) -> dict:
         if not place.forecast:
             todo.append(f"Prévisions pas encore reçues du service météo{where}")
         todo.extend(f"{need}{where}" for need in place.needs)
-    if card and card_outdated(card):
-        todo.append(f"Carte Niak Weather {card} à mettre à jour dans HACS")
-    elif card:
-        details.append(f"Carte Niak Weather {card}, en accord avec l’intégration.")
-    elif card == "":
-        details.append("Carte Niak Weather non installée : c’est elle qui affiche la météo sur vos tableaux de bord.")
+    if card_twice:
+        todo.append("Carte installée deux fois : retirez la carte Niak Weather de HACS")
     links = [f"Relié à {name} · {place.title}" for place in places for name in place.links]
     followed = f"{len(places)} lieux suivis" if several else "1 lieu suivi"
     if all(p.loaded and p.station for p in places):

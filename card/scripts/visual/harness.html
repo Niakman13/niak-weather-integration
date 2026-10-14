@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Niak Weather — banc visuel</title>
+<style>
+  /* Variables d'un thème Home Assistant standard, clair et sombre. */
+  :root {font:14px/1.5 Roboto,system-ui,sans-serif;color-scheme:light;--primary-text-color:#253047;--secondary-text-color:#606b7c;--primary-color:#308ddd;--card-background-color:#fff;--divider-color:#e8ebef;--page:#f1f3f6;background:var(--page);color:var(--primary-text-color)}
+  :root.dark {color-scheme:dark;--primary-text-color:#edf1f7;--secondary-text-color:#a8b3c3;--card-background-color:#222932;--divider-color:#36404c;--page:#151c25}
+  body {margin:0;padding:16px}
+  #stage {display:inline-block;padding:8px;background:var(--page)}
+</style></head>
+<body><div id="stage"></div>
+<script type="module">
+  const icons = await fetch('/icons.json').then(r => r.json());
+  // Comme Home Assistant : ha-icon est en ligne, son icône intérieure est une boîte inline-flex.
+  customElements.define('ha-icon', class extends HTMLElement {
+    static get observedAttributes() { return ['icon']; }
+    connectedCallback() { if (!this.shadowRoot) this.attachShadow({ mode: 'open' }); this.draw(); }
+    attributeChangedCallback() { if (this.shadowRoot) this.draw(); }
+    draw() {
+      const key = 'mdi' + (this.getAttribute('icon')?.split(':')[1] ?? '').split('-').map(s => s[0]?.toUpperCase() + s.slice(1)).join('');
+      this.shadowRoot.innerHTML = `<style>:host{fill:currentcolor}span{display:var(--ha-icon-display,inline-flex);vertical-align:middle;width:var(--mdc-icon-size,24px);height:var(--mdc-icon-size,24px)}svg{width:100%;height:100%;fill:currentColor}</style><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${icons[key] ?? ''}"></path></svg></span>`;
+    }
+  });
+  customElements.define('ha-card', class extends HTMLElement {
+    connectedCallback() { if (!this.shadowRoot) this.attachShadow({ mode: 'open' }).innerHTML = '<style>:host{display:block;border-radius:12px;background:var(--card-background-color);border:1px solid var(--divider-color);overflow:hidden;container-type:inline-size}</style><slot></slot>'; }
+  });
+  await import('/card.js');
+
+  const { scenarioHass, scenarioConfig } = await import('/demo-hass.js');
+
+  /** Affiche un scénario dans #stage ; résolu quand la carte a fini de se dessiner. */
+  window.show = async s => {
+    document.documentElement.classList.toggle('dark', s.theme === 'dark');
+    const stage = document.getElementById('stage'); stage.replaceChildren();
+    const box = document.createElement('div'); box.style.width = `${s.width}px`; stage.append(box);
+    const card = document.createElement('niak-weather-card'); box.append(card);
+    card.setConfig(scenarioConfig(s)); card.hass = scenarioHass(s);
+    // The integration's view arrives through the connection, computed by its engine on the bench server.
+    await card.hass.ready; await card.updateComplete;
+  };
+  window.ready = true;
+</script>
+</body></html>

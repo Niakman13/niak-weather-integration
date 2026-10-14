@@ -8,7 +8,7 @@ Cette page s’adresse à qui veut comprendre ou modifier Niak Weather.
 
 Niak Weather est **le cerveau** : il lit les sources, calcule, et donne le résultat à ceux qui l’affichent ou s’en servent.
 
-- La [carte Niak Weather](https://github.com/Niakman13/niak-weather) ne fait qu’afficher ce qu’il lui envoie.
+- La [carte Niak Weather](carte/README.md) ne fait qu’afficher ce qu’il lui envoie. Son code est dans `card/`, compilé dans `custom_components/niak_weather/frontend/niak-weather-card.js` ; l’intégration la charge sur chaque tableau de bord (depuis 2.3), à sa propre version.
 - Les capteurs servent aux automatisations : volets, chauffage, arrosage, notifications.
 
 Les calculs sont faits **une fois, dans Home Assistant**, au lieu de l’être dans chaque navigateur ouvert.
