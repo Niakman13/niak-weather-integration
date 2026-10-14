@@ -5,6 +5,7 @@ address, so the « Configurer » button still opens it.
 """
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -14,17 +15,19 @@ from homeassistant.components import websocket_api
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
+from homeassistant.util import dt as dt_util
 
+from .config_flow import NONE, _context
 from .const import DOMAIN, LOGGER
-from .draft import Draft, ecosystem_of, entity_keys, linked, needs_text
-from .engine import detection, ecosystem, families, home
+from .draft import Draft, ecosystem_of, entity_keys, entity_label, family_label, field_label, linked, needs_text
+from .engine import atmo, detection, families, health, home, polleninfo
 from .engine.settings import Settings
+from .websocket import VERSION_KEY
 from .socle import async_register_brick
 
 ASSETS = f"/{DOMAIN}-assets"
 CARD_REPOSITORY = "Niakman13/niak-weather"
-# Where each missing source shows on the tab's home page; the others under the entities.
-NEED_ROW = {"vigilance": "prevision", "qualite_air": "air", "pollens": "pollen"}
 FAILED = (ConfigEntryState.SETUP_ERROR, ConfigEntryState.SETUP_RETRY, ConfigEntryState.MIGRATION_ERROR, ConfigEntryState.FAILED_UNLOAD)
 
 
@@ -42,10 +45,6 @@ async def async_setup_panel(hass: HomeAssistant, version: str) -> None:
     }, f"{ASSETS}/niak-socle.js?v={version}")
 
 
-def _capital(text: str) -> str:
-    return text[:1].upper() + text[1:]
-
-
 def _entries(hass: HomeAssistant) -> list[Any]:
     return sorted(hass.config_entries.async_entries(DOMAIN), key=lambda e: e.title)
 
@@ -57,58 +56,106 @@ def _entry(hass: HomeAssistant, entry_id: str | None) -> Any:
     return entry
 
 
-def _silent(hass: HomeAssistant, sources: dict[str, Any]) -> tuple[int, list[str]]:
-    """How many station sensors are chosen, and the names of those that do not answer."""
-    chosen = [sources[f] for f in detection.STATION_FIELDS if sources.get(f)]
-    silent = []
-    for entity_id in chosen:
-        state = hass.states.get(entity_id)
-        if state is None or state.state in ("unavailable", "unknown"):
-            silent.append(str(state.attributes.get("friendly_name") or entity_id) if state else entity_id)
-    return len(chosen), silent
+MODELS = {"gw2000a": "GW2000A", "ws90": "WS90", "manual": "Station"}
+GONE = ("unavailable", "unknown")
+
+
+def _name(state: Any, entity_id: str) -> str:
+    return str(state.attributes.get("friendly_name") or entity_id) if state is not None else entity_id
+
+
+def _minutes(now: datetime, moment: datetime | None) -> float | None:
+    return (now - moment).total_seconds() / 60 if moment else None
+
+
+def facts(hass: HomeAssistant, entry: Any) -> health.Facts:
+    """What the tab's home page shows about one place, read from Home Assistant and this place's own settings."""
+    sources, now, get = dict(entry.options), dt_util.utcnow(), hass.states.get
+    states, registry, devices = _context(hass)
+    failed, loaded = entry.state in FAILED, entry.state is ConfigEntryState.LOADED
+    coordinator = getattr(entry, "runtime_data", None) if loaded else None
+    weather = get(sources.get("weather_entity") or "")
+    vigilance = get(sources.get("vigilance_entity") or "")
+    found = detection.vigilance_candidates(states, registry)
+    model = Draft(hass, sources, entry).station_model()
+    sensors, chosen = [], set()
+    for field in detection.STATION_FIELDS:
+        entity_id = sources.get(field)
+        if not entity_id:
+            continue
+        chosen.add(field)
+        state = get(entity_id)
+        if state is None:
+            sensors.append(health.Sensor(field_label(field), entity_id, "missing"))
+        elif state.state in GONE:
+            sensors.append(health.Sensor(field_label(field), _name(state, entity_id), "silent", _minutes(now, state.last_changed)))
+        else:
+            seen = getattr(state, "last_reported", None) or state.last_updated
+            sensors.append(health.Sensor(field_label(field), _name(state, entity_id), "ok", _minutes(now, seen)))
+    unused = []
+    if model != NONE:
+        shown = {f for _, _, group in detection.station_groups(model) for f in group}
+        for field in health.GAINS:
+            if field in shown and field not in chosen:
+                ids = detection.candidates(states, field, registry, sources)
+                if len(ids) == 1:
+                    unused.append((field, field_label(field), _name(get(ids[0]), ids[0])))
+    areas = atmo.areas(states, registry, devices)
+    area = next((a["label"] for a in areas if a["value"] == sources.get("atmo_area")), sources.get("atmo_area") or "")
+    air_entity = sources.get("atmo_air_entity")
+    try:
+        settings = Settings.from_options({k: v for k, v in sources.items() if v is not None})
+    except ValueError:
+        settings = None
+    pollen, pollen_ids = "", []
+    if settings is not None and settings.pollen_source == "legacy" and settings.pollens:
+        pollen = f"{polleninfo.provider_name(settings)} · {len(settings.pollens)} espèce{'s' if len(settings.pollens) > 1 else ''}"
+        pollen_ids = [p.entity_id for p in settings.pollens] + ([settings.pollen_risk_entity] if settings.pollen_risk_entity else [])
+    elif settings is not None and settings.atmo_pollens and settings.atmo.get("atmo_pollen_entity"):
+        pollen, pollen_ids = f"Atmo France · {area}", [settings.atmo["atmo_pollen_entity"]]
+    needs = families.needs(settings) if settings is not None else {}
+    keys = entity_keys(hass, entry)
+    ids = {e.unique_id.removeprefix(f"{entry.entry_id}_"): e.entity_id
+           for e in er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)}
+    entities = []
+    for family, members in families.FAMILIES:
+        for key in members:
+            if key in keys:
+                state = get(ids.get(key, ""))
+                entities.append((key, entity_label(key)[0], family_label(family)[0], keys[key], state is not None and state.state not in GONE))
+    ready = [family_label(family)[0] for family, members in families.FAMILIES
+             if any(k in keys for k in members) and not any(keys.get(k) for k in members) and not any(k in needs for k in members if k in keys)]
+    bricks = linked(hass, entry.entry_id)
+    names = [b["name"] for b in ecosystem_of(hass, entry.entry_id) if b["state"] == "linked"] + (["une autre brique Niak"] if bricks.get("") else [])
+    return health.Facts(
+        title=entry.title, failed=failed, restarting=not loaded and not failed,
+        weather=_name(weather, sources.get("weather_entity") or "") if weather else (sources.get("weather_entity") or ""),
+        weather_ok=weather is not None and weather.state not in GONE,
+        forecast_age=_minutes(now, getattr(coordinator, "forecast_at", None)),
+        vigilance=_name(vigilance, sources.get("vigilance_entity") or "") if sources.get("vigilance_entity") else "",
+        vigilance_ok=vigilance is not None and vigilance.state not in GONE,
+        vigilance_found=_name(get(found[0]), found[0]) if found and not sources.get("vigilance_entity") else "",
+        season=_name(get(sources["season_entity"]), sources["season_entity"]) if sources.get("season_entity") else "",
+        station=MODELS.get(model, "") if model != NONE else "", sensors=sensors, history=bool(sources.get("station_history", True)),
+        unused=unused, air=f"Atmo France · {area}" if area and sources.get("air_source") != "none" else "",
+        air_ok=bool(air_entity) and get(air_entity) is not None and get(air_entity).state not in GONE,
+        atmo_installed=bool(areas), pollen=pollen,
+        pollen_ok=any(get(i) is not None and get(i).state not in GONE for i in pollen_ids),
+        pollen_available=bool(areas) or any(polleninfo.candidates(states, registry, p)[0] for p in polleninfo.PROVIDERS),
+        entities=entities, needs=needs, ready_families=ready, integration=str(hass.data.get(VERSION_KEY, "")),
+        card=card_version(hass), links=names)
 
 
 def place(hass: HomeAssistant, entry: Any) -> tuple[dict[str, Any], home.Place]:
-    """One place, for the tab's home page and for the panel's home page."""
-    sources = dict(entry.options)
-    summary = Draft(hass, sources, entry)._summary()
-    loaded = entry.state is ConfigEntryState.LOADED
-    # Between saving and running again a place is only restarting: not an error.
-    failed = entry.state in FAILED
-    count, silent = _silent(hass, sources)
-    try:
-        missing = families.needs(Settings.from_options(sources))
-    except ValueError:
-        missing = {}
-    present = entity_keys(hass, entry)
-    todo: dict[str, list[str]] = {}
-    for key, text in missing.items():
-        if present.get(key):
-            todo.setdefault(NEED_ROW.get(key, "entities"), []).append(needs_text(key, text))
-    needs = [n for lines in todo.values() for n in lines]
-    if silent:
-        todo.setdefault("station", []).insert(0, "Ne répond pas : " + ", ".join(silent))
-    enabled = [k for k, on in present.items() if on]
-    chosen_families = {families.family_of(k) for k in enabled} - {None}
-    bricks = ecosystem_of(hass, entry.entry_id)
-    rows = [
-        {"key": "prevision", "title": "Prévisions", "text": summary["weather"], "stage": 0},
-        {"key": "station", "title": "Station", "text": summary["station"] + (", tous répondent" if count and not silent else ""), "stage": 1},
-        {"key": "air", "title": "Qualité de l’air", "text": _capital(summary["air"]), "stage": 2},
-        {"key": "pollen", "title": "Pollens", "text": _capital(summary["pollen"]), "stage": 3},
-        {"key": "entities", "title": "Capteurs et automatisations", "stage": 4,
-         "text": f"{len(enabled)} actives sur {len(present)} · {len(chosen_families)} famille{'s' if len(chosen_families) > 1 else ''}"},
-    ]
-    for row in rows:
-        row["todo"] = todo.get(row["key"], [])
-    coordinator = getattr(entry, "runtime_data", None) if loaded else None
-    info = {"entry_id": entry.entry_id, "title": entry.title, "loaded": loaded, "failed": failed, "rows": rows,
-            "ecosystem": {"text": _capital(ecosystem.summary(linked(hass, entry.entry_id))), "bricks": bricks}}
-    status = home.Place(title=entry.title, loaded=not failed, station=count, silent=silent,
-                        forecast=bool(getattr(coordinator, "hours", None)) if coordinator is not None else True,
-                        needs=needs, links=[b["name"] for b in bricks if b["state"] == "linked"]
-                        # A brick that did not say who it is (an older version) is still a link.
-                        + (["une autre brique Niak"] if linked(hass, entry.entry_id).get("") else []))
+    """One place, for the tab's home page and for the panel's home page: both say the same."""
+    f = facts(hass, entry)
+    enabled = {key for key, _, _, on, _ in f.entities if on}
+    info = {"entry_id": entry.entry_id, "title": entry.title, "loaded": entry.state is ConfigEntryState.LOADED,
+            "failed": f.failed, "health": health.report(f)}
+    status = home.Place(title=entry.title, loaded=not f.failed, station=len(f.sensors),
+                        silent=[s.label for s in f.sensors if s.status != "ok"],
+                        forecast=f.restarting or f.failed or f.forecast_age is not None,
+                        needs=[needs_text(k, t) for k, t in f.needs.items() if k in enabled], links=f.links)
     return info, status
 
 

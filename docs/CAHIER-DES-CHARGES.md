@@ -56,6 +56,7 @@ Ces interfaces sont stables ; un changement incompatible change la version majeu
 | **2 bis** | **Interfaces pour l'écosystème** : objet versionné `hass.data["niak_weather_api"]` (lieux, station par rôle dont la **direction du vent**, prévisions horaires avec direction du vent, abonnement) — voir [technique.md](technique.md) | ✅ 2.1.0b1 |
 | 2 ter | Écran **Écosystème Niak** dans les réglages ; pollens **IRM KMI** (Belgique), 3ᵉ source à côté d'Atmo France et de Polleninformation | ✅ 2.1.0b2 |
 | 2 quater | Onglet **Météo** du panneau commun « Niak » et état sur son Accueil (socle 1.1) | 🧪 2.2.0b1 |
+| 2 quinquies | Page d'accueil technique de l'onglet Météo : à régler, à améliorer, sources, capteurs de la station, entités, versions et liens | 🧪 2.2.0b2 |
 | 3 | Données pour les autres briques : évapotranspiration (ET0), bilan hydrique, ensoleillement prévu par heure. Les décisions (aérer, rafraîchir, arroser, production solaire) partent dans les briques concernées | à décider |
 | — | Correction locale des prévisions par la station | abandonnée le 11 oct. 2026 (gain ~5 %, défauts d'emplacement des capteurs) |
 

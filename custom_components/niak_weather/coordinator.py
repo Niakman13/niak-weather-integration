@@ -76,6 +76,8 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         self.forecast_rows: dict[str, list[dict[str, Any]]] = {"hourly": [], "daily": []}
         """The provider's forecasts in the engine's units, passed on by the Niak Weather weather entity."""
         self.forecast_version = 0
+        self.forecast_at: datetime | None = None
+        """When the hourly forecast last arrived, for the Niak panel."""
         self.watch = AlertWatch()
         self._store = alert_store(hass, entry.entry_id)
         self.history: dict[str, list[Change]] = {}
@@ -212,6 +214,8 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         if hourly or not failed:
             self.hours = parse_hours(hourly, units)
             self.forecast_rows["hourly"] = engine_rows(hourly, units)
+        if hourly:
+            self.forecast_at = dt_util.utcnow()
         if daily or not failed:
             self.days = parse_days(daily, units)
             self.forecast_rows["daily"] = engine_rows(daily, units)
