@@ -37,7 +37,7 @@ Tout est calculé une fois, dans Home Assistant : la carte affiche, vos automati
 ## Installation
 
 1. Dans HACS, ⋮ → **Dépôts personnalisés** : ajoutez `https://github.com/Niakman13/niak-weather-integration`, catégorie **Intégration**.
-2. Installez **Niak Weather (intégration)**, puis redémarrez Home Assistant.
+2. Installez **Niak Weather**, puis redémarrez Home Assistant.
 3. **Paramètres → Appareils et services → Ajouter une intégration → Niak Weather.**
 4. Sur un tableau de bord : **Ajouter une carte → Niak Weather**. La carte est fournie par l’intégration (depuis la 2.3) : rien d’autre à installer.
 
