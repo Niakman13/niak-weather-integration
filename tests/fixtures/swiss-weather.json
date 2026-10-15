@@ -1,0 +1,64 @@
+{
+  "now": "2026-04-15T12:00:00+00:00",
+  "time_zone": "Europe/Zurich",
+  "latitude": 47.55,
+  "options": {
+    "weather_entity": "weather.basel",
+    "location": "Bâle",
+    "vigilance_entity": "sensor.warnings",
+    "pollen_source": "legacy",
+    "pollen_provider": "swiss_pollen",
+    "pollen_station": "BAS",
+    "pollens": [
+      {
+        "id": "sensor.beech",
+        "nom": "Hêtre",
+        "station": "BAS",
+        "station_state_entity": "sensor.health"
+      }
+    ]
+  },
+  "states": {
+    "weather.basel": {
+      "state": "sunny",
+      "attributes": {
+        "temperature": 20,
+        "temperature_unit": "°C",
+        "attribution": "MeteoSwiss"
+      }
+    },
+    "sensor.beech": {
+      "state": "very_strong"
+    },
+    "sensor.health": {
+      "state": "online"
+    },
+    "sensor.warnings": {
+      "state": "2",
+      "last_updated": "2026-04-15T11:55:00+00:00",
+      "attributes": {
+        "attribution": "Source: MeteoSwiss",
+        "warning_types": [
+          "Forest fires",
+          "Flood"
+        ],
+        "warning_levels_numeric": [
+          3,
+          5
+        ],
+        "warning_valid_from": [
+          "2026-04-15T10:00:00+00:00",
+          "2026-04-15T10:00:00+00:00"
+        ],
+        "warning_valid_to": [
+          "2026-04-15T18:00:00+00:00",
+          "2026-04-15T18:00:00+00:00"
+        ],
+        "warning_texts": [
+          "Danger d’incendie en forêt",
+          "Très fort danger de crue"
+        ]
+      }
+    }
+  }
+}

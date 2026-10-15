@@ -25,13 +25,13 @@
         "data": {
           "weather_entity": "Weather forecast",
           "location": "Place name",
-          "vigilance_entity": "Météo-France weather alert",
+          "vigilance_entity": "Official weather warnings",
           "season_entity": "Season"
         },
         "data_description": {
-          "weather_entity": "Météo-France preferably.",
+          "weather_entity": "Météo-France, MeteoSwiss or another provider.",
           "location": "Shown at the top of the card.",
-          "vigilance_entity": "Optional.",
+          "vigilance_entity": "Optional: Météo-France or MeteoSwiss (aggregate warnings sensor).",
           "season_entity": "Optional. Without a sensor, the season follows the date."
         },
         "sections": {
@@ -139,7 +139,7 @@
       },
       "pollen": {
         "title": "Step 3 of 4 · Pollen",
-        "description": "Where the pollen comes from: Atmo France (index 1 to 6), Polleninformation or IRM KMI for Belgium (levels 0 to 4). With Polleninformation or IRM KMI, you will choose its sensors next.",
+        "description": "Choose a source for the countries it covers. Atmo France uses an index from 1 to 6; Polleninformation, IRM KMI and Swiss Pollen use levels from 0 to 4; Kleenex / Scottex uses levels from 1 to 4. With Swiss Pollen or Kleenex / Scottex, choose one station or location, then the species or groups to follow.",
         "data": {
           "pollen_source": "Pollen source"
         }
@@ -150,12 +150,22 @@
         "data": {
           "atmo_area": "Atmo France zone"
         }
+      },
+      "pollen_station": {
+        "title": "Pollen location",
+        "description": "Choose one station or location for the species and groups to follow.",
+        "data": {
+          "pollen_station": "Station or location"
+        }
       }
     },
     "error": {
       "atmo_missing": "Atmo France is not installed. Install the Atmo France integration (github.com/sebcaps/atmofrance), then come back.",
       "polleninformation_missing": "Polleninformation is not installed. Install the Polleninformation EU integration (github.com/krissen/polleninformation), then come back.",
-      "irm_kmi_missing": "IRM KMI is not installed, or gives no pollen. Install the IRM KMI integration from HACS (github.com/jdejaegh/irm-kmi-ha), then come back."
+      "irm_kmi_missing": "IRM KMI is not installed, or gives no pollen. Install the IRM KMI integration from HACS (github.com/jdejaegh/irm-kmi-ha), then come back.",
+      "swiss_pollen_missing": "Swiss Pollen is not installed or provides no level sensors. Install frimtec/hass-swiss-pollen through HACS, then return here.",
+      "swiss_station_missing": "Choose an available station or location for this pollen source.",
+      "kleenex_pollenradar_missing": "Kleenex / Scottex is not installed or provides no pollen sensors. Install Kleenex Pollen Radar from HACS, then return here."
     }
   },
   "options": {
@@ -178,13 +188,13 @@
         "data": {
           "weather_entity": "Weather forecast",
           "location": "Place name",
-          "vigilance_entity": "Météo-France weather alert",
+          "vigilance_entity": "Official weather warnings",
           "season_entity": "Season"
         },
         "data_description": {
-          "weather_entity": "Météo-France preferably.",
+          "weather_entity": "Météo-France, MeteoSwiss or another provider.",
           "location": "Shown at the top of the card.",
-          "vigilance_entity": "Optional.",
+          "vigilance_entity": "Optional: Météo-France or MeteoSwiss (aggregate warnings sensor).",
           "season_entity": "Optional. Without a sensor, the season follows the date."
         },
         "sections": {
@@ -304,7 +314,7 @@
       },
       "pollen": {
         "title": "Pollen",
-        "description": "Where the pollen comes from: Atmo France (index 1 to 6), Polleninformation or IRM KMI for Belgium (levels 0 to 4). With Polleninformation or IRM KMI, you will choose its sensors next.",
+        "description": "Choose a source for the countries it covers. Atmo France uses an index from 1 to 6; Polleninformation, IRM KMI and Swiss Pollen use levels from 0 to 4; Kleenex / Scottex uses levels from 1 to 4. With Swiss Pollen or Kleenex / Scottex, choose one station or location, then the species or groups to follow.",
         "data": {
           "pollen_source": "Pollen source"
         }
@@ -319,12 +329,22 @@
       "ecosystem": {
         "title": "Niak ecosystem",
         "description": "Niak Weather shares its weather with the other Niak bricks. Each brick links itself to this place in its own settings; Niak Weather never changes the others.\n\n{links}\n\nSubmit to go back to the menu."
+      },
+      "pollen_station": {
+        "title": "Pollen location",
+        "description": "Choose one station or location for the species and groups to follow.",
+        "data": {
+          "pollen_station": "Station or location"
+        }
       }
     },
     "error": {
       "atmo_missing": "Atmo France is not installed. Install the Atmo France integration (github.com/sebcaps/atmofrance), then come back.",
       "polleninformation_missing": "Polleninformation is not installed. Install the Polleninformation EU integration (github.com/krissen/polleninformation), then come back.",
-      "irm_kmi_missing": "IRM KMI is not installed, or gives no pollen. Install the IRM KMI integration from HACS (github.com/jdejaegh/irm-kmi-ha), then come back."
+      "irm_kmi_missing": "IRM KMI is not installed, or gives no pollen. Install the IRM KMI integration from HACS (github.com/jdejaegh/irm-kmi-ha), then come back.",
+      "swiss_pollen_missing": "Swiss Pollen is not installed or provides no level sensors. Install frimtec/hass-swiss-pollen through HACS, then return here.",
+      "swiss_station_missing": "Choose an available station or location for this pollen source.",
+      "kleenex_pollenradar_missing": "Kleenex / Scottex is not installed or provides no pollen sensors. Install Kleenex Pollen Radar from HACS, then return here."
     }
   },
   "selector": {
@@ -369,7 +389,7 @@
         "temperature_trend": "Temperature trend — °C per hour",
         "rain_24h": "Rain over 24 h — fallen",
         "max_gust_today": "Strongest gust today",
-        "vigilance": "Météo-France vigilance — green to red",
+        "vigilance": "Official warnings — Météo-France or MeteoSwiss",
         "alert": "Station alert — in one word",
         "brief": "Brief — summary and today’s bulletin",
         "orage": "Thunderstorm nearby — yes/no",
@@ -464,7 +484,7 @@
         }
       },
       "vigilance": {
-        "name": "Météo-France vigilance",
+        "name": "Official weather warnings",
         "state": {
           "verte": "Green",
           "jaune": "Yellow",

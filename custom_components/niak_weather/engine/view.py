@@ -256,7 +256,7 @@ def build_view(get: Getter, settings: Settings, w: LocalWeather, brief: Brief | 
         alerts=tuple(shown), points=tuple(p for p in alerts.ticker_points(brief) if p.text not in {a.source for a in shown}),
         timeline=tuple(alerts.timeline_points(brief)), brief=brief,
         bulletin=build_bulletin(hours, now, zone), comfort=_comfort(get, settings, w), rain=rain, wind=wind, pressure=pressure,
-        extras=_extras(get, settings, w), hours=forecast_slots(hours, now, zone, w.sunrise, w.sunset), days=forecast_days(days, hours, now, zone),
+        extras=_extras(get, settings, w, now, zone), hours=forecast_slots(hours, now, zone, w.sunrise, w.sunset), days=forecast_days(days, hours, now, zone),
         air=Air(_air(get, settings, now, zone, False), _air(get, settings, now, zone, True)))
 
 
@@ -452,7 +452,7 @@ def pressure_trend(change: float, span: str) -> Chip:
     return Chip("pressure", "mdi:trending-up" if change > 0 else "mdi:trending-down", f"en {span}", f"{signed(change)} hPa")
 
 
-def _extras(get: Getter, settings: Settings, w: LocalWeather) -> tuple[Chip, ...]:
+def _extras(get: Getter, settings: Settings, w: LocalWeather, now: datetime, zone: ZoneInfo) -> tuple[Chip, ...]:
     if not w.available:
         return ()
     sources, out = w.sources, []
@@ -475,7 +475,7 @@ def _extras(get: Getter, settings: Settings, w: LocalWeather) -> tuple[Chip, ...
             s = get(pollen.entity_id)
             if not available(s):
                 continue
-            level = polleninfo.level(s) or 0
+            level = polleninfo.usable_level(get, settings, pollen, now=now, zone=zone) or 0
             if level > 0:
                 out.append(Chip("level3" if level >= 4 else "level2" if level >= 3 else "level1", pollen.icon or "mdi:flower-pollen",
                                 ("", "faible", "modéré", "élevé", "très élevé")[level], pollen.name or pollen.entity_id, pollen.entity_id))

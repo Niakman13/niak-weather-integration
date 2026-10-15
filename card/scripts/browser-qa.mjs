@@ -8,9 +8,10 @@ import * as mdi from '@mdi/js';
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import { serveDemoView } from './demo-view.mjs';
+import { spawnSync } from 'node:child_process';
 
 const out = 'test-results'; mkdirSync(out, { recursive: true });
-const files = { '/': ['text/html; charset=utf-8', 'scripts/visual/harness.html'], '/card.js': ['text/javascript', '../custom_components/niak_weather/frontend/niak-weather-card.js'], '/demo-hass.js': ['text/javascript', 'demo/demo-hass.js'] };
+const files = { '/': ['text/html; charset=utf-8', 'scripts/visual/harness.html'], '/card.js': ['text/javascript', '../custom_components/niak_weather/frontend/niak-weather-card.js'], '/demo-hass.js': ['text/javascript', 'demo/demo-hass.js'], '/panel.js': ['text/javascript', '../custom_components/niak_weather/frontend/panel.js'] };
 const icons = JSON.stringify(mdi);
 const server = createServer((req, res) => {
   const path = new URL(req.url, 'http://localhost').pathname, file = files[path];
@@ -227,6 +228,90 @@ try {
   await show({ format: 'tile', width: 768, condition: 'sunny', animated: false });
   assert.ok(await inCard(root => !!root.querySelector('.hero-main, .nw-tile, ha-card')), 'The card still draws after loading twice');
   report.twice = offered;
+
+  // Swiss providers travel through the Python engine and the real card bundle, at mobile and desktop widths.
+  const swiss = spawnSync('python3', ['../scripts/view_cli.py'], {
+    input: readFileSync('../tests/fixtures/swiss-weather.json'), encoding: 'utf8',
+  });
+  assert.equal(swiss.status, 0, swiss.stderr);
+  const swissView = JSON.parse(swiss.stdout).view;
+  assert.equal(swissView.air.today[0].source, 'Swiss Pollen');
+  assert.equal(swissView.air.tomorrow.length, 0);
+  await page.route('**/demo/view', route => route.fulfill({ contentType: 'application/json', body: swiss.stdout }));
+  for (const width of [375, 1180]) {
+    await show({ format: 'full', width, animated: false });
+    const text = await inCard(root => root.textContent);
+    assert.ok(text.includes('MétéoSuisse') && text.includes('5/5'), 'Native Swiss danger degree stays visible');
+    assert.ok(text.includes('crues') || text.includes('Crues'), 'Swiss warning phenomena');
+    assert.ok(text.includes('Hêtre'), 'Swiss pollen species');
+    const overflow = await inCard(root => {
+      const host = root.host.getBoundingClientRect();
+      return [...root.querySelectorAll('*')].filter(e => {
+        const r = e.getBoundingClientRect();
+        return r.width && !e.closest('.sky, dialog, .press-ring') && (r.right > host.right + 1 || r.left < host.left - 1);
+      }).map(e => e.className || e.tagName).slice(0, 5);
+    });
+    assert.deepEqual(overflow, [], `Swiss card overflow at ${width}`);
+    await page.screenshot({ path: `${out}/swiss-${width}.png`, fullPage: true });
+  }
+  await page.unroute('**/demo/view');
+  report.swiss = 'MeteoSwiss degree 5, Swiss Pollen, mobile and desktop';
+
+  const kleenex = spawnSync('python3', ['../scripts/view_cli.py'], {
+    input: readFileSync('../tests/fixtures/kleenex-weather.json'), encoding: 'utf8',
+  });
+  assert.equal(kleenex.status, 0, kleenex.stderr);
+  const pollenView = JSON.parse(kleenex.stdout).view;
+  assert.equal(pollenView.air.today[0].primary.value, 4);
+  assert.equal(pollenView.air.tomorrow[0].primary.value, 3);
+  await page.route('**/demo/view', route => route.fulfill({ contentType: 'application/json', body: kleenex.stdout }));
+  for (const width of [375, 1180]) {
+    await show({ format: 'full', width, animated: false });
+    assert.ok((await inCard(root => root.textContent)).includes('Kleenex / Scottex'));
+    await page.screenshot({ path: `${out}/kleenex-${width}.png`, fullPage: true });
+  }
+  await page.unroute('**/demo/view');
+  report.kleenex = 'Current levels and dated tomorrow forecast';
+
+  const labels = spawnSync('python3', ['-c', 'import sys,json; sys.path.insert(0,"../custom_components/niak_weather"); from engine import polleninfo; print(json.dumps([{"value":p,"label":polleninfo.source_label(p),"available":True} for p in ("atmo",*polleninfo.PROVIDERS)]))'], { encoding: 'utf8' });
+  assert.equal(labels.status, 0, labels.stderr);
+  const choices = JSON.parse(labels.stdout);
+  await page.evaluate(async choices => {
+    await import('/panel.js');
+    document.documentElement.classList.remove('dark');
+    document.documentElement.style.setProperty('--primary-background-color', '#f1f3f6');
+    const stage = document.getElementById('stage');
+    stage.replaceChildren();
+    const panel = document.createElement('niak-weather-setup');
+    panel.places = { places: [], can_add: true };
+    panel.hass = { themes: { darkMode: false }, callWS: async () => ({}) };
+    panel.editing = true; panel.stage = 3;
+    panel.draft = { weather_entity: 'weather.home' };
+    panel.view = { title: 'Gardanne', pollen: {
+      value: 'kleenex_pollenradar', sources: choices, area: '', areas: [], risk: null,
+      station: 'home', stations: [{ value: 'home', label: 'Kleenex Pollen Radar (Gardanne)' }],
+      species: [{ id: 'sensor.trees', label: 'Arbres', state: 'Très élevé', chosen: true, available: true }],
+    }};
+    stage.append(panel);
+    await panel.updateComplete;
+  }, choices);
+  for (const width of [375, 1180]) {
+    await page.setViewportSize({ width, height: 1100 });
+    await page.evaluate(width => { document.querySelector('niak-weather-setup').style.cssText = `display:block;width:${width - 48}px`; }, width);
+    const panel = page.locator('niak-weather-setup');
+    await panel.getByText(/Kleenex \/ Scottex \(France, Italie, Pays-Bas, Royaume-Uni, Irlande, États-Unis\)/).waitFor();
+    assert.equal(await panel.locator('select').inputValue(), 'home');
+    const overflow = await page.evaluate(() => {
+      const panel = document.querySelector('niak-weather-setup'), host = panel.getBoundingClientRect();
+      return [...panel.shadowRoot.querySelectorAll('*')].filter(e => {
+        const r = e.getBoundingClientRect();
+        return r.width && (r.right > host.right + 1 || r.left < host.left - 1);
+      }).map(e => e.className || e.tagName).slice(0, 5);
+    });
+    assert.deepEqual(overflow, [], `Pollen source country labels overflow at ${width}`);
+    await panel.screenshot({ path: `${out}/pollen-countries-${width}.png` });
+  }
+  report.pollenCountries = 'Country labels and Kleenex location fit mobile and desktop';
 
   assert.deepEqual(errors, [], 'Browser errors');
   writeFileSync(`${out}/browser-report.json`, JSON.stringify(report, null, 2));

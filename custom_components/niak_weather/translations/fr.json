@@ -25,13 +25,13 @@
         "data": {
           "weather_entity": "Prévisions météo",
           "location": "Nom du lieu",
-          "vigilance_entity": "Vigilance Météo-France",
+          "vigilance_entity": "Vigilance officielle",
           "season_entity": "Saison"
         },
         "data_description": {
-          "weather_entity": "Météo-France de préférence.",
+          "weather_entity": "Météo-France, MétéoSuisse ou un autre fournisseur.",
           "location": "Affiché en haut de la carte.",
-          "vigilance_entity": "Facultatif.",
+          "vigilance_entity": "Facultatif : Météo-France ou MeteoSwiss (capteur regroupant les alertes).",
           "season_entity": "Facultatif. Sans capteur, la saison suit la date."
         },
         "sections": {
@@ -139,7 +139,7 @@
       },
       "pollen": {
         "title": "Étape 3 sur 4 · Pollens",
-        "description": "D’où viennent les pollens : Atmo France (indice de 1 à 6), Polleninformation ou IRM KMI pour la Belgique (niveaux de 0 à 4). Avec Polleninformation ou IRM KMI, vous choisirez ses capteurs juste après.",
+        "description": "Choisissez une source selon les pays couverts. Atmo France utilise un indice de 1 à 6 ; Polleninformation, IRM KMI et Swiss Pollen des niveaux de 0 à 4 ; Kleenex / Scottex des niveaux de 1 à 4. Avec Swiss Pollen ou Kleenex / Scottex, choisissez ensuite une station ou un lieu, puis les espèces ou groupes à suivre.",
         "data": {
           "pollen_source": "Source des pollens"
         }
@@ -150,12 +150,22 @@
         "data": {
           "atmo_area": "Zone Atmo France"
         }
+      },
+      "pollen_station": {
+        "title": "Lieu des pollens",
+        "description": "Choisissez une station ou un lieu commun aux espèces et groupes suivis.",
+        "data": {
+          "pollen_station": "Station ou lieu"
+        }
       }
     },
     "error": {
       "atmo_missing": "Atmo France n’est pas installée. Installez l’intégration Atmo France (github.com/sebcaps/atmofrance), puis revenez choisir cette source.",
       "polleninformation_missing": "Polleninformation n’est pas installée. Installez l’intégration Polleninformation EU (github.com/krissen/polleninformation), puis revenez choisir cette source.",
-      "irm_kmi_missing": "IRM KMI n’est pas installée, ou ne donne pas de pollens. Installez l’intégration IRM KMI depuis HACS (github.com/jdejaegh/irm-kmi-ha), puis revenez choisir cette source."
+      "irm_kmi_missing": "IRM KMI n’est pas installée, ou ne donne pas de pollens. Installez l’intégration IRM KMI depuis HACS (github.com/jdejaegh/irm-kmi-ha), puis revenez choisir cette source.",
+      "swiss_pollen_missing": "Swiss Pollen n’est pas installée ou ne fournit aucun capteur de niveau. Installez frimtec/hass-swiss-pollen depuis HACS, puis revenez ici.",
+      "swiss_station_missing": "Choisissez une station ou un lieu disponible pour cette source de pollens.",
+      "kleenex_pollenradar_missing": "Kleenex / Scottex n’est pas installée ou ne fournit aucun capteur pollen. Installez Kleenex Pollen Radar depuis HACS, puis revenez ici."
     }
   },
   "options": {
@@ -178,13 +188,13 @@
         "data": {
           "weather_entity": "Prévisions météo",
           "location": "Nom du lieu",
-          "vigilance_entity": "Vigilance Météo-France",
+          "vigilance_entity": "Vigilance officielle",
           "season_entity": "Saison"
         },
         "data_description": {
-          "weather_entity": "Météo-France de préférence.",
+          "weather_entity": "Météo-France, MétéoSuisse ou un autre fournisseur.",
           "location": "Affiché en haut de la carte.",
-          "vigilance_entity": "Facultatif.",
+          "vigilance_entity": "Facultatif : Météo-France ou MeteoSwiss (capteur regroupant les alertes).",
           "season_entity": "Facultatif. Sans capteur, la saison suit la date."
         },
         "sections": {
@@ -304,7 +314,7 @@
       },
       "pollen": {
         "title": "Pollens",
-        "description": "D’où viennent les pollens : Atmo France (indice de 1 à 6), Polleninformation ou IRM KMI pour la Belgique (niveaux de 0 à 4). Avec Polleninformation ou IRM KMI, vous choisirez ses capteurs juste après.",
+        "description": "Choisissez une source selon les pays couverts. Atmo France utilise un indice de 1 à 6 ; Polleninformation, IRM KMI et Swiss Pollen des niveaux de 0 à 4 ; Kleenex / Scottex des niveaux de 1 à 4. Avec Swiss Pollen ou Kleenex / Scottex, choisissez ensuite une station ou un lieu, puis les espèces ou groupes à suivre.",
         "data": {
           "pollen_source": "Source des pollens"
         }
@@ -319,12 +329,22 @@
       "ecosystem": {
         "title": "Écosystème Niak",
         "description": "Niak Weather partage sa météo avec les autres briques Niak. Chaque brique se relie à ce lieu dans ses propres réglages ; Niak Weather ne modifie jamais les autres.\n\n{links}\n\nValidez pour revenir au menu."
+      },
+      "pollen_station": {
+        "title": "Lieu des pollens",
+        "description": "Choisissez une station ou un lieu commun aux espèces et groupes suivis.",
+        "data": {
+          "pollen_station": "Station ou lieu"
+        }
       }
     },
     "error": {
       "atmo_missing": "Atmo France n’est pas installée. Installez l’intégration Atmo France (github.com/sebcaps/atmofrance), puis revenez choisir cette source.",
       "polleninformation_missing": "Polleninformation n’est pas installée. Installez l’intégration Polleninformation EU (github.com/krissen/polleninformation), puis revenez choisir cette source.",
-      "irm_kmi_missing": "IRM KMI n’est pas installée, ou ne donne pas de pollens. Installez l’intégration IRM KMI depuis HACS (github.com/jdejaegh/irm-kmi-ha), puis revenez choisir cette source."
+      "irm_kmi_missing": "IRM KMI n’est pas installée, ou ne donne pas de pollens. Installez l’intégration IRM KMI depuis HACS (github.com/jdejaegh/irm-kmi-ha), puis revenez choisir cette source.",
+      "swiss_pollen_missing": "Swiss Pollen n’est pas installée ou ne fournit aucun capteur de niveau. Installez frimtec/hass-swiss-pollen depuis HACS, puis revenez ici.",
+      "swiss_station_missing": "Choisissez une station ou un lieu disponible pour cette source de pollens.",
+      "kleenex_pollenradar_missing": "Kleenex / Scottex n’est pas installée ou ne fournit aucun capteur pollen. Installez Kleenex Pollen Radar depuis HACS, puis revenez ici."
     }
   },
   "selector": {
@@ -369,7 +389,7 @@
         "temperature_trend": "Tendance de la température — °C par heure",
         "rain_24h": "Pluie sur 24 h — tombée",
         "max_gust_today": "Rafale maximale du jour",
-        "vigilance": "Vigilance Météo-France — verte à rouge",
+        "vigilance": "Vigilance officielle — Météo-France ou MétéoSuisse",
         "alert": "Alerte de la station — en un mot",
         "brief": "En bref — la synthèse et le bulletin du jour",
         "orage": "Orage proche — oui/non",
@@ -464,7 +484,7 @@
         }
       },
       "vigilance": {
-        "name": "Vigilance Météo-France",
+        "name": "Vigilance officielle",
         "state": {
           "verte": "Verte",
           "jaune": "Jaune",

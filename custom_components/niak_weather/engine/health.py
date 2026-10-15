@@ -66,7 +66,7 @@ class Facts:
     entities: Sequence[tuple[str, str, str, bool, bool]] = ()
     """(key, name, family, enabled, has a value)."""
     needs: dict[str, str] = field(default_factory=dict)
-    """What an entity still misses, by key: « la vigilance Météo-France »."""
+    """What an entity still misses, by key: « la vigilance officielle »."""
     ready_families: Sequence[str] = ()
     """Families switched off whose entities would all have their source."""
     integration: str = ""
@@ -147,11 +147,11 @@ def report(f: Facts) -> dict:
             tips.append(_line("tip", "Calculer depuis l’historique",
                               "Cumuls de pluie, tendance de la température et rafale du jour, quand la station ne les donne pas.", 1))
     if not f.vigilance and "vigilance" not in enabled:
-        tips.append(_line("tip", "Choisir la vigilance Météo-France",
+        tips.append(_line("tip", "Choisir la vigilance officielle",
                           f"Un capteur est disponible (« {f.vigilance_found} ») : les alertes officielles s’ajoutent à celles de Niak.", 0)
                     if f.vigilance_found else
-                    _line("tip", "Ajouter la vigilance Météo-France",
-                          "Installez Météo-France avec votre département : les alertes officielles s’ajoutent à celles de Niak.", 0))
+                    _line("tip", "Ajouter la vigilance officielle",
+                          "Installez Météo-France ou MeteoSwiss pour votre région : les alertes officielles s’ajoutent à celles de Niak.", 0))
     if not f.air:
         tips.append(_line("tip", "Choisir une zone Atmo France", "Atmo France est installée : l’indice de l’air du jour et ses polluants.", 2)
                     if f.atmo_installed else

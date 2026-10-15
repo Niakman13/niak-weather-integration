@@ -254,6 +254,7 @@ class _SourceSteps:
                         # Another integration: its own sensors are proposed, not the other one's.
                         self.sources.pop("pollens", None)
                         self.sources.pop("pollen_risk_entity", None)
+                        self.sources.pop("pollen_station", None)
                     self.sources["pollen_provider"] = source
                     source = "legacy"
                 self.sources["pollen_source"] = source
@@ -261,12 +262,14 @@ class _SourceSteps:
                     return await self.async_step_pollen_area()
                 self._apply_atmo()
                 if source == "legacy":
+                    if self.sources.get("pollen_provider") in (polleninfo.SWISS_POLLEN, polleninfo.KLEENEX) and len(
+                            polleninfo.stations(states, registry, self.sources["pollen_provider"])) > 1:
+                        return await self.async_step_pollen_station()
                     return await self.async_step_pollen_sensors()
                 return await self._done("pollen")
         missing = " — pas encore installée"
-        options = [SelectOptionDict(value="atmo", label="Atmo France" + ("" if areas else missing)),
-                   SelectOptionDict(value=polleninfo.POLLENINFORMATION, label="Polleninformation" + ("" if found[polleninfo.POLLENINFORMATION] else missing)),
-                   SelectOptionDict(value=polleninfo.IRM_KMI, label="IRM KMI (Belgique)" + ("" if found[polleninfo.IRM_KMI] else missing)),
+        options = [SelectOptionDict(value="atmo", label=polleninfo.source_label("atmo") + ("" if areas else missing)),
+                   *(SelectOptionDict(value=p, label=polleninfo.source_label(p) + ("" if found[p] else missing)) for p in polleninfo.PROVIDERS),
                    SelectOptionDict(value=NONE, label="Pas de pollens")]
         stored = self.sources.get("pollen_source")
         current = ((user_input or {}).get("pollen_source")
@@ -292,6 +295,15 @@ class _SourceSteps:
         states, registry, _ = _context(self.hass)
         provider = polleninfo.provider(Settings.from_options(_clean(self.sources)))
         species, risks = polleninfo.candidates(states, registry, provider)
+        if provider in (polleninfo.SWISS_POLLEN, polleninfo.KLEENEX):
+            places = polleninfo.stations(states, registry, provider)
+            if self.sources.get("pollen_station") not in places:
+                if len(places) == 1:
+                    self.sources["pollen_station"] = places[0]
+                    self.sources.pop("pollens", None)
+                else:
+                    return await self.async_step_pollen_station()
+            species = [i for i in species if polleninfo.place_of_source(i, registry, provider) == self.sources["pollen_station"]]
         if user_input is not None:
             by_id = {s.entity_id: s for s in states}
             self.sources["pollens"] = [polleninfo.pollen_option(i, by_id.get(i), registry) for i in user_input.get("pollens") or []]
@@ -310,6 +322,23 @@ class _SourceSteps:
         suggested = {"pollens": chosen, **({"pollen_risk_entity": self.sources["pollen_risk_entity"]} if self.sources.get("pollen_risk_entity") else {})}
         return self.async_show_form(step_id="pollen_sensors", data_schema=self.add_suggested_values_to_schema(vol.Schema(fields), suggested),  # type: ignore[attr-defined]
                                     description_placeholders={"source": polleninfo.PROVIDERS[provider]})
+
+    async def async_step_pollen_station(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        states, registry, devices = _context(self.hass)
+        provider = polleninfo.provider(Settings.from_options(_clean(self.sources)))
+        choices = polleninfo.places(states, registry, provider, devices)
+        places = [p["value"] for p in choices]
+        errors = {}
+        if user_input is not None:
+            if user_input.get("pollen_station") in places:
+                self.sources["pollen_station"] = user_input["pollen_station"]
+                self.sources.pop("pollens", None)
+                return await self.async_step_pollen_sensors()
+            errors["base"] = "swiss_station_missing"
+        schema = vol.Schema({vol.Required("pollen_station"): SelectSelector(SelectSelectorConfig(
+            options=[SelectOptionDict(value=p["value"], label=p["label"]) for p in choices], mode=SelectSelectorMode.DROPDOWN))})
+        return self.async_show_form(step_id="pollen_station", data_schema=self.add_suggested_values_to_schema(  # type: ignore[attr-defined]
+            schema, {"pollen_station": self.sources.get("pollen_station")}), errors=errors)
 
     def _summary(self) -> dict[str, str]:
         """One line per part, for the menu and the last step: what is set, in a few words."""

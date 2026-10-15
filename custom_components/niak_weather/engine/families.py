@@ -32,7 +32,7 @@ def needs(settings: Settings) -> dict[str, str]:
     legacy = settings.pollen_source == "legacy" and bool(settings.pollens or settings.pollen_risk_entity)
     atmo_pollen = settings.pollen_source != "none" and bool(settings.atmo.get("atmo_pollen_entity"))
     missing = {
-        "vigilance": not settings.vigilance_entity and "la vigilance Météo-France",
+        "vigilance": not settings.vigilance_entity and "la vigilance officielle",
         "uv_fort": not settings.uv_index_entity and "un capteur UV",
         "pluie_7j": not (rain_gauge and settings.station_history) and "un pluviomètre et l’historique de la station",
         "rain_24h": not rain_gauge and "un pluviomètre",

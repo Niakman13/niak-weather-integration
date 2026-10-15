@@ -55,7 +55,7 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(view["title"], "Maison")
         self.assertEqual(view["station"]["model"], "gw2000a")
         # « Alertes » is chosen and there is no Météo-France vigilance: said before saving.
-        self.assertIn("Vigilance Météo-France : il faut la vigilance Météo-France", view["needs"])
+        self.assertIn("Vigilance officielle : il faut la vigilance officielle", view["needs"])
         self.assertEqual(view["pollen"]["value"], "none")
 
     async def test_no_station_then_a_station_again_proposes_its_sensors(self):
@@ -83,6 +83,133 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(draft.change({"op": "pollen", "value": "polleninformation"}), "Polleninformation n’est pas installée.")
         self.assertEqual(draft.change({"op": "set", "key": "families", "value": []}), "Changement inconnu.")
         self.assertEqual(draft.change({"op": "station", "value": "ws91"}), "Modèle de station inconnu.")
+
+    def swiss_pollen(self, station="BAS", plant="beech"):
+        registry = er.async_get(self.hass)
+        level = registry.async_get_or_create("sensor", "swiss_pollen", f"{station}.{plant}.level")
+        health = registry.async_get_or_create("sensor", "swiss_pollen", f"{station}.{plant}.station_state")
+        self.hass.states.async_set(level.entity_id, "strong")
+        self.hass.states.async_set(health.entity_id, "online")
+        return level.entity_id, health.entity_id
+
+    async def test_swiss_pollen_panel_selects_a_station_then_its_species(self):
+        bas, health = self.swiss_pollen()
+        birch, _ = self.swiss_pollen(plant="birch")
+        bern, _ = self.swiss_pollen(station="BER")
+        draft = Draft.start(self.hass, None)
+        self.assertEqual(draft.pollen_choice(), "swiss_pollen")
+        view = draft.view()["pollen"]
+        self.assertEqual(view["station"], "")
+        self.assertEqual(view["species"], [])
+        self.assertEqual([p["value"] for p in view["stations"]], ["BAS", "BER"])
+        self.assertEqual(draft.change({"op": "pollen_station", "value": "BAS"}), "")
+        self.assertEqual({p["id"] for p in draft.sources["pollens"]}, {bas, birch})
+        self.assertIn("station", draft.change({"op": "pollens", "value": [bern]}))
+        self.assertEqual(draft.change({"op": "pollens", "value": [bas]}), "")
+        self.assertEqual(draft.sources["pollens"][0]["station_state_entity"], health)
+        self.hass.states.async_set(health, "offline")
+        item = next(p for p in draft.view()["pollen"]["species"] if p["id"] == bas)
+        self.assertFalse(item["available"])
+        self.assertEqual(draft.change({"op": "pollen_station", "value": "BER"}), "")
+        self.assertEqual([p["id"] for p in draft.sources["pollens"]], [bern])
+
+    async def test_swiss_pollen_single_station_is_proposed_and_settings_keep_diagnostics(self):
+        from custom_components.niak_weather.engine.settings import Settings
+        bas, health = self.swiss_pollen()
+        draft = Draft.start(self.hass, None)
+        self.assertEqual(draft.view()["pollen"]["station"], "BAS")
+        self.assertEqual(draft.sources["pollens"][0]["nom"], "Hêtre")
+        settings = Settings.from_options(draft.sources)
+        self.assertIn(health, settings.entity_ids())
+        self.assertEqual(draft.change({"op": "pollen", "value": "none"}), "")
+        self.assertEqual(draft.view()["pollen"]["value"], "none")
+
+    async def test_swiss_pollen_in_the_existing_configuration_assistant(self):
+        from custom_components.niak_weather.config_flow import NiakWeatherConfigFlow
+        bas, health = self.swiss_pollen()
+        self.swiss_pollen(station="BER")
+        flow = NiakWeatherConfigFlow()
+        flow.hass = self.hass
+        flow.sources = {"weather_entity": "weather.maison"}
+        form = await flow.async_step_pollen({"pollen_source": "swiss_pollen"})
+        self.assertEqual(form["step_id"], "pollen_station")
+        form = await flow.async_step_pollen_station({"pollen_station": "BAS"})
+        self.assertEqual(form["step_id"], "pollen_sensors")
+        form = await flow.async_step_pollen_sensors({"pollens": [bas]})
+        self.assertEqual(form["step_id"], "families")
+        self.assertEqual(flow.sources["pollens"][0]["station_state_entity"], health)
+
+    async def test_swissweather_is_proposed_in_the_panel_and_the_assistant(self):
+        from custom_components.niak_weather.config_flow import NiakWeatherConfigFlow
+        registry = er.async_get(self.hass)
+        warning = registry.async_get_or_create("sensor", "swissweather", "2829.warnings")
+        self.hass.states.async_set(warning.entity_id, "0", {"warning_types": [], "warning_levels_numeric": []})
+        draft = Draft.start(self.hass, None)
+        field = next(f for f in draft.view()["prevision"]["fields"] if f["key"] == "vigilance_entity")
+        self.assertIn(warning.entity_id, [e["id"] for e in field["options"]])
+        flow = NiakWeatherConfigFlow()
+        flow.hass = self.hass
+        flow.sources = {"weather_entity": "weather.maison"}
+        form = await flow.async_step_weather()
+        self.assertEqual(form["step_id"], "weather")
+        self.assertEqual(draft.sources["vigilance_entity"], warning.entity_id)
+
+    def kleenex_pollen(self, place="kleenex_home", title="Gardanne"):
+        from homeassistant.config_entries import ConfigEntry
+        from homeassistant.util import dt as dt_util
+        from zoneinfo import ZoneInfo
+        registry = er.async_get(self.hass)
+        entry = ConfigEntry(version=1, minor_version=1, domain="kleenex_pollenradar", title=title, data={}, source="user", options={},
+                            unique_id=place, discovery_keys={}, subentries_data=None)
+        self.hass.config_entries._entries[entry.entry_id] = entry
+        device = dr.async_get(self.hass).async_get_or_create(identifiers={("kleenex_pollenradar", place)},
+                                                           config_entry_id=entry.entry_id, name=f"Kleenex Pollen Radar ({title})")
+        result = {}
+        now = dt_util.utcnow()
+        for key, value, attrs in [("trees", "120", {"level": "very-high"}), ("grass", "0", {"level": "low"}),
+                                  ("last_updated", now.isoformat(), {}),
+                                  ("date", now.astimezone(ZoneInfo(self.hass.config.time_zone)).date().isoformat(), {})]:
+            entity = registry.async_get_or_create("sensor", "kleenex_pollenradar", f"{place}-Kleenex Pollen Radar{key}", device_id=device.id)
+            self.hass.states.async_set(entity.entity_id, value, attrs)
+            result[key] = entity.entity_id
+        return result
+
+    async def test_kleenex_panel_displays_levels_and_coverage_and_saves_the_diagnostics(self):
+        ids = self.kleenex_pollen()
+        draft = Draft.start(self.hass, None)
+        self.assertEqual(draft.pollen_choice(), "kleenex_pollenradar")
+        view = draft.view()["pollen"]
+        source = next(s for s in view["sources"] if s["value"] == "kleenex_pollenradar")
+        self.assertIn("France", source["label"])
+        self.assertIn("États-Unis", source["label"])
+        self.assertEqual(view["stations"], [{"value": "kleenex_home", "label": "Kleenex Pollen Radar (Gardanne)"}])
+        tree = next(s for s in view["species"] if s["id"] == ids["trees"])
+        self.assertEqual(tree["state"], "Très élevé")
+        self.assertTrue(tree["available"])
+        self.assertEqual(draft.sources["pollens"][0]["updated_entity"], ids["last_updated"])
+        self.hass.states.async_set(ids["last_updated"], "unknown")
+        self.assertFalse(draft.view()["pollen"]["species"][0]["available"])
+
+    async def test_kleenex_multiple_places_do_not_get_mixed(self):
+        home = self.kleenex_pollen()
+        other = self.kleenex_pollen("kleenex_other", "Paris")
+        draft = Draft.start(self.hass, None)
+        self.assertEqual(draft.view()["pollen"]["species"], [])
+        self.assertEqual(draft.change({"op": "pollen_station", "value": "kleenex_other"}), "")
+        self.assertEqual({p["id"] for p in draft.sources["pollens"]}, {other["trees"], other["grass"]})
+        self.assertTrue(draft.change({"op": "pollens", "value": [home["trees"]]}))
+
+    async def test_kleenex_is_available_in_the_existing_assistant(self):
+        from custom_components.niak_weather.config_flow import NiakWeatherConfigFlow
+        ids = self.kleenex_pollen()
+        flow = NiakWeatherConfigFlow()
+        flow.hass = self.hass
+        flow.sources = {"weather_entity": "weather.maison"}
+        result = await flow.async_step_pollen({"pollen_source": "kleenex_pollenradar"})
+        self.assertEqual(result["step_id"], "pollen_sensors")
+        result = await flow.async_step_pollen_sensors({"pollens": [ids["trees"]]})
+        self.assertEqual(result["step_id"], "families")
+        self.assertEqual(flow.sources["pollens"][0]["updated_entity"], ids["last_updated"])
 
     async def test_the_air_is_chosen_by_source_like_the_pollens(self):
         draft = Draft.start(self.hass, None)

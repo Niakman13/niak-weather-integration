@@ -180,12 +180,12 @@ def build_catalogue(w: LocalWeather, brief: Brief, derived: Derived | None, sett
 
     # ---- Alertes ----
     if not settings.vigilance_entity:
-        items["vigilance"] = Item(None, "Vigilance Météo-France non configurée", "vigilance")
+        items["vigilance"] = Item(None, "Vigilance officielle non configurée", "vigilance")
     else:
         official = read_vigilance(settings, get, now, platforms)
         items["vigilance"] = (Item(None, "Vigilance indisponible ou trop ancienne", "vigilance") if official is None else
                               Item(VIGILANCE[official.level], official.text if official.level else "Aucune vigilance", "vigilance", level=official.level,
-                                   extra={"phenomenes": {k: COLOR_NAMES[c] for k, c in official.phenomena}}))
+                                   extra=official.extra))
 
     six = within(timedelta(hours=6))
     storm_index = next((i for i, h in enumerate(upcoming) if h in six and normalise_condition(h.condition) in STORMY), None)

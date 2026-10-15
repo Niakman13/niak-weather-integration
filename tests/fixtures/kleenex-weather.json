@@ -1,0 +1,119 @@
+{
+  "now": "2026-04-15T12:00:00+00:00",
+  "time_zone": "Europe/Zurich",
+  "options": {
+    "pollens": [
+      {
+        "id": "sensor.renamed_home_grass",
+        "nom": "Graminées",
+        "ico": "mdi:grass",
+        "station": "home",
+        "data_date_entity": "sensor.renamed_home_date",
+        "updated_entity": "sensor.renamed_home_last_updated",
+        "error_entity": "sensor.renamed_home_error"
+      },
+      {
+        "id": "sensor.renamed_home_trees",
+        "nom": "Arbres",
+        "ico": "mdi:tree-outline",
+        "station": "home",
+        "data_date_entity": "sensor.renamed_home_date",
+        "updated_entity": "sensor.renamed_home_last_updated",
+        "error_entity": "sensor.renamed_home_error"
+      },
+      {
+        "id": "sensor.renamed_home_weeds",
+        "nom": "Herbacées",
+        "ico": "mdi:flower-pollen",
+        "station": "home",
+        "data_date_entity": "sensor.renamed_home_date",
+        "updated_entity": "sensor.renamed_home_last_updated",
+        "error_entity": "sensor.renamed_home_error"
+      }
+    ],
+    "pollen_station": "home",
+    "weather_entity": "weather.home",
+    "location": "Gardanne",
+    "pollen_provider": "kleenex_pollenradar",
+    "pollen_source": "legacy"
+  },
+  "states": {
+    "sensor.renamed_home_trees": {
+      "state": "120",
+      "attributes": {
+        "level": "very-high",
+        "forecast": [
+          {
+            "date": "2026-04-17",
+            "value": 999,
+            "level": "low"
+          },
+          {
+            "date": "2026-04-16",
+            "value": 999,
+            "level": "high"
+          }
+        ]
+      }
+    },
+    "sensor.renamed_home_grass": {
+      "state": "0",
+      "attributes": {
+        "level": "low",
+        "forecast": [
+          {
+            "date": "2026-04-17",
+            "value": 999,
+            "level": "low"
+          },
+          {
+            "date": "2026-04-16",
+            "value": 999,
+            "level": "high"
+          }
+        ]
+      }
+    },
+    "sensor.renamed_home_weeds": {
+      "state": "8",
+      "attributes": {
+        "level": "moderate",
+        "forecast": [
+          {
+            "date": "2026-04-17",
+            "value": 999,
+            "level": "low"
+          },
+          {
+            "date": "2026-04-16",
+            "value": 999,
+            "level": "high"
+          }
+        ]
+      }
+    },
+    "sensor.renamed_home_trees_level": {
+      "state": "high",
+      "attributes": {}
+    },
+    "sensor.renamed_home_date": {
+      "state": "2026-04-15",
+      "attributes": {}
+    },
+    "sensor.renamed_home_last_updated": {
+      "state": "2026-04-15T12:00:00+00:00",
+      "attributes": {}
+    },
+    "sensor.renamed_home_error": {
+      "state": "",
+      "attributes": {}
+    },
+    "weather.home": {
+      "state": "sunny",
+      "attributes": {
+        "temperature": 20,
+        "temperature_unit": "°C"
+      }
+    }
+  }
+}

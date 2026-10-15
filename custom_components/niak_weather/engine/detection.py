@@ -367,6 +367,10 @@ def vigilance_candidates(states: Sequence[StateLike], registry: Registry) -> lis
         entry = registry.get(state.entity_id) or {}
         if entry.get("disabled_by") or not state.entity_id.startswith("sensor."):
             continue
+        if entry.get("platform") == "swissweather":
+            if str(entry.get("unique_id") or "").endswith(".warnings"):
+                found.append(state.entity_id)
+            continue
         if not (entry.get("platform") == "meteo_france" or re.search(r"meteo.france", normal(state.attributes.get("attribution")))):
             continue
         if re.search(r"weather_alert|vigilance|alerte",

@@ -4,7 +4,7 @@ Version 1 — 13 octobre 2026. Document vivant : il évolue avec le projet, et t
 
 ## 1. Objet
 
-Niak Weather est **le cerveau météo local** du logement. Il lit la station, le fournisseur de prévisions, la vigilance Météo-France, Atmo France et les pollens de Polleninformation ou d'IRM KMI ; il calcule une seule fois, dans Home Assistant ; il dit **ce que la météo implique** (ressenti, synthèse, bulletin, alertes) ; il donne ses résultats à la carte et aux autres systèmes. Version stable actuelle : intégration 2.0.9, carte 2.0.8.
+Niak Weather est **le cerveau météo local** du logement. Il lit la station, le fournisseur de prévisions, les vigilances Météo-France ou MeteoSwiss, Atmo France et les pollens de Polleninformation, IRM KMI, Swiss Pollen ou Kleenex / Scottex ; il calcule une seule fois, dans Home Assistant ; il dit **ce que la météo implique** (ressenti, synthèse, bulletin, alertes) ; il donne ses résultats à la carte et aux autres systèmes. Version stable 2.4.0 : intégration et carte embarquée.
 
 ## 2. Principes
 
@@ -20,7 +20,7 @@ Référence commune : [Écosystème Niak](../../niak-ecosysteme/ECOSYSTEME.md).
 
 **Rôle** : producteur de données météo pour tout l'écosystème. Il ne dépend d'aucune autre brique Niak.
 
-**Ce qu'il consomme** : Home Assistant (station, entité météo du fournisseur, vigilance, Atmo France, Polleninformation ou IRM KMI, soleil). Aucune brique Niak.
+**Ce qu'il consomme** : Home Assistant (station, entité météo du fournisseur, vigilances Météo-France ou MeteoSwiss, Atmo France, Polleninformation, IRM KMI, Swiss Pollen ou Kleenex / Scottex, soleil). Aucune brique Niak.
 
 **Liens visibles** : **Configurer → Écosystème Niak** montre chaque brique, reliée à ce lieu, installée mais pas reliée, non installée, ou à venir. Une brique est « reliée » quand elle écoute ce lieu par l'interface et donne son domaine (`brick`).
 
@@ -59,6 +59,7 @@ Ces interfaces sont stables ; un changement incompatible change la version majeu
 | 1 | Catalogue de capteurs (7 familles), évènement d'alerte, blueprints alertes / gel / bulletin | ✅ |
 | 2 | Action `niak_weather.prevision`, entité `weather.niak_weather` | ✅ |
 | **2 bis** | **Interfaces pour l'écosystème** : objet versionné `hass.data["niak_weather_api"]` (lieux, station par rôle dont la **direction du vent**, prévisions horaires avec direction du vent, abonnement) — voir [technique.md](technique.md) | ✅ 2.1.0b1 |
+| **2.4.0** | Pollens Swiss Pollen et Kleenex / Scottex, vigilances MeteoSwiss avec leurs degrés natifs, pays couverts indiqués dans les sources | ✅ 2.4.0 |
 | 2 ter | Écran **Écosystème Niak** dans les réglages ; pollens **IRM KMI** (Belgique), 3ᵉ source à côté d'Atmo France et de Polleninformation | ✅ 2.1.0b2 |
 | 2 quater | Onglet **Météo** du panneau commun « Niak » et état sur son Accueil (socle 1.1) | 🧪 2.2.0b1 |
 | 2 quinquies | Page d'accueil technique de l'onglet Météo : à régler, à améliorer, sources, capteurs de la station, entités, versions et liens | 🧪 2.2.0b2 |
