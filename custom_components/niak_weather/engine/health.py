@@ -154,8 +154,8 @@ def report(f: Facts) -> dict:
     if not f.pollen and f.pollen_available:
         tips.append(_line("tip", "Suivre les pollens", "Une source de pollens est installée : l’indice du jour, espèce par espèce.", 3))
     if f.ready_families:
-        tips.append(_line("tip", ("Famille prête à activer : " if len(f.ready_families) == 1 else "Familles prêtes à activer : ")
-                          + ", ".join(f.ready_families), "Tout ce qu’il faut à leurs entités est en place.", 4))
+        tips.append(_line("tip", "Entités Niak Weather à activer : " + ", ".join(f.ready_families),
+                          "Niak Weather peut les créer pour vos automatisations : leurs sources sont en place. La carte n’en a pas besoin.", 4))
 
     # ---- Sources ----
     forecast_ok = f.weather_ok and f.forecast_age is not None and f.forecast_age <= STALE_FORECAST

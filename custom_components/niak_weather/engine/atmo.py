@@ -7,6 +7,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from dataclasses import dataclass
+from functools import lru_cache
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable, Mapping, Protocol, Sequence
 from zoneinfo import ZoneInfo
@@ -56,8 +57,15 @@ COLORS = ("#969696", "#50f0e6", "#50ccaa", "#f0e641", "#ff5050", "#960032", "#87
 
 def normal(value: Any) -> str:
     """Lower case without accents, for matching names whatever their spelling."""
-    text = unicodedata.normalize("NFD", "" if value is None else str(value))
-    return "".join(c for c in text if not unicodedata.combining(c)).lower()
+    return _normal("" if value is None else str(value))
+
+
+@lru_cache(maxsize=16384)
+def _normal(text: str) -> str:
+    # The detection reads the same names again for every field: each is worked out once.
+    if text.isascii():
+        return text.lower()
+    return "".join(c for c in unicodedata.normalize("NFD", text) if not unicodedata.combining(c)).lower()
 
 
 def short_label(metric: str) -> str:

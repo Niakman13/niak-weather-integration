@@ -57,7 +57,7 @@ def test_tips_name_what_home_assistant_already_has():
                      air="", atmo_installed=False, pollen="", pollen_available=True, ready_families=["Jardin"], history=False))
     texts = [t["text"] for t in r["tips"]]
     assert texts == ["Ajouter : pression", "Calculer depuis l’historique", "Choisir la vigilance Météo-France", "Ajouter la qualité de l’air",
-                     "Suivre les pollens", "Famille prête à activer : Jardin"]
+                     "Suivre les pollens", "Entités Niak Weather à activer : Jardin"]
     assert "« GW2000A Relative Pressure »" in r["tips"][0]["why"] and r["tips_summary"] == "6 réglages à améliorer"
     assert all(t["level"] == "tip" for t in r["tips"])
 

@@ -30,7 +30,7 @@ input[type=checkbox],input[type=radio]{width:20px;min-height:20px;height:20px;ma
 .intro{background:var(--nw-frame);border:1px solid var(--nw-border);border-radius:12px;padding:0 16px;margin:0 0 20px}
 .intro>summary{cursor:pointer;list-style:none;min-height:44px;display:flex;align-items:center;font-weight:600}
 .intro>summary::-webkit-details-marker{display:none}.intro>summary::before{content:'▸';display:inline-block;width:1.2em;color:var(--nw-muted)}.intro[open]>summary::before{content:'▾'}
-.intro ul{margin:0 0 14px;padding-left:1.2em;list-style:none}.intro li{max-width:72ch;margin:4px 0}
+.intro ul{margin:0 0 14px;padding-left:1.2em;list-style:none}.intro li{max-width:none;margin:4px 0}
 /* Each part that folds is a frame of its own, like the cards of the home page. */
 .group{background:var(--nw-frame);border:1px solid var(--nw-border);border-radius:12px;padding:0 16px;margin:12px 0}
 .group>summary{cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:18px;min-height:56px}
