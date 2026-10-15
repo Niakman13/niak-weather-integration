@@ -84,6 +84,17 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(draft.change({"op": "set", "key": "families", "value": []}), "Changement inconnu.")
         self.assertEqual(draft.change({"op": "station", "value": "ws91"}), "Modèle de station inconnu.")
 
+    async def test_the_air_is_chosen_by_source_like_the_pollens(self):
+        draft = Draft.start(self.hass, None)
+        air = draft.view()["air"]
+        self.assertEqual([s["value"] for s in air["sources"]], ["atmo", "none"])
+        self.assertFalse(air["sources"][0]["available"])
+        self.assertEqual(air["value"], "none")
+        self.assertEqual(draft.change({"op": "air", "value": "atmo"}), "Atmo France n’est pas installée.")
+        self.assertEqual(draft.change({"op": "air", "value": "lyon"}), "Source de qualité de l’air inconnue.")
+        self.assertEqual(draft.change({"op": "air", "value": "none"}), "")
+        self.assertEqual(draft.sources["air_source"], "none")
+
     async def test_saving_without_a_weather_service_is_refused(self):
         with self.assertRaises(ValueError):
             await Draft(self.hass, {"weather_entity": ""}).save(None)

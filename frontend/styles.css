@@ -27,9 +27,15 @@ input[type=checkbox],input[type=radio]{width:20px;min-height:20px;height:20px;ma
 .choice.on{border-color:var(--nw-accent)}.choice.off{opacity:.7;cursor:default}
 .choice strong,.choice span span{display:block}.choice span span{color:var(--nw-muted);font-size:14px}
 .check{display:flex;gap:12px;align-items:flex-start;margin:12px 0;cursor:pointer}
-.group{border-top:1px solid var(--nw-border);padding:16px 0}
-.group>summary{cursor:pointer;display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:18px;min-height:32px}
-.group>summary .hint{display:inline}
+.intro{background:var(--nw-frame);border:1px solid var(--nw-border);border-radius:12px;padding:0 16px;margin:0 0 20px}
+.intro>summary{cursor:pointer;list-style:none;min-height:44px;display:flex;align-items:center;font-weight:600}
+.intro>summary::-webkit-details-marker{display:none}.intro>summary::before{content:'▸';display:inline-block;width:1.2em;color:var(--nw-muted)}.intro[open]>summary::before{content:'▾'}
+.intro ul{margin:0 0 14px;padding-left:1.2em;list-style:none}.intro li{max-width:72ch;margin:4px 0}
+/* Each part that folds is a frame of its own, like the cards of the home page. */
+.group{background:var(--nw-frame);border:1px solid var(--nw-border);border-radius:12px;padding:0 16px;margin:12px 0}
+.group>summary{cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:18px;min-height:56px}
+.group[open]>summary{border-bottom:1px solid var(--nw-border)}.group[open]{padding-bottom:4px}
+.group>summary .hint{display:inline;white-space:nowrap}
 .group>summary{list-style:none}.group>summary::-webkit-details-marker{display:none}.group>summary strong::before{content:'▸';display:inline-block;width:1.2em;color:var(--nw-muted)}.group[open]>summary strong::before{content:'▾'}
 .group .field:first-of-type{border-top:0}
 .summary{display:grid;grid-template-columns:max-content 1fr;gap:10px 20px;margin:20px 0}.summary dt{font-weight:600}.summary dd{margin:0;color:var(--nw-muted);overflow-wrap:anywhere}
