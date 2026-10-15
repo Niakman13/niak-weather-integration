@@ -38,7 +38,8 @@ def _context(hass: HomeAssistant) -> tuple[list[State], dict[str, dict[str, Any]
     device_registry = dr.async_get(hass)
     # Recent Home Assistant iterates the devices themselves, older versions their ids.
     entries = (device_registry.async_get(d) if isinstance(d, str) else d for d in device_registry.devices)
-    devices = {d.id: {"name": d.name, "name_by_user": d.name_by_user, "manufacturer": d.manufacturer} for d in entries if d is not None}
+    devices = {d.id: {"name": d.name, "name_by_user": d.name_by_user, "manufacturer": d.manufacturer, "model": d.model, "via_device_id": d.via_device_id}
+               for d in entries if d is not None}
     return hass.states.async_all(), registry, devices
 
 
@@ -151,7 +152,7 @@ class _SourceSteps:
         choices = [SelectOptionDict(value=NONE, label="Aucun appareil — capteurs séparés"),
                    *(SelectOptionDict(value=d["value"], label=d["label"]) for d in detection.source_devices(states, registry, devices))]
         schema = vol.Schema({
-            vol.Required("station_model"): SelectSelector(SelectSelectorConfig(options=["gw2000a", "ws90", "manual", NONE], translation_key="station_model",
+            vol.Required("station_model"): SelectSelector(SelectSelectorConfig(options=["gw2000a", "ws90", detection.NETATMO, "manual", NONE], translation_key="station_model",
                                                                                mode=SelectSelectorMode.LIST)),
             vol.Required("station_device_id"): SelectSelector(SelectSelectorConfig(options=choices, mode=SelectSelectorMode.DROPDOWN)),
             vol.Required("station_history"): BooleanSelector(),
@@ -184,7 +185,7 @@ class _SourceSteps:
             inner = {}
             for field in group:
                 current = filled.get(field) or ""
-                inner[vol.Optional(field)] = _sensor(detection.manual_candidates(states, field, registry, filled), current)
+                inner[vol.Optional(field)] = _sensor(detection.manual_candidates(states, field, registry, filled, devices), current)
                 if current:
                     suggested.setdefault(name, {})[field] = current
             schema[vol.Required(name)] = section(vol.Schema(inner), {"collapsed": False})
@@ -315,7 +316,7 @@ class _SourceSteps:
         s, get = self.sources, self.hass.states.get
         weather = get(s.get("weather_entity") or "")
         station = [f for f in detection.STATION_FIELDS if s.get(f)]
-        model = {"gw2000a": "GW2000A", "ws90": "WS90", "manual": "Station"}.get(s.get("station_model") or "", "")
+        model = {"gw2000a": "GW2000A", "ws90": "WS90", "netatmo": "Netatmo", "manual": "Station"}.get(s.get("station_model") or "", "")
         count = len(s.get("pollens") or [])
         area = next((a["label"] for a in self._areas() if a["value"] == s.get("atmo_area")), s.get("atmo_area") or "")
         provider = polleninfo.PROVIDERS[polleninfo.provider(Settings.from_options(_clean(s)))]

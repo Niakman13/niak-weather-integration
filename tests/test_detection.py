@@ -4,7 +4,8 @@ from typing import Any
 
 import pytest
 
-from engine.detection import (candidates, fill, manual_candidates, measurement_matches, model_devices, selected_station_model, source_devices,
+from engine.detection import (STATION_FIELDS, candidates, fill, function_matches, manual_candidates, measurement_matches, model_devices, netatmo_disabled,
+                              selected_station_model, source_devices,
                               station_groups, station_profile, station_report)
 from engine.units import Kind, measurement
 
@@ -247,3 +248,105 @@ def test_niak_weather_never_offers_its_own_sensors_or_device_as_a_station() -> N
     registry = {"sensor.niak_weather_point_de_rosee": {"platform": "niak_weather", "device_id": "niak"}}
     assert source_devices(states, registry, {"niak": {"name": "Niak Weather"}}) == []
     assert candidates(states, "dew_point_entity", registry) == []
+
+
+# ── A Netatmo station: one device per module ─────────────────────────────────
+
+def netatmo_home(via: bool = True, enabled: tuple[str, ...] = ()) -> tuple[list[State], dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
+    """A Netatmo home as Home Assistant builds it: the station (indoor), its outdoor module, rain gauge and anemometer, a bedroom
+    module, and a public station nearby. Gusts, wind angle and the rain of the last hour come disabled, unless `enabled`."""
+    def device(name: str, model: str, parent: str | None = "main") -> dict[str, Any]:
+        return {"name": name, "manufacturer": "Netatmo", "model": model, "via_device_id": parent if via else None}
+    devices = {"home": device("Maison", "Home", None), "main": device("Intérieur", "Smart Home Weather station", "home"),
+               "out": device("Extérieur", "Smart Outdoor Module"), "rain": device("Pluviomètre", "Smart Rain Gauge"),
+               "wind": device("Anémomètre", "Smart Anemometer"), "room": device("Chambre", "Smart Indoor Module"),
+               "public": device("Marseille", "Public Weather station", None)}
+    C, PCT, MM = ({"device_class": "temperature", "unit_of_measurement": "°C"}, {"device_class": "humidity", "unit_of_measurement": "%"},
+                  {"device_class": "precipitation", "unit_of_measurement": "mm"})
+    KMH, DEG = {"device_class": "wind_speed", "unit_of_measurement": "km/h"}, {"device_class": "wind_direction", "unit_of_measurement": "°"}
+    sensors = [  # entity id, device, Netatmo key, attributes, disabled by default
+        ("sensor.interieur_temperature", "main", "temperature", C, False), ("sensor.interieur_humidite", "main", "humidity", PCT, False),
+        ("sensor.interieur_pression_atmospherique", "main", "pressure", {"device_class": "atmospheric_pressure", "unit_of_measurement": "mbar"}, False),
+        ("sensor.interieur_dioxyde_de_carbone", "main", "co2", {"device_class": "carbon_dioxide", "unit_of_measurement": "ppm"}, False),
+        ("sensor.exterieur_temperature", "out", "temperature", C, False), ("sensor.exterieur_humidite", "out", "humidity", PCT, False),
+        ("sensor.pluviometre_precipitations", "rain", "rain", {**MM, "state_class": "measurement"}, False),
+        ("sensor.pluviometre_precipitations_derniere_heure", "rain", "sum_rain_1", {**MM, "state_class": "total"}, True),
+        ("sensor.pluviometre_precipitations_aujourd_hui", "rain", "sum_rain_24", {**MM, "state_class": "total_increasing"}, False),
+        ("sensor.anemometre_vitesse_du_vent", "wind", "windstrength", KMH, False), ("sensor.anemometre_force_des_rafales", "wind", "guststrength", KMH, True),
+        ("sensor.anemometre_angle_du_vent", "wind", "windangle_value", DEG, True),
+        ("sensor.anemometre_direction_du_vent", "wind", "windangle", {"device_class": "enum"}, False),
+        ("sensor.chambre_temperature", "room", "temperature", C, False), ("sensor.chambre_humidite", "room", "humidity", PCT, False),
+        ("sensor.marseille_temperature", "public", "temperature", C, False), ("sensor.marseille_vitesse_du_vent", "public", "windstrength", KMH, False),
+    ]
+    mac = {"main": "70:ee:50:00:00:01", "out": "02:00:00:00:00:02", "rain": "05:00:00:00:00:03", "wind": "06:00:00:00:00:04", "room": "03:00:00:00:00:05"}
+    registry, states = {}, []
+    for entity_id, dev, key, attributes, off in sensors:
+        disabled = off and entity_id not in enabled
+        registry[entity_id] = {"platform": "netatmo", "device_id": dev, "unique_id": f"{mac.get(dev, 'Marseille')}-{key}",
+                               "disabled_by": "integration" if disabled else None, "translation_key": None, "original_name": None}
+        if not disabled:
+            states.append(State(entity_id, "12", {**attributes}))
+    return states, registry, devices
+
+
+def test_proposes_a_netatmo_station_and_takes_each_measure_from_its_module() -> None:
+    every, registry, devices = netatmo_home()
+    found = fill(every, registry, devices, BASE, "station")
+    assert found["station_model"] == "netatmo" and found["station_device_id"] == "main"
+    assert {k: found.get(k) for k in ("temperature_entity", "humidity_entity", "pressure_entity", "daily_rain_entity", "rain_total_entity",
+                                      "wind_speed_entity")} == {
+        "temperature_entity": "sensor.exterieur_temperature", "humidity_entity": "sensor.exterieur_humidite",
+        "pressure_entity": "sensor.interieur_pression_atmospherique", "daily_rain_entity": "sensor.pluviometre_precipitations_aujourd_hui",
+        "rain_total_entity": "sensor.pluviometre_precipitations_aujourd_hui", "wind_speed_entity": "sensor.anemometre_vitesse_du_vent"}
+    # Disabled by Home Assistant: left empty and said, never replaced by the indoor, bedroom or public sensors.
+    assert not any(found.get(k) for k in ("wind_gust_entity", "wind_bearing_entity", "rain_rate_entity"))
+    assert netatmo_disabled(registry, devices, found) == {"rain_rate_entity": "sensor.pluviometre_precipitations_derniere_heure",
+                                                           "wind_gust_entity": "sensor.anemometre_force_des_rafales",
+                                                           "wind_bearing_entity": "sensor.anemometre_angle_du_vent"}
+    assert station_profile(every, registry, devices, "main") == "Netatmo"
+
+
+def test_takes_the_netatmo_sensors_once_enabled_and_the_last_hour_as_the_rain_now() -> None:
+    every, registry, devices = netatmo_home(enabled=("sensor.pluviometre_precipitations_derniere_heure", "sensor.anemometre_force_des_rafales",
+                                                     "sensor.anemometre_angle_du_vent"))
+    found = fill(every, registry, devices, {**BASE, "station_model": "netatmo"}, "station")
+    assert (found["rain_rate_entity"], found["wind_gust_entity"], found["wind_bearing_entity"]) == (
+        "sensor.pluviometre_precipitations_derniere_heure", "sensor.anemometre_force_des_rafales", "sensor.anemometre_angle_du_vent")
+    by_id = {s.entity_id: s for s in every}
+    for field_name, entity_id in (("rain_rate_entity", "sensor.pluviometre_precipitations_derniere_heure"),
+                                  ("rain_total_entity", "sensor.pluviometre_precipitations_aujourd_hui")):
+        assert function_matches(by_id[entity_id], field_name, registry[entity_id])
+        assert entity_id in manual_candidates(every, field_name, registry, found, devices)
+    assert netatmo_disabled(registry, devices, found) == {}
+    report = {f["field"]: f["status"] for f in station_report(every, registry, devices, found)["fields"]}
+    assert report["temperature_entity"] == report["rain_rate_entity"] == "recognized"
+
+
+def test_offers_every_module_of_the_chosen_netatmo_station_but_not_the_others() -> None:
+    every, registry, devices = netatmo_home()
+    options = {**BASE, "station_model": "netatmo", "station_device_id": "main"}
+    offered = manual_candidates(every, "temperature_entity", registry, options, devices)
+    assert "sensor.exterieur_temperature" in offered and "sensor.marseille_temperature" not in offered
+    assert candidates(every, "temperature_entity", registry, options, devices) == ["sensor.exterieur_temperature"]
+    assert [title for _, title, _ in station_groups("netatmo")] == ["Température et humidité", "Pluie", "Vent", "Spécifiques"]
+
+
+def test_finds_a_renamed_netatmo_module_and_works_without_device_links() -> None:
+    every, registry, devices = netatmo_home(via=False)
+    devices["out"]["name"] = "Jardin"
+    found = fill(every, registry, devices, BASE, "station")
+    assert found["temperature_entity"] == "sensor.exterieur_temperature" and found["wind_speed_entity"] == "sensor.anemometre_vitesse_du_vent"
+    # Two stations and no link between modules: which module belongs to which is unknown, nothing is guessed.
+    devices["second"] = {"name": "Chalet", "manufacturer": "Netatmo", "model": "Smart Home Weather station"}
+    assert fill(every, registry, devices, {**BASE, "station_model": "netatmo"}, "station").get("temperature_entity") is None
+
+
+def test_keeps_an_ecowitt_station_first_when_a_netatmo_is_also_there() -> None:
+    every, registry, devices = netatmo_home()
+    every.append(State("sensor.gw2000a_outdoor_temperature", "12", {"device_class": "temperature", "unit_of_measurement": "°C"}))
+    registry["sensor.gw2000a_outdoor_temperature"] = {"platform": "ecowitt", "device_id": "gw"}
+    found = fill(every, registry, devices, BASE, "station")
+    assert found.get("station_model") is None and found["temperature_entity"] == "sensor.gw2000a_outdoor_temperature"
+    # A saved choice of « no station » stays.
+    declined = {**BASE, "station_model": "", **{f: "" for f in STATION_FIELDS}}
+    assert fill(*netatmo_home(), declined, "station")["temperature_entity"] == ""

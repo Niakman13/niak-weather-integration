@@ -61,7 +61,7 @@ def _entry(hass: HomeAssistant, entry_id: str | None) -> Any:
     return entry
 
 
-MODELS = {"gw2000a": "GW2000A", "ws90": "WS90", "manual": "Station"}
+MODELS = {"gw2000a": "GW2000A", "ws90": "WS90", "netatmo": "Netatmo", "manual": "Station"}
 GONE = ("unavailable", "unknown")
 
 
@@ -102,7 +102,7 @@ def facts(hass: HomeAssistant, entry: Any, card_twice: bool = False) -> health.F
         shown = {f for _, _, group in detection.station_groups(model) for f in group}
         for field in health.GAINS:
             if field in shown and field not in chosen:
-                ids = detection.candidates(states, field, registry, sources)
+                ids = detection.candidates(states, field, registry, sources, devices)
                 if len(ids) == 1:
                     unused.append((field, field_label(field), _name(get(ids[0]), ids[0])))
     areas = atmo.areas(states, registry, devices)

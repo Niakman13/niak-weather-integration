@@ -36,6 +36,7 @@ HELP = {
 }
 MODELS = (("gw2000a", "Ecowitt GW2000A", "Passerelle Ecowitt et ses capteurs"),
           ("ws90", "Ecowitt WS90", "Capteur tout-en-un, souvent via Zigbee2MQTT"),
+          (detection.NETATMO, "Netatmo", "Station Netatmo et ses modules : extérieur, pluviomètre, anémomètre"),
           ("manual", "Une autre station", "Vous choisissez chaque capteur"),
           (NONE, "Pas de station", "Niak Weather s’appuie sur le service météo seul"))
 
@@ -257,10 +258,12 @@ class Draft(_SourceSteps):
     def _station(self) -> dict[str, Any]:
         states, registry, devices = _context(self.hass)
         s, model, groups = self.sources, self.station_model(), []
+        netatmo = model == detection.NETATMO
+        disabled = detection.netatmo_disabled(registry, devices, s) if netatmo else {}
         for name, title, group in detection.station_groups(model) if model != NONE else ():
             fields = []
             for field in group:
-                value, found = s.get(field) or "", detection.candidates(states, field, registry, s)
+                value, found = s.get(field) or "", detection.candidates(states, field, registry, s, devices)
                 warning, better = "", ""
                 state = self.hass.states.get(value) if value else None
                 if state is not None and not detection.function_matches(state, field, registry.get(value)):
@@ -268,14 +271,24 @@ class Draft(_SourceSteps):
                     better = found[0] if len(found) == 1 and found[0] != value else ""
                 elif s.get(field) is None and len(found) > 1:
                     warning = "Plusieurs capteurs possibles : choisissez le bon."
-                fields.append(self._field(field, field_label(field), detection.manual_candidates(states, field, registry, s),
+                elif field in disabled:
+                    module = devices.get((registry.get(disabled[field]) or {}).get("device_id") or "") or {}
+                    warning = (f"Home Assistant livre ce capteur Netatmo désactivé : activez {disabled[field]} "
+                               f"(appareil « {module.get('name_by_user') or module.get('name') or 'Netatmo'} »), puis « Rechercher à nouveau les capteurs ».")
+                fields.append(self._field(field, field_label(field), detection.manual_candidates(states, field, registry, s, devices),
                                           warning=warning, better=better, recognized=found))
             groups.append({"name": name, "title": title, "fields": fields})
         return {"model": model, "models": [{"value": v, "label": label, "hint": hint} for v, label, hint in MODELS],
                 "device": s.get("station_device_id") or NONE,
-                "devices": [{"value": NONE, "label": "Aucun appareil — capteurs séparés"}, *detection.source_devices(states, registry, devices)],
+                "devices": [{"value": NONE, "label": "Aucun appareil — capteurs séparés"},
+                            *(self._netatmo_devices(devices) if netatmo else detection.source_devices(states, registry, devices))],
                 "profile": detection.station_profile(states, registry, devices, s.get("station_device_id")),
                 "history": bool(s.get("station_history", True)), "history_help": HELP["station_history"], "groups": groups}
+
+    @staticmethod
+    def _netatmo_devices(devices: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
+        """A Netatmo station is chosen as a whole, by its main module: its other modules come with it."""
+        return [{"value": i, "label": str(devices[i].get("name_by_user") or devices[i].get("name") or i)} for i in detection.netatmo_stations(devices)]
 
     def _air(self) -> dict[str, Any]:
         s = self.sources
