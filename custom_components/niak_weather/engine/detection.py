@@ -69,6 +69,8 @@ def _unit(state: StateLike) -> str:
 
 def function_matches(state: StateLike, field: str, entry: Mapping[str, Any] | None = None) -> bool:
     """Whether a sensor can do this job, for automatic and manual choices alike (a dew point is not a thermometer)."""
+    if _netatmo_rain(entry, field):
+        return True
     t, unit, cls = sensor_text(state, entry), _unit(state), state.attributes.get("device_class")
     measure = _PHYSICAL.get(field)
     if measure and ((cls and str(cls) not in measure[0]) or (unit and not re.search(measure[1], unit))):
@@ -103,6 +105,112 @@ def function_matches(state: StateLike, field: str, entry: Mapping[str, Any] | No
     return True
 
 
+# ---- Netatmo: one station spread over its modules, each a device of its own ----
+
+NETATMO = "netatmo"
+# Each field, the key ending the unique id of the Netatmo sensor that gives it, and the module carrying it. « sum_rain_1 », the
+# rain of the last hour, says whether it rains now; « rain », the last measure only, is not used: Netatmo does not say over how long.
+NETATMO_FIELDS: dict[str, tuple[str, str]] = {
+    "temperature_entity": ("temperature", "outdoor"), "humidity_entity": ("humidity", "outdoor"), "pressure_entity": ("pressure", "main"),
+    "rain_rate_entity": ("sum_rain_1", "rain"), "daily_rain_entity": ("sum_rain_24", "rain"), "rain_total_entity": ("sum_rain_24", "rain"),
+    "wind_speed_entity": ("windstrength", "wind"), "wind_gust_entity": ("guststrength", "wind"), "wind_bearing_entity": ("windangle_value", "wind"),
+}
+# Device models given by pyatmo; the indoor module and the public stations around the home are never the station.
+_NETATMO_MODULES = (("outdoor", r"outdoor"), ("wind", r"anemometer|wind"), ("rain", r"rain"), ("main", r"home weather station"))
+
+
+def netatmo_module(device: Mapping[str, Any] | None) -> str:
+    """« main », « outdoor », « wind » or « rain » for a module of a Netatmo weather station; "" for anything else."""
+    d = device or {}
+    model = normal(d.get("model"))
+    if not re.search("netatmo", normal(d.get("manufacturer"))) or "public" in model:
+        return ""
+    return next((role for role, pattern in _NETATMO_MODULES if re.search(pattern, model)), "")
+
+
+def netatmo_key(entry: Mapping[str, Any] | None) -> str:
+    """What a Netatmo sensor measures, from the end of its unique id (« 70:ee:50:…-sum_rain_24 »)."""
+    e = entry or {}
+    return str(e.get("unique_id") or "").rsplit("-", 1)[-1] if e.get("platform") == NETATMO else ""
+
+
+def netatmo_stations(devices: Devices) -> list[str]:
+    return sorted(i for i, d in devices.items() if netatmo_module(d) == "main")
+
+
+def netatmo_station(devices: Devices, device_id: str | None) -> str | None:
+    """The station a module reports through, or the home's only station."""
+    device = devices.get(device_id or "") or {}
+    if netatmo_module(device) == "main":
+        return device_id
+    if netatmo_module(device) and netatmo_module(devices.get(device.get("via_device_id") or "")) == "main":
+        return str(device["via_device_id"])
+    stations = netatmo_stations(devices)
+    return stations[0] if len(stations) == 1 and (not device_id or netatmo_module(device)) else None
+
+
+def netatmo_family(devices: Devices, station: str) -> set[str]:
+    """The station and its modules: those Home Assistant links to it, or every module when the home has a single station."""
+    linked = {i for i, d in devices.items() if d.get("via_device_id") == station and netatmo_module(d)}
+    if linked:
+        return {station, *linked}
+    return {i for i, d in devices.items() if netatmo_module(d)} if netatmo_stations(devices) == [station] else {station}
+
+
+def _station_devices(devices: Devices | None, device: str | None) -> set[str] | None:
+    """The devices a chosen station covers: itself, or a Netatmo station with its modules."""
+    if not device:
+        return None
+    return netatmo_family(devices, device) if devices and netatmo_module(devices.get(device)) == "main" else {device}
+
+
+def _netatmo_rain(entry: Mapping[str, Any] | None, field: str) -> bool:
+    """Netatmo's rain of the last hour gives the rain now in mm, and its rain of the day is a counter named « today »."""
+    return field in ("rain_rate_entity", "daily_rain_entity", "rain_total_entity") and _netatmo_gives(entry, field)
+
+
+def _netatmo_gives(entry: Mapping[str, Any] | None, field: str, devices: Devices | None = None) -> bool:
+    key = NETATMO_FIELDS.get(field)
+    if key is None or netatmo_key(entry) != key[0]:
+        return False
+    return devices is None or netatmo_module(devices.get((entry or {}).get("device_id") or "")) == key[1]
+
+
+def netatmo_sensors(registry: Registry, devices: Devices, station: str) -> dict[str, list[tuple[str, bool]]]:
+    """For each field, the station's sensors that give it, with whether Home Assistant has them enabled."""
+    family, found = netatmo_family(devices, station), {}
+    for entity_id, entry in sorted(registry.items()):
+        if entry.get("device_id") not in family:
+            continue
+        for field in NETATMO_FIELDS:
+            if _netatmo_gives(entry, field, devices):
+                found.setdefault(field, []).append((entity_id, not entry.get("disabled_by")))
+    return found
+
+
+def detect_netatmo(states: Sequence[StateLike], registry: Registry, devices: Devices, options: Mapping[str, Any]) -> dict[str, Any]:
+    """The station's sensors, each by what Netatmo says it measures: a renamed module or sensor is still found."""
+    station = netatmo_station(devices, options.get("station_device_id"))
+    if not station:
+        return {}
+    live = {s.entity_id for s in states}
+    selected: dict[str, Any] = {"station_device_id": station}
+    for field, ids in netatmo_sensors(registry, devices, station).items():
+        enabled = [i for i, on in ids if on and i in live]
+        if options.get(field) is None and len(enabled) == 1:
+            selected[field] = enabled[0]
+    return selected
+
+
+def netatmo_disabled(registry: Registry, devices: Devices, options: Mapping[str, Any]) -> dict[str, str]:
+    """Fields left empty because Home Assistant ships the Netatmo sensor disabled (gusts, wind angle, rain of the last hour)."""
+    station = netatmo_station(devices, options.get("station_device_id"))
+    if not station:
+        return {}
+    return {field: ids[0][0] for field, ids in netatmo_sensors(registry, devices, station).items()
+            if not options.get(field) and ids and not any(on for _, on in ids)}
+
+
 # Computed values, never taken for station sensors: Thermal Comfort's (humidex, dew point…) and Niak Weather's own.
 DERIVED = ("thermal_comfort", "niak_weather")
 
@@ -112,17 +220,24 @@ def _is_thermal(state: StateLike, entry: Mapping[str, Any] | None) -> bool:
             or bool(re.search(r"thermal.*comfort", sensor_text(state, entry))))
 
 
-def candidates(states: Sequence[StateLike], field: str, registry: Registry, options: Mapping[str, Any] | None = None) -> list[str]:
+def candidates(states: Sequence[StateLike], field: str, registry: Registry, options: Mapping[str, Any] | None = None,
+               devices: Devices | None = None) -> list[str]:
     """Sensors whose name and measure fit a station field."""
     rule, device = STATION_RULES.get(field), (options or {}).get("station_device_id")
     if rule is None:
         return []
+    covered = _station_devices(devices, device)
+    if covered and devices and netatmo_module(devices.get(device or "")) == "main":
+        # A Netatmo station says what each sensor measures: no guess from names.
+        live = {s.entity_id for s in states}
+        return sorted(i for i, e in registry.items() if i in live and not e.get("disabled_by") and e.get("device_id") in covered
+                      and _netatmo_gives(e, field, devices))
     found = []
     for state in states:
         entry = registry.get(state.entity_id)
         if not state.entity_id.startswith("sensor.") or (entry or {}).get("disabled_by") or _is_thermal(state, entry):
             continue
-        if device and (entry or {}).get("device_id") != device and field != "temperature_trend_entity":
+        if covered and (entry or {}).get("device_id") not in covered and field != "temperature_trend_entity":
             continue
         t = sensor_text(state, entry)
         if not rule.search(t) or not function_matches(state, field, entry):
@@ -148,10 +263,12 @@ def measurement_matches(state: StateLike, field: str) -> bool:
     return cls in rule[0] if cls and rule[0] else bool(re.search(rule[1], unit))
 
 
-def manual_candidates(states: Sequence[StateLike], field: str, registry: Registry, options: Mapping[str, Any] | None = None) -> list[str]:
+def manual_candidates(states: Sequence[StateLike], field: str, registry: Registry, options: Mapping[str, Any] | None = None,
+                      devices: Devices | None = None) -> list[str]:
     """What the form offers for a field: sensors measuring the right thing, plus untyped ones named for it."""
     options = options or {}
-    semantic = set(candidates(states, field, registry, options))
+    semantic = set(candidates(states, field, registry, options, devices))
+    covered = _station_devices(devices, options.get("station_device_id"))
     found = []
     for state in states:
         entry = registry.get(state.entity_id) or {}
@@ -159,10 +276,10 @@ def manual_candidates(states: Sequence[StateLike], field: str, registry: Registr
             continue
         if not function_matches(state, field, entry):
             continue
-        if options.get("station_device_id") and entry.get("device_id") and entry.get("device_id") != options.get("station_device_id"):
+        if covered and entry.get("device_id") and entry.get("device_id") not in covered:
             continue
         typed = state.attributes.get("device_class") or state.attributes.get("unit_of_measurement")
-        if measurement_matches(state, field) or (not typed and state.entity_id in semantic):
+        if measurement_matches(state, field) or (not typed and state.entity_id in semantic) or _netatmo_rain(entry, field):
             found.append(state.entity_id)
     return sorted(found)
 
@@ -189,8 +306,16 @@ def detect_station(states: Sequence[StateLike], registry: Registry, devices: Dev
         return entry.get("platform") == "ecowitt" or bool(re.search("ecowitt", device.get("manufacturer") or "", re.IGNORECASE)) \
             or bool(re.search(r"(?:ecowitt|gw\d{3,4}|wh\d{2}|ws\d{2})", text(entity_id)))
 
-    temperature = options.get("temperature_entity") or _unique_best(candidates(states, "temperature_entity", registry, options),
+    temperature = options.get("temperature_entity") or _unique_best(candidates(states, "temperature_entity", registry, options, devices),
                                                                     lambda i: 100 if is_ecowitt(i) else 0)
+    model = options.get("station_model")
+    # A Netatmo station is proposed when nothing was chosen yet and no Ecowitt thermometer stands out.
+    fresh = model is None and not any(options.get(f) for f in STATION_FIELDS) and not (temperature and is_ecowitt(temperature))
+    if model == NETATMO or (fresh and netatmo_station(devices, None)):
+        selected = detect_netatmo(states, registry, devices, options)
+        if model is None and selected:
+            selected["station_model"] = NETATMO
+        return _with_air(states, registry, devices, options, selected)
     device = options.get("station_device_id") or ((registry.get(temperature) or {}).get("device_id") if temperature else None)
     if device:
         selected["station_device_id"] = device
@@ -211,6 +336,11 @@ def detect_station(states: Sequence[StateLike], registry: Registry, devices: Dev
         best = _unique_best(ids, score)
         if best:
             selected[field] = best
+    return _with_air(states, registry, devices, options, selected)
+
+
+def _with_air(states: Sequence[StateLike], registry: Registry, devices: Devices, options: Mapping[str, Any],
+              selected: dict[str, Any]) -> dict[str, Any]:
     selected.update(atmo.detect(states, registry, options, devices))
     if options.get("pollens") is None and options.get("pollen_source") == "legacy":
         found = polleninfo.detect(states, registry, options.get("pollen_provider") or polleninfo.POLLENINFORMATION)
@@ -288,11 +418,11 @@ def fill(states: Sequence[StateLike], registry: Registry, devices: Devices, opti
         detected: dict[str, Any] = dict(detect_sources(states, registry, search))
     else:
         found = detect_station(states, registry, devices, search)
-        keys = [*CATEGORY_FIELDS[category], *(("station_device_id",) if category == "station" else ()),
+        keys = [*CATEGORY_FIELDS[category], *(("station_device_id", "station_model") if category == "station" else ()),
                 *(("atmo_area", "pollen_source", "pollens", "pollen_risk_entity") if category == "atmo" else ())]
         detected = {k: found[k] for k in keys if k in found and not (k == "station_device_id" and search.get(k) == "")}
         # A chosen generic station can expose renamed sensors through their physical type.
-        if category == "station" and search.get("station_device_id"):
+        if category == "station" and search.get("station_device_id") and not netatmo_module(devices.get(search["station_device_id"])):
             for field in ("temperature_entity", "humidity_entity", "pressure_entity", "illuminance_entity", "solar_radiation_entity"):
                 if search.get(field) is not None or field in detected:
                     continue
@@ -307,7 +437,8 @@ def fill(states: Sequence[StateLike], registry: Registry, devices: Devices, opti
 
 # ---- Station models, for the form ----
 
-STATION_MODELS = {"gw2000a": "Ecowitt GW2000A", "ws90": "Shelly / Ecowitt WS90 — Zigbee2MQTT", "manual": "Autre station / configuration manuelle"}
+STATION_MODELS = {"gw2000a": "Ecowitt GW2000A", "ws90": "Shelly / Ecowitt WS90 — Zigbee2MQTT", NETATMO: "Netatmo",
+                  "manual": "Autre station / configuration manuelle"}
 STATION_GROUPS = (("station_temperature", "Température et humidité"), ("station_rain", "Pluie"), ("station_wind", "Vent"),
                   ("station_sun", "Soleil"), ("station_specific", "Spécifiques"))
 
@@ -325,6 +456,11 @@ def selected_station_model(options: Mapping[str, Any]) -> str:
 
 def station_groups(model: str) -> list[tuple[str, str, tuple[str, ...]]]:
     """The station's fields grouped by subject, only those its model has."""
+    if model == NETATMO:
+        # Only what a Netatmo station measures; a subject it has no module for is left out.
+        fields = (("temperature_entity", "humidity_entity"), ("rain_rate_entity", "daily_rain_entity", "rain_total_entity"),
+                  ("wind_speed_entity", "wind_gust_entity", "wind_bearing_entity"), (), ("pressure_entity",))
+        return [(name, title, group) for (name, title), group in zip(STATION_GROUPS, fields) if group]
     rain = (("rain_rate_entity", "daily_rain_entity", "rain_24h_entity", "weekly_rain_entity", "monthly_rain_entity", "yearly_rain_entity", "event_rain_entity")
             if model == "gw2000a" else ("rain_rate_entity", "rain_total_entity") if model == "ws90"
             else ("rain_rate_entity", "rain_total_entity", "daily_rain_entity", "rain_24h_entity", "weekly_rain_entity", "monthly_rain_entity",
@@ -343,6 +479,8 @@ def station_profile(states: Sequence[StateLike], registry: Registry, devices: De
     by_id = {s.entity_id: s for s in states}
     entries = [(i, e) for i, e in registry.items() if e.get("device_id") == device_id]
     device = devices.get(device_id or "") or {}
+    if netatmo_module(device):
+        return "Netatmo"
     text = " ".join([str(device.get("name") or ""), str(device.get("name_by_user") or ""), str(device.get("manufacturer") or ""),
                      *(sensor_text(by_id[i], e) for i, e in entries if i in by_id)]).lower()
     if "ws90" in text:
@@ -354,7 +492,7 @@ def station_profile(states: Sequence[StateLike], registry: Registry, devices: De
 
 def model_devices(states: Sequence[StateLike], registry: Registry, devices: Devices, model: str) -> list[str]:
     ids = list(dict.fromkeys([*devices, *(e.get("device_id") for e in registry.values() if e.get("device_id"))]))
-    prefix = {"gw2000a": "GW2000", "ws90": "WS90"}.get(model, "")
+    prefix = {"gw2000a": "GW2000", "ws90": "WS90", NETATMO: "Netatmo"}.get(model, "")
     return [i for i in ids if station_profile(states, registry, devices, i).startswith(prefix)]
 
 
@@ -384,7 +522,7 @@ def station_report(states: Sequence[StateLike], registry: Registry, devices: Dev
     detected = detect_station(states, registry, devices, options)
     fields = []
     for field in STATION_FIELDS:
-        ids = candidates(states, field, registry, options)
+        ids = candidates(states, field, registry, options, devices)
         entity = options.get(field) or detected.get(field)
         if entity:
             status = "recognized" if entity in by_id and function_matches(by_id[entity], field, registry.get(entity)) else "invalid"

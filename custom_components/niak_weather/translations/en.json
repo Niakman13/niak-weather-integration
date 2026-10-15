@@ -332,6 +332,7 @@
       "options": {
         "gw2000a": "Ecowitt GW2000A",
         "ws90": "Shelly / Ecowitt WS90 (Zigbee2MQTT)",
+        "netatmo": "Netatmo",
         "manual": "Other station",
         "none": "No station"
       }

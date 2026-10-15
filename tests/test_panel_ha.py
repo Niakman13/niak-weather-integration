@@ -109,3 +109,72 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NetatmoTests(unittest.IsolatedAsyncioTestCase):
+    """A Netatmo station as its integration registers it: one device per module, linked to the station, some sensors disabled."""
+
+    async def asyncSetUp(self):
+        from homeassistant.config_entries import ConfigEntry
+        self.directory = tempfile.TemporaryDirectory()
+        self.hass = HomeAssistant(self.directory.name)
+        self.hass.config_entries = ConfigEntries(self.hass, {})
+        await self.hass.config_entries.async_initialize()
+        await ar.async_load(self.hass)
+        dr.async_setup(self.hass)
+        await dr.async_load(self.hass)
+        await er.async_load(self.hass)
+        netatmo = ConfigEntry(version=1, minor_version=1, domain="netatmo", title="Netatmo", data={}, source="user", options={},
+                              unique_id="netatmo", discovery_keys={}, subentries_data=None)
+        self.hass.config_entries._entries[netatmo.entry_id] = netatmo
+        devices, entities = dr.async_get(self.hass), er.async_get(self.hass)
+
+        def device(module: str, name: str, model: str, via=None):
+            return devices.async_get_or_create(config_entry_id=netatmo.entry_id, identifiers={("netatmo", module)}, manufacturer="Netatmo",
+                                               model=model, name=name, via_device_id=via).id
+        home = device("home", "Maison", "Home")
+        main = device("70:ee:50:00:00:01", "Intérieur", "Smart Home Weather station", home)
+        modules = {"out": device("02:00:00:00:00:02", "Jardin", "Smart Outdoor Module", main),
+                   "rain": device("05:00:00:00:00:03", "Pluviomètre", "Smart Rain Gauge", main),
+                   "wind": device("06:00:00:00:00:04", "Anémomètre", "Smart Anemometer", main), "main": main}
+        self.main, self.home = main, home
+        C, MM = {"unit_of_measurement": "°C", "device_class": "temperature"}, {"unit_of_measurement": "mm", "device_class": "precipitation"}
+        for object_id, module, key, value, attributes, disabled in (
+                ("interieur_temperature", "main", "temperature", "21", C, False),
+                ("interieur_pression_atmospherique", "main", "pressure", "1016", {"unit_of_measurement": "mbar", "device_class": "atmospheric_pressure"}, False),
+                ("jardin_temperature", "out", "temperature", "9.4", C, False),
+                ("jardin_humidite", "out", "humidity", "88", {"unit_of_measurement": "%", "device_class": "humidity"}, False),
+                ("pluviometre_precipitations_aujourd_hui", "rain", "sum_rain_24", "3.1", {**MM, "state_class": "total_increasing"}, False),
+                ("pluviometre_precipitations_derniere_heure", "rain", "sum_rain_1", "0.4", {**MM, "state_class": "total"}, True),
+                ("anemometre_vitesse_du_vent", "wind", "windstrength", "14", {"unit_of_measurement": "km/h", "device_class": "wind_speed"}, False),
+                ("anemometre_force_des_rafales", "wind", "guststrength", "31", {"unit_of_measurement": "km/h", "device_class": "wind_speed"}, True)):
+            mac = next(i[1] for i in devices.async_get(modules[module]).identifiers)
+            entry = entities.async_get_or_create("sensor", "netatmo", f"{mac}-{key}", suggested_object_id=object_id, config_entry=netatmo,
+                                                 device_id=modules[module], disabled_by=er.RegistryEntryDisabler.INTEGRATION if disabled else None)
+            if not disabled:
+                self.hass.states.async_set(entry.entity_id, value, attributes)
+        self.hass.states.async_set("weather.maison", "rainy", {"friendly_name": "Maison"})
+
+    async def asyncTearDown(self):
+        await self.hass.async_stop()
+        self.directory.cleanup()
+
+    async def test_a_new_place_proposes_the_netatmo_station_and_says_what_to_enable(self):
+        draft = Draft.start(self.hass, None)
+        self.assertEqual(draft.sources["station_model"], "netatmo")
+        self.assertEqual((draft.sources["temperature_entity"], draft.sources["pressure_entity"], draft.sources["daily_rain_entity"]),
+                         ("sensor.jardin_temperature", "sensor.interieur_pression_atmospherique", "sensor.pluviometre_precipitations_aujourd_hui"))
+        station = draft.view()["station"]
+        self.assertEqual((station["model"], station["profile"], station["device"]), ("netatmo", "Netatmo", self.main))
+        self.assertEqual([d["label"] for d in station["devices"]], ["Aucun appareil — capteurs séparés", "Intérieur"])
+        fields = {f["key"]: f for g in station["groups"] for f in g["fields"]}
+        self.assertIn("sensor.anemometre_force_des_rafales", fields["wind_gust_entity"]["warning"])
+        self.assertIn("Anémomètre", fields["wind_gust_entity"]["warning"])
+        self.assertNotIn("solar_radiation_entity", fields)
+
+    async def test_choosing_netatmo_after_no_station_fills_the_station_again(self):
+        draft = Draft.start(self.hass, None)
+        draft.change({"op": "station", "value": "none"})
+        self.assertEqual(draft.change({"op": "station", "value": "netatmo"}), "")
+        self.assertEqual(draft.sources["humidity_entity"], "sensor.jardin_humidite")
+        self.assertEqual(draft.sources["wind_speed_entity"], "sensor.anemometre_vitesse_du_vent")

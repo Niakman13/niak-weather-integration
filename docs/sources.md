@@ -41,7 +41,7 @@ Niak Weather lit jusqu’à 18 heures et 7 jours, selon ce que le fournisseur do
 
 ## Station météo
 
-Les capteurs peuvent venir de [l’intégration Ecowitt](https://www.home-assistant.io/integrations/ecowitt/) (GW2000A), d’une WS90 via Zigbee2MQTT, ou de n’importe quel appareil, choisis à la main. Niak Weather reconnaît la station et propose ses capteurs ; les listes sont filtrées par type et par unité. Vérifiez que température et humidité sont bien celles de **l’extérieur**, et préférez la pression **relative**.
+Les capteurs peuvent venir de [l’intégration Ecowitt](https://www.home-assistant.io/integrations/ecowitt/) (GW2000A), d’une WS90 via Zigbee2MQTT, d’une station [Netatmo](https://www.home-assistant.io/integrations/netatmo/), ou de n’importe quel appareil, choisis à la main. Niak Weather reconnaît la station et propose ses capteurs ; les listes sont filtrées par type et par unité. Vérifiez que température et humidité sont bien celles de **l’extérieur**, et préférez la pression **relative**.
 
 | Mesure | Utilité |
 | --- | --- |
@@ -54,6 +54,21 @@ Les capteurs peuvent venir de [l’intégration Ecowitt](https://www.home-assist
 | Point de rosée, tendance de température | Gardés tels quels quand la station les donne |
 
 Chaque mesure est facultative. Sans mesure locale, les cadres de la carte utilisent le bulletin et le disent. Un capteur configuré qui devient indisponible n’est pas remplacé en silence : le repli est signalé. Les compteurs semaine et mois sont ceux de la station : ils suivent ses remises à zéro.
+
+### Netatmo
+
+Choisissez **Netatmo** : la station se choisit en entier, par son module principal, et Niak Weather prend chaque mesure dans le bon module, même renommé.
+
+| Module | Mesures prises |
+| --- | --- |
+| Module extérieur | Température, humidité |
+| Module principal (intérieur) | Pression seulement : sa température et son humidité sont celles de la maison |
+| Pluviomètre | Pluie de la dernière heure (« il pleut maintenant »), pluie du jour, qui sert aussi de compteur pour la semaine et le mois |
+| Anémomètre | Vent moyen, rafales, direction en degrés |
+
+Home Assistant livre trois de ces capteurs **désactivés** : rafales, angle du vent et pluie de la dernière heure. L’onglet Météo les signale ; activez-les dans **Paramètres → Appareils**, puis **Rechercher à nouveau les capteurs**. Sans eux, pas d’alerte de vent fort ni de pluie mesurée en ce moment.
+
+La pluie de la dernière heure reste positive jusqu’à une heure après l’averse : la carte dit « il pleut » un peu plus longtemps qu’avec une station qui mesure l’intensité. Les modules intérieurs et les stations publiques Netatmo ne sont jamais pris.
 
 Toutes les unités sont converties avant calcul (°F, m/s, mph, pouces, Pa…). Une valeur inconnue, indisponible ou vide ne devient jamais un zéro.
 
@@ -105,7 +120,7 @@ Les clés sont les mêmes que dans le YAML de la carte avant la 2.0 : les régla
 | `vigilance_entity` | Vigilance Météo-France du département |
 | `season_entity` | Capteur de l’intégration Saison |
 | `sun_entity`, `sun_elevation_entity` | Soleil, si ce n’est pas `sun.sun` |
-| `station_model` | `gw2000a`, `ws90` ou `manual` |
+| `station_model` | `gw2000a`, `ws90`, `netatmo` ou `manual` |
 | `station_history` | Calculer les cumuls de pluie et la rafale du jour depuis l’historique quand la station ne les donne pas (activé) |
 | `temperature_entity`, `humidity_entity`, `dew_point_entity`, `temperature_trend_entity` | Température, humidité, point de rosée, tendance en °C/h |
 | `wind_speed_entity`, `wind_gust_entity`, `wind_bearing_entity`, `max_daily_gust_entity` | Vent moyen, rafales, direction, rafale maximale du jour |
