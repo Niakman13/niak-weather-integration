@@ -1,6 +1,6 @@
 {
   "name": "niak-weather-card",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "private": true,
   "description": "The Niak Weather card, served by the integration on every dashboard",
   "type": "module",
@@ -9,6 +9,7 @@
     "check": "tsc --noEmit",
     "test": "vitest run",
     "test:browser": "npm run build && node scripts/browser-qa.mjs",
+    "test:loading": "node scripts/test-loading.mjs",
     "preview:weather": "npm run build && node scripts/preview-current-weather.mjs",
     "validate": "npm run check && npm run test && npm run build",
     "visual:capture": "npm run build && node scripts/visual/visual.mjs capture",
@@ -27,6 +28,7 @@
     "@axe-core/playwright": "^4.13.0",
     "@mdi/js": "^7.4.47",
     "@vitest/coverage-v8": "^4.1.11",
+    "@webcomponents/scoped-custom-element-registry": "0.0.10",
     "esbuild": "^0.25.0",
     "pixelmatch": "^7.2.0",
     "playwright": "^1.63.0",

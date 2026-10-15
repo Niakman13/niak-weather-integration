@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from .families import STATION_DEPENDENT
 
 STALE_FORECAST = 90
 """Minutes after which a forecast that should come every 15 minutes is old."""
@@ -126,6 +127,10 @@ def report(f: Facts) -> dict:
                           ", ".join(s.label for s in broken) + (f" ·{when}" if when else "") + ".", 1))
     for key, text in f.needs.items():
         if key in enabled:
+            if key in STATION_DEPENDENT:
+                if f.station:
+                    tips.append(_line("tip", f"Compléter : {names.get(key, key)}", f"Facultatif : {text} permet cette fonction.", 1))
+                continue
             todo.append(_line("bad", f"{names.get(key, key)} : active sans source", f"Il faut {text} : elle reste vide.", NEED_STAGE.get(key, 1)))
     if f.card_twice:
         todo.append(_line("bad", "Carte installée deux fois", "Retirez la carte Niak Weather de HACS : l’intégration la fournit maintenant.", None))
@@ -134,7 +139,7 @@ def report(f: Facts) -> dict:
     if not f.station:
         tips.append(_line("tip", "Ajouter une station météo",
                           "Sans station, la température, la pluie et le vent viennent du service météo, à quelques kilomètres. "
-                          "Une station mesure chez vous et déclenche les alertes de pluie et de vent.", 1))
+                          "Facultative, une station ajoute les mesures chez vous, les cumuls de pluie et les fonctions liées à ses capteurs.", 1))
     else:
         for key, label, name in f.unused:
             tips.append(_line("tip", f"Ajouter : {label[:1].lower()}{label[1:]}", f"Votre station en a un (« {name} ») : {GAINS.get(key, 'une mesure de plus')}.", 1))

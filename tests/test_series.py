@@ -144,3 +144,21 @@ def test_stays_silent_when_nothing_notable_happens_or_data_is_missing() -> None:
     assert status(0, 4, Direction.STEADY) == ColumnStatus()
     assert status(None, None, None) == ColumnStatus()
     assert column_status(None) == ColumnStatus()
+
+
+def test_recorded_weather_attributes_convert_each_rows_units_and_preserve_outages():
+    from types import SimpleNamespace
+    from engine.series import weather_history, weather_history_key
+    def row(offset, state='sunny', **attrs):
+        return SimpleNamespace(state=state, last_updated=datetime.fromtimestamp(NOW.timestamp() + offset, timezone.utc), attributes=attrs)
+    history = weather_history('weather.home', [
+        row(-3600, wind_speed=10, wind_gust_speed=20, wind_speed_unit='m/s', pressure=101000, pressure_unit='Pa'),
+        row(-1800, wind_speed=10, wind_speed_unit='km/h', pressure=1011, pressure_unit='hPa'),
+        row(-1200, state='unavailable', wind_speed=999, pressure=999),
+        row(-600, wind_speed=12, pressure=1012),
+    ])
+    def readings(attribute):
+        return [c.state for c in history[weather_history_key('weather.home', attribute)]]
+    assert readings('wind_speed') == ['36.0', '10.0', 'unavailable', '12.0']
+    assert readings('wind_gust_speed') == ['72.0', 'unavailable', 'unavailable', 'unavailable']
+    assert readings('pressure') == ['1010.0', '1011.0', 'unavailable', '1012.0']

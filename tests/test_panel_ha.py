@@ -104,6 +104,34 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(status["level"], "action")
         self.assertIn("onglet Météo", status["details"][0])
 
+    async def test_optional_station_sources_do_not_raise_alerts_on_either_home_page(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from homeassistant.config_entries import ConfigEntryState
+        from custom_components.niak_weather.engine.health import Facts
+        from custom_components.niak_weather.engine.home import status
+        from custom_components.niak_weather.engine.families import STATION_DEPENDENT
+        from custom_components.niak_weather.panel import place
+        f = Facts(title='Gardanne', weather='Météo-France', forecast_age=5,
+                  entities=tuple((k, k, 'Maintenant', True, False) for k in STATION_DEPENDENT),
+                  needs={k: 'un capteur facultatif' for k in STATION_DEPENDENT})
+        with patch('custom_components.niak_weather.panel.facts', return_value=f):
+            info, overview = place(self.hass, SimpleNamespace(entry_id='test', title='Gardanne', state=ConfigEntryState.LOADED))
+        self.assertEqual(info['health']['level'], 'ok')
+        self.assertEqual(status([overview])['level'], 'ok')
+        self.assertEqual(overview.needs, [])
+
+    async def test_entity_settings_describe_station_sources_as_optional(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from custom_components.niak_weather.engine.families import STATION_DEPENDENT
+        draft = Draft(self.hass, {'weather_entity':'weather.maison'}, SimpleNamespace())
+        with patch('custom_components.niak_weather.draft.entity_keys', return_value={k:True for k in STATION_DEPENDENT}):
+            entities = [e for f in draft.entities()['families'] for e in f['entities']]
+            self.assertEqual(draft.needs(), [])
+        self.assertTrue(entities)
+        self.assertTrue(all(e['optional'] and e['need'].startswith('Source facultative') for e in entities))
+
     async def test_weather_joins_confort_in_the_same_panel(self):
         async def ok(hass):
             return {"level": "ok", "summary": "", "details": [], "links": []}

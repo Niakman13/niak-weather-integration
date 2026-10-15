@@ -4,7 +4,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
-from typing import Literal, NamedTuple, Sequence
+from typing import Any, Literal, NamedTuple, Sequence
 from zoneinfo import ZoneInfo
 
 from .local import LocalWeather
@@ -18,6 +18,32 @@ BRIEF_OUTAGE = 15 * 60
 """A sensor unavailable for less than this (Home Assistant restarting) is not a gap: the curve goes on, as in Home Assistant's history."""
 KNOWN = STEP / 2
 """A ten-minute point needs at least five minutes of readings."""
+
+
+def weather_history_key(entity_id: str, attribute: str) -> str:
+    """Separate the weather entity's numeric attribute histories from its text state."""
+    return f"{entity_id}#{attribute}"
+
+
+def weather_history(entity_id: str, rows: Sequence[Any]) -> dict[str, list[Change]]:
+    """Recorded bulletin values, in engine units. Missing attributes remain gaps.
+
+    Use each historical row's unit, never the current unit or a forecast. Weather
+    state text (sunny/cloudy) cannot be used as a numeric wind or pressure value.
+    """
+    result = {}
+    for attribute, unit, kind in (("wind_speed", "wind_speed_unit", Kind.WIND),
+                                  ("wind_gust_speed", "wind_speed_unit", Kind.WIND),
+                                  ("pressure", "pressure_unit", Kind.PRESSURE)):
+        changes = []
+        for row in rows:
+            if not hasattr(row, "last_updated"):
+                continue
+            attrs = row.attributes
+            value = measurement(attrs.get(attribute), attrs.get(unit), kind) if row.state not in ("unknown", "unavailable") else None
+            changes.append(Change(row.last_updated.timestamp(), str(value) if value is not None and value >= 0 else "unavailable"))
+        result[weather_history_key(entity_id, attribute)] = changes
+    return result
 
 
 class Point(NamedTuple):

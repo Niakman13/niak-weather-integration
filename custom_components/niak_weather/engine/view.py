@@ -20,7 +20,7 @@ from .current import STATION, CurrentWeather, available, current_metrics, curren
 from .forecast import Day, Hour, daily_wind, day_offset, local_day
 from .local import LocalWeather
 from .season import MONTHS, Season, current_season
-from .series import ColumnStatus, Point, column_status, pressure_chart_series, rain_days, wind_chart_series
+from .series import ColumnStatus, Point, column_status, pressure_chart_series, rain_days, wind_chart_series, weather_history_key
 from .settings import Settings
 from .station import Derived, RainDay
 from .trends import Change
@@ -329,6 +329,11 @@ def _measures(get: Getter, settings: Settings, w: LocalWeather, hours: Sequence[
     def source_of(metric: Any) -> str:
         return f"{metric.source}{' · repli' if metric.fallback else ''}" if metric else STATION
 
+    def history_of(entity_id: str | None, attribute: str, unit: str) -> tuple[Sequence[Change], str | None]:
+        if entity_id == settings.weather_entity:
+            return history.get(weather_history_key(entity_id, attribute), ()), unit
+        return history.get(entity_id or "", ()), unit_of(entity_id)
+
     rain = None
     rain_metric = metrics.get("rain")
     if rain_metric or any((settings.rain_total_entity, settings.rain_24h_entity, settings.daily_rain_entity, settings.weekly_rain_entity,
@@ -374,7 +379,7 @@ def _measures(get: Getter, settings: Settings, w: LocalWeather, hours: Sequence[
             entity=entity or settings.weather_entity, rate=read(settings.rain_rate_entity, Kind.RAIN) if settings.rain_rate_entity else None,
             rate_entity=settings.rain_rate_entity, days=days if any(d.value is not None for d in days) else None,
             days_note=f"{'Calculé depuis le compteur total' if counter else 'Maxima enregistrés'}{' · ≥ historique partiel' if any(d.partial for d in days) else ''}",
-            empty="Historique de pluie indisponible" if settings.daily_rain_entity or counter else "Ajoutez le cumul depuis minuit pour afficher l’historique",
+            empty="Historique de pluie indisponible" if settings.daily_rain_entity or counter else "Historique mesuré disponible avec un pluviomètre facultatif",
             stats=tuple(stats))
 
     wind = None
@@ -391,8 +396,10 @@ def _measures(get: Getter, settings: Settings, w: LocalWeather, hours: Sequence[
         maximum = read(settings.max_daily_gust_entity, Kind.WIND)
         if maximum is None and computed_max is not None:
             maximum = computed_max.value
-        mean = wind_chart_series(history.get(wind_entity or "", ()), unit_of(wind_entity), now, value, "peak" if gust_only else "mean")
-        gusts = wind_chart_series(history.get(gust_entity, ()), unit_of(gust_entity), now, gust, "peak") if gust_entity and not gust_only else ()
+        wind_rows, wind_unit = history_of(wind_entity, "wind_speed", "km/h")
+        gust_rows, gust_unit = history_of(gust_entity, "wind_gust_speed", "km/h")
+        mean = wind_chart_series(wind_rows, wind_unit, now, value, "peak" if gust_only else "mean")
+        gusts = wind_chart_series(gust_rows, gust_unit, now, gust, "peak") if gust_entity and not gust_only else ()
         top = max(20, math.ceil(max((p.value or 0 for p in (*mean, *gusts)), default=0) / 10) * 10)
         bearing = wind_metric.bearing if wind_metric else None
         stats = []
@@ -408,14 +415,17 @@ def _measures(get: Getter, settings: Settings, w: LocalWeather, hours: Sequence[
             label="Rafales" if gust_only else "Vent moyen", entity=wind_entity or settings.weather_entity, description=w.wind.beaufort_text,
             bearing=bearing, compass="Direction indisponible" if bearing is None else f"Vent {w.wind.from_name or 'du ' + rose(bearing)}",
             bearing_entity=wind_metric.bearing_entity if wind_metric else None, mean=mean, gust=gusts, top=top,
-            mean_label="Rafales" if gust_only else "Vent moyen", empty="Historique du vent indisponible ou insuffisant", stats=tuple(stats))
+            mean_label="Rafales" if gust_only else "Vent moyen",
+            empty="Historique du service météo absent ou trop court dans Home Assistant" if wind_entity == settings.weather_entity
+                  else "Historique du vent indisponible ou insuffisant", stats=tuple(stats))
 
     pressure = None
     pressure_metric = metrics.get("pressure")
     if pressure_metric or settings.pressure_entity:
         value = pressure_metric.value if pressure_metric and pressure_metric.value is not None else read(settings.pressure_entity, Kind.PRESSURE)
         entity = pressure_metric.entity if pressure_metric else settings.pressure_entity
-        series = pressure_chart_series(history.get(entity or "", ()), unit_of(entity), now, value)
+        pressure_rows, pressure_unit = history_of(entity, "pressure", "hPa")
+        series = pressure_chart_series(pressure_rows, pressure_unit, now, value)
         values = [p.value for p in series if p.value is not None]
         change, minutes = w.pressure_trend.change, w.pressure_trend.minutes
         measured = pressure_metric is not None and pressure_metric.source == STATION
@@ -430,7 +440,8 @@ def _measures(get: Getter, settings: Settings, w: LocalWeather, hours: Sequence[
             description=(w.pressure_trend.text or "Mesurée chez vous") if measured or not pressure_metric else "Pression du bulletin",
             trend=None if change is None or not measured else pressure_trend(change, f"{french(minutes, 0)} min" if minutes and minutes < 150 else "3 h"),
             series=series, low=math.floor(min(values)) - 1 if values else 0, top=math.ceil(max(values)) + 1 if values else 2,
-            empty="Historique de pression indisponible ou insuffisant", stats=tuple(stats))
+            empty="Historique du service météo absent ou trop court dans Home Assistant" if entity == settings.weather_entity
+                  else "Historique de pression indisponible ou insuffisant", stats=tuple(stats))
     return rain, wind, pressure
 
 

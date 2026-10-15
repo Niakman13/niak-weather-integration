@@ -1,9 +1,10 @@
 import { build } from "esbuild";
+import { haCardBuild } from './ha-card-build.mjs';
 
 await build({
   entryPoints: ["src/niak-weather-card.ts"],
   bundle: true,
-  format: "esm",
+  ...haCardBuild,
   target: "es2022",
   minify: true,
   sourcemap: false,

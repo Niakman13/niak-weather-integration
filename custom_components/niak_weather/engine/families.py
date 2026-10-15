@@ -17,6 +17,9 @@ FAMILIES: tuple[tuple[str, tuple[str, ...]], ...] = (
 )
 DEFAULT_FAMILIES = ("maintenant", "alertes", "prochaines_heures")
 _FAMILY = {key: family for family, keys in FAMILIES for key in keys}
+# These enrichments need optional local measurements. Enabling their entities
+# does not make a station mandatory, including after a station is removed.
+STATION_DEPENDENT = frozenset({"uv_fort", "pluie_7j", "rain_24h", "pressure_trend", "max_gust_today", "temperature_trend"})
 
 
 def family_of(key: str) -> str | None:

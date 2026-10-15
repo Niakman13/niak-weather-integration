@@ -11,7 +11,7 @@ export interface Health {title:string;level:'ok'|'action';summary:string;tips_su
 export interface Place {entry_id:string;title:string;loaded:boolean;failed:boolean;health:Health}
 export interface Places {places:Place[];can_add:boolean}
 export interface Species extends Entity {label:string;chosen:boolean}
-export interface EntityItem {key:string;name:string;hint:string;enabled:boolean;need:string}
+export interface EntityItem {key:string;name:string;hint:string;enabled:boolean;need:string;optional?:boolean}
 export interface Family {key:string;name:string;hint?:string;chosen?:boolean;entities?:EntityItem[]}
 export interface View {
  title:string;

@@ -8,6 +8,7 @@ import asyncio
 from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from functools import partial
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -30,6 +31,7 @@ from .engine.compute import compute
 from .engine.forecast import Day, Hour, Units, engine_rows, parse_days, parse_hours
 from .engine.local import LocalWeather
 from .engine.settings import Settings
+from .engine.series import weather_history
 from .engine.station import Derived, Statistic, midnight
 from .engine.trends import Change
 from .engine.view import to_json
@@ -241,20 +243,26 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
     async def _states_during(self, start: datetime, entity_ids: list[str]) -> dict[str, list[Change]]:
         """Every recorded state change since `start` (with the state just before it), from the Recorder."""
         try:
+            with_weather = self.settings.weather_entity in entity_ids
             result = await get_instance(self.hass).async_add_executor_job(
-                history.get_significant_states, self.hass, start, dt_util.utcnow(), entity_ids, None, True, False, False, True)
+                partial(history.get_significant_states, self.hass, start, dt_util.utcnow(), entity_ids,
+                        include_start_time_state=True, significant_changes_only=False,
+                        minimal_response=False, no_attributes=not with_weather))
         except Exception as err:  # noqa: BLE001 - history is optional: a Recorder failure must never stop the weather
             # The Recorder may also exclude these sensors: no trend is invented, the card says it is being measured.
             LOGGER.warning("History unavailable for %s: %s", ", ".join(entity_ids), err)
             return {}
-        return {entity_id: [Change(state.last_updated.timestamp(), state.state) for state in states if hasattr(state, "last_updated")]
-                for entity_id, states in result.items()}
+        changes = {entity_id: [Change(state.last_updated.timestamp(), state.state) for state in states if hasattr(state, "last_updated")]
+                   for entity_id, states in result.items()}
+        if with_weather:
+            changes.update(weather_history(self.settings.weather_entity, result.get(self.settings.weather_entity, ())))
+        return changes
 
     async def _load_history(self) -> None:
         """Six hours of pressure and wind for the charts and trends; today's gusts and the last hour of temperature when the station has no sensor for them."""
         s, now = self.settings, dt_util.utcnow()
         derived = s.station_history
-        ids = sorted({s.pressure_entity, s.wind_speed_entity, s.wind_gust_entity,
+        ids = sorted({s.weather_entity, s.pressure_entity, s.wind_speed_entity, s.wind_gust_entity,
                       s.temperature_entity if derived and not s.temperature_trend_entity else None} - {None, ""})
         if not ids:
             self.history = {}

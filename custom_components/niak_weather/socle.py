@@ -9,18 +9,20 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from urllib.parse import unquote, urlsplit
 
 import voluptuous as vol
 from homeassistant.components import frontend, websocket_api
 from homeassistant.components.panel_custom import async_register_panel
 from homeassistant.helpers.start import async_at_started
 
-SOCLE_VERSION = (1, 3)
+SOCLE_VERSION = (1, 4)
 # 1.1: an optional `tab`, the tab's own name when it is not the brick's (« Météo » for Niak Weather).
 # 1.2: async_register_card, the brick's card on every dashboard, also as a dashboard resource.
 # 1.3: the home page says « À découvrir » and « Voir » for the bricks not installed (same contract as 1.2).
+# 1.4: guarded card bundles, extra module only as fallback, encoded resource migration.
 # The shell's custom element carries its version: two copies never fight over one name.
-ELEMENT = "niak-socle-1-3"
+ELEMENT = "niak-socle-1-4"
 KEY = "niak_socle"
 PANEL = "niak"
 TITLE = "Niak"
@@ -73,18 +75,18 @@ async def _legacy_panel(hass, brick, shell_url):
 async def async_register_card(hass, url, version):
     """The brick's card on every dashboard, at the brick's version (`url` without query: /niak_x-assets/niak-x-card.js).
 
-    Loaded twice on purpose. As an extra module, with Home Assistant's page: it works with resources written in YAML.
-    As a dashboard resource, which the frontend always asks the server for: the Companion app shows a cached copy of
-    the page after an update, which knows no new module, but it still finds the card. Both are the same address, so the
-    browser loads the file once; the card defines its elements only when missing anyway.
+    Prefer the dashboard resource collection. YAML collections cannot be edited:
+    only there (or on registration failure) use an extra module. Every card bundle
+    must wait for home-assistant before executing, including Lit and decorators
+    (card-build.mjs), so this fallback and cached older index pages are safe too.
     """
-    frontend.add_extra_js_url(hass, f"{url}?v={version}")
-
     async def resource(_hass):
         try:
-            await _card_resource(hass, url, f"{url}?v={version}")
-        except Exception:  # noqa: BLE001 - the extra module still loads the card
+            if await _card_resource(hass, url, f"{url}?v={version}"):
+                return
+        except Exception:  # noqa: BLE001 - fall back to the guarded card bundle
             _LOGGER.warning("Ressource de tableau de bord %s non enregistrée", url, exc_info=True)
+        frontend.add_extra_js_url(hass, f"{url}?v={version}")
 
     async_at_started(hass, resource)
 
@@ -96,21 +98,31 @@ def _resources(hass):
     return resources if hasattr(resources, "async_create_item") else None
 
 
+def is_card_resource(candidate, url):
+    """Recognize only this local asset, including percent-encoded workarounds."""
+    try:
+        parsed = urlsplit(str(candidate))
+        return not parsed.scheme and not parsed.netloc and unquote(parsed.path) == url
+    except ValueError:
+        return False
+
+
 async def _card_resource(hass, url, wanted):
     """One resource for the card, at its current address: created, updated after a new version, duplicates removed."""
     resources = _resources(hass)
     if resources is None:
-        return
+        return False
     if not getattr(resources, "loaded", True):
         await resources.async_load()
         resources.loaded = True
-    mine = [item for item in resources.async_items() if str(item.get("url", "")).split("?")[0] == url]
+    mine = [item for item in resources.async_items() if is_card_resource(item.get("url", ""), url)]
     for extra in mine[1:]:
         await resources.async_delete_item(extra["id"])
     if not mine:
         await resources.async_create_item({"res_type": "module", "url": wanted})
-    elif mine[0].get("url") != wanted:
+    elif mine[0].get("url") != wanted or mine[0].get("type") != "module":
         await resources.async_update_item(mine[0]["id"], {"res_type": "module", "url": wanted})
+    return True
 
 
 async def async_remove_card(hass, url):
@@ -121,7 +133,7 @@ async def async_remove_card(hass, url):
     if not getattr(resources, "loaded", True):
         await resources.async_load()
         resources.loaded = True
-    for item in [i for i in resources.async_items() if str(i.get("url", "")).split("?")[0] == url]:
+    for item in [i for i in resources.async_items() if is_card_resource(i.get("url", ""), url)]:
         await resources.async_delete_item(item["id"])
 
 
