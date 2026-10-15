@@ -33,14 +33,44 @@ def sensor(state: Any, unit: str = "", **attributes: Any) -> State:
     return State(str(state), {"unit_of_measurement": unit, **attributes})
 
 
-def view(options: dict[str, Any], states: dict[str, State], derived: Derived | None = None, days=(), adjust=None):
+def view(options: dict[str, Any], states: dict[str, State], derived: Derived | None = None, days=(), adjust=None, history=None):
     every = {"weather.home": WEATHER, "sun.sun": State("above_horizon", {"elevation": 20}), **states}
     settings = Settings.from_options({"weather_entity": "weather.home", "location": "Gardanne", **options})
-    w = build_local(every.get, settings, [], {}, NOW, PARIS)
+    w = build_local(every.get, settings, [], history or {}, NOW, PARIS)
     if adjust:
         w = adjust(w)
     brief = build_brief(w, settings, every.get, [], list(days), NOW, PARIS)
-    return build_view(every.get, settings, w, brief, [], list(days), {}, {}, derived, NOW, PARIS, 43.45)
+    return build_view(every.get, settings, w, brief, [], list(days), history or {}, {}, derived, NOW, PARIS, 43.45)
+
+
+def test_weather_only_charts_use_recorded_attributes_and_keep_the_provider_label():
+    from engine.trends import Change
+    from engine.series import weather_history_key
+    history = {weather_history_key("weather.home", field): [Change(NOW.timestamp() - 6 * 3600, str(value))]
+               for field, value in (("wind_speed", 12), ("wind_gust_speed", 20), ("pressure", 1010))}
+    v = view({}, {"weather.home": State(WEATHER.state, {**WEATHER.attributes, "wind_gust_speed": 18})}, history=history)
+    assert v.wind.source == v.pressure.source == "Météo-France"
+    assert len([p for p in v.wind.mean if p.value is not None]) > 2
+    assert v.wind.mean[0].value == 12 and v.wind.gust[0].value == 20
+    assert v.pressure.series[0].value == 1010
+    assert v.pressure.description == "Pression du bulletin"  # not a local measurement
+    assert v.pressure.trend is None  # station-derived sensors retain their own meaning
+
+
+def test_weather_history_never_replaces_a_station_chart_or_invents_an_absent_history():
+    from engine.trends import Change
+    from engine.series import weather_history_key
+    start = NOW.timestamp() - 6 * 3600
+    history = {weather_history_key("weather.home", "wind_speed"): [Change(start, "99")],
+               weather_history_key("weather.home", "pressure"): [Change(start, "900")],
+               "sensor.wind": [Change(start, "4")], "sensor.pressure": [Change(start, "1013")]}
+    v = view({"wind_speed_entity": "sensor.wind", "pressure_entity": "sensor.pressure"},
+             {"sensor.wind": sensor(4, "km/h"), "sensor.pressure": sensor(1013, "hPa")}, history=history)
+    assert v.wind.mean[0].value == 4 and v.pressure.series[0].value == 1013
+    empty = view({}, {})
+    assert empty.wind.mean == empty.pressure.series == ()
+    assert "service météo" in empty.wind.empty and "Home Assistant" in empty.pressure.empty
+    assert "facultatif" in empty.rain.empty
 
 
 def test_keeps_the_town_of_a_meteo_france_entity_and_short_names_as_they_are() -> None:

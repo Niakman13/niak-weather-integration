@@ -26,7 +26,7 @@ SIMPLE = frozenset({"weather_entity", "location", "vigilance_entity", "season_en
                     "forecast_source", "station_history", "pollen_risk_entity", *detection.STATION_FIELDS})
 RECOMMENDED = frozenset({"temperature_entity", "humidity_entity", "rain_rate_entity", "wind_gust_entity", "wind_bearing_entity"})
 HELP = {
-    "weather_entity": "Les prévisions heure par heure et jour par jour. Météo-France de préférence ; Niak Weather les corrige avec votre station.",
+    "weather_entity": "Les prévisions heure par heure et jour par jour. Météo-France de préférence. Une station facultative ajoute les mesures chez vous.",
     "vigilance_entity": "Les alertes officielles du département s’ajoutent à celles que calcule Niak.",
     "season_entity": "Sans capteur, la saison suit la date.",
     "temperature_entity": "La température dehors, à l’ombre.",
@@ -341,12 +341,13 @@ class Draft(_SourceSteps):
         return {"new": False, "families": [
             {"key": f, "name": family_label(f)[0], "entities": [
                 {"key": k, "name": entity_label(k)[0], "hint": entity_label(k)[1], "enabled": present[k],
-                 "need": f"Il faut {needs[k]}." if k in needs else ""} for k in keys if k in present]}
+                 "need": (f"Source facultative : {needs[k]}." if k in families.STATION_DEPENDENT else f"Il faut {needs[k]}.") if k in needs else "",
+                 "optional": k in families.STATION_DEPENDENT} for k in keys if k in present]}
             for f, keys in families.FAMILIES if any(k in present for k in keys)]}
 
     def needs(self) -> list[str]:
         """What the enabled (or, for a new place, chosen) entities still miss."""
-        needs = families.needs(_settings(self.sources))
+        needs = {k: t for k, t in families.needs(_settings(self.sources)).items() if k not in families.STATION_DEPENDENT}
         if self.entry is None:
             chosen = set(self.sources.get("families") or [])
             return [needs_text(k, t) for k, t in needs.items() if families.family_of(k) in chosen]

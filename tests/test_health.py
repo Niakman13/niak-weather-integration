@@ -52,6 +52,24 @@ def test_without_a_station_a_station_is_the_first_tip_not_an_error():
     assert r["sources"][2] == {"label": "Station", "level": "none", "text": "pas de station"}
 
 
+def test_removing_a_station_does_not_turn_its_enabled_enrichments_into_errors():
+    from engine.families import STATION_DEPENDENT, needs
+    from engine.settings import Settings
+    entities = tuple((key, key, "Maintenant", True, False) for key in STATION_DEPENDENT)
+    r = report(place(station="", sensors=[], entities=entities, needs=needs(Settings(weather_entity="weather.home"))))
+    assert r["level"] == "ok" and r["todo"] == []
+    assert r["tips"][0]["text"] == "Ajouter une station météo"
+    assert "Facultative" in r["tips"][0]["why"]
+    assert all(e["level"] != "bad" for e in r["entities"])
+
+
+def test_a_partial_station_does_not_require_every_optional_sensor():
+    entities = (("uv_fort", "UV forts", "Alertes", True, False),)
+    r = report(place(entities=entities, needs={"uv_fort": "un capteur UV"}))
+    assert r["level"] == "ok" and r["todo"] == []
+    assert r["tips"][0]["text"] == "Compléter : UV forts"
+
+
 def test_tips_name_what_home_assistant_already_has():
     r = report(place(unused=[("pressure_entity", "Pression", "GW2000A Relative Pressure")], vigilance="", vigilance_found="Gardanne 13 Weather alert",
                      air="", atmo_installed=False, pollen="", pollen_available=True, ready_families=["Jardin"], history=False))

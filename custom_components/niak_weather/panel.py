@@ -8,6 +8,7 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote
 
 import voluptuous as vol
 
@@ -24,7 +25,7 @@ from .draft import Draft, ecosystem_of, entity_keys, entity_label, family_label,
 from .engine import atmo, detection, families, health, home, polleninfo
 from .engine.settings import Settings
 from .websocket import VERSION_KEY
-from .socle import async_register_brick, async_register_card
+from .socle import async_register_brick, async_register_card, is_card_resource
 
 ASSETS = f"/{DOMAIN}-assets"
 CARD_REPOSITORY = "Niakman13/niak-weather"
@@ -41,7 +42,7 @@ async def async_setup_panel(hass: HomeAssistant, version: str) -> None:
         await hass.http.async_register_static_paths([StaticPathConfig(ASSETS, str(Path(__file__).parent / "frontend"), False)])
         for command in (ws_places, ws_open, ws_change, ws_save):
             websocket_api.async_register_command(hass, command)
-        # The card on every dashboard, always at the integration's version (an extra module and a dashboard resource).
+        # Dashboard resource, with a guarded extra-module fallback for YAML resources.
         await async_register_card(hass, CARD_URL, version)
         hass.data[f"{DOMAIN}_panel"] = True
     await async_register_brick(hass, {
@@ -160,7 +161,7 @@ def place(hass: HomeAssistant, entry: Any, card_twice: bool = False) -> tuple[di
     status = home.Place(title=entry.title, loaded=not f.failed, station=len(f.sensors),
                         silent=[s.label for s in f.sensors if s.status != "ok"],
                         forecast=f.restarting or f.failed or f.forecast_age is not None,
-                        needs=[needs_text(k, t) for k, t in f.needs.items() if k in enabled], links=f.links)
+                        needs=[needs_text(k, t) for k, t in f.needs.items() if k in enabled and k not in families.STATION_DEPENDENT], links=f.links)
     return info, status
 
 
@@ -177,7 +178,7 @@ async def card_twice(hass: HomeAssistant) -> bool:
             if not getattr(resources, "loaded", True):
                 await resources.async_get_info()  # Resources kept by the UI load on first use.
             urls = [str(item.get("url", "")) for item in resources.async_items() or []]
-            if any(CARD_FILE in u and not u.startswith(CARD_URL) for u in urls):
+            if any(CARD_FILE in unquote(u) and not is_card_resource(u, CARD_URL) for u in urls):
                 return True
         hacs = hass.data.get("hacs")
         repository = hacs.repositories.get_by_full_name(CARD_REPOSITORY) if hacs is not None else None

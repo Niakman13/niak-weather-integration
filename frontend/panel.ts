@@ -203,9 +203,9 @@ export class WeatherSetup extends LitElement {
   const flip=(key:string,on:boolean)=>{this.enabled=on?[...this.enabled,key]:this.enabled.filter(k=>k!==key);};
   return html`<p class="muted">Une entité décochée disparaît de Home Assistant.</p>
    ${e.families.map(f=>{const items=f.entities??[];const on=items.filter(i=>this.enabled.includes(i.key)).length;
-    return html`<details class="group" ?open=${items.some(i=>i.need&&this.enabled.includes(i.key))}><summary><strong>${f.name}</strong><span class="hint">${on} sur ${items.length}</span></summary>
+    return html`<details class="group" ?open=${items.some(i=>i.need&&!i.optional&&this.enabled.includes(i.key))}><summary><strong>${f.name}</strong><span class="hint">${on} sur ${items.length}</span></summary>
      ${items.map(i=>html`<label class="check"><input type="checkbox" .checked=${this.enabled.includes(i.key)} @change=${(ev:Event)=>flip(i.key,(ev.target as HTMLInputElement).checked)}>
-      <span>${i.name}${i.hint?html`<span class="hint">${i.hint}</span>`:nothing}${i.need?html`<span class="warn">${i.need}</span>`:nothing}</span></label>`)}</details>`;})}
+      <span>${i.name}${i.hint?html`<span class="hint">${i.hint}</span>`:nothing}${i.need?html`<span class=${i.optional?'hint':'warn'}>${i.need}</span>`:nothing}</span></label>`)}</details>`;})}
    ${this.bottom()}`;
  }
  private recap(v:View){

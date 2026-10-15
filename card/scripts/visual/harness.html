@@ -10,6 +10,7 @@
 </style></head>
 <body><div id="stage"></div>
 <script type="module">
+  customElements.define('home-assistant', class extends HTMLElement {});
   const icons = await fetch('/icons.json').then(r => r.json());
   // Comme Home Assistant : ha-icon est en ligne, son icône intérieure est une boîte inline-flex.
   customElements.define('ha-icon', class extends HTMLElement {
