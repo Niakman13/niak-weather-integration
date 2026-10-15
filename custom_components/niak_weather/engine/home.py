@@ -19,7 +19,7 @@ class Place:
     forecast: bool = True
     """Whether the weather service gave its forecast."""
     needs: Sequence[str] = ()
-    """Enabled entities still missing their source, as « Vigilance : il faut la vigilance Météo-France »."""
+    """Enabled entities still missing their source, as « Vigilance : il faut la vigilance officielle »."""
     links: Sequence[str] = ()
     """The Niak bricks listening to this place, by name."""
 

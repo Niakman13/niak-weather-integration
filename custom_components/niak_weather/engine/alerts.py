@@ -123,6 +123,12 @@ def ticker_points(brief: Brief | None) -> list[Point]:
 
 def vigilance_parts(text: str) -> tuple[str | None, str]:
     """« Vigilance jaune · vent violent » → level above (« Vigilance jaune »), phenomena below (« Vent violent »)."""
+    if text.startswith("MétéoSuisse · "):
+        parts = text.split(" · ", 2)
+        if len(parts) != 3:
+            return None, text
+        _, level, detail = parts
+        return f"MétéoSuisse · {level}", detail[0].upper() + detail[1:] if detail else ""
     level, _, detail = text.partition(" · ")
     if level in ("Vigilance jaune", "Vigilance orange", "Vigilance rouge") and detail:
         return level, detail[0].upper() + detail[1:]
@@ -132,7 +138,8 @@ def vigilance_parts(text: str) -> tuple[str | None, str]:
 # The first phenomenon of a vigilance gives its icon (Météo-France's names, lower case, accents optional).
 PHENOMENON_ICONS = (("orage", "mdi:weather-lightning"), ("vent", "mdi:weather-windy"), ("pluie", "mdi:weather-pouring"), ("crue", "mdi:home-flood"),
                     ("inondation", "mdi:home-flood"), ("neige", "mdi:snowflake"), ("verglas", "mdi:snowflake"), ("canicule", "mdi:thermometer-high"),
-                    ("grand froid", "mdi:snowflake-thermometer"), ("avalanche", "mdi:landslide"), ("vague", "mdi:waves"), ("submersion", "mdi:waves"))
+                    ("grand froid", "mdi:snowflake-thermometer"), ("avalanche", "mdi:landslide"), ("vague", "mdi:waves"), ("submersion", "mdi:waves"),
+                    ("feux", "mdi:fire"), ("séisme", "mdi:earth"), ("sécheresse", "mdi:water-off"), ("dégel", "mdi:snowflake-melt"), ("gel", "mdi:snowflake"))
 
 
 def phenomenon_icon(detail: str) -> str:

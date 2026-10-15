@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from typing import Any, Callable, Mapping, Sequence
 from zoneinfo import ZoneInfo
 
-from . import atmo, polleninfo
+from . import atmo, polleninfo, swiss
 from .forecast import Day, Hour
 from .local import LocalWeather
 from .settings import Settings
@@ -95,10 +95,26 @@ class Vigilance:
     """0 green to 3 red."""
     phenomena: tuple[tuple[str, int], ...]
     """Each phenomenon above green with its own level, the most serious first."""
+    warnings: tuple[swiss.Warning, ...] = ()
+    source: str = "Météo-France"
+
+    @property
+    def extra(self) -> dict[str, Any]:
+        values: dict[str, Any] = {"phenomenes": {k: COLOR_NAMES[c] for k, c in self.phenomena}}
+        if self.source == "MétéoSuisse":
+            values.update(fournisseur=self.source, degre=max((w.degree for w in self.warnings), default=1), echelle=5,
+                          degres_phenomenes={w.name: w.degree for w in reversed(self.warnings)},
+                          alertes=[{"phenomene": w.name, "degre": w.degree, "debut": w.start, "fin": w.end, "texte": w.text}
+                                   for w in self.warnings])
+        return values
 
     @property
     def text(self) -> str:
         """One text for every format: « Vigilance jaune · vent violent »; a phenomenon below the overall level says its own colour."""
+        if self.source == "MétéoSuisse":
+            degree = max((w.degree for w in self.warnings), default=1)
+            details = ", ".join(f"{w.name.lower()} ({w.degree}/5)" for w in self.warnings)
+            return f"MétéoSuisse · {swiss.DEGREES[degree]} ({degree}/5)" + (f" · {details}" if details else "")
         names = [f"{k.lower()}{'' if c == self.level else f' ({COLOR_NAMES[c]})'}" for k, c in self.phenomena]
         return f"Vigilance {COLOR_NAMES[self.level]}{' · ' + ', '.join(names) if names else ''}"
 
@@ -106,6 +122,16 @@ class Vigilance:
 def read_vigilance(settings: Settings, get: Callable[[str], Any], now: datetime, platforms: Mapping[str, str] | None = None) -> Vigilance | None:
     """The Météo-France vigilance, or None when it is not configured, not recognised or more than 48 hours old."""
     official = get(settings.vigilance_entity) if settings.vigilance_entity else None
+    if official is not None and ((platforms or {}).get(settings.vigilance_entity or "") == "swissweather"
+                                or "meteoswiss" in atmo.normal(official.attributes.get("attribution"))):
+        updated = getattr(official, "last_updated", None)
+        if isinstance(updated, datetime) and (updated.tzinfo is None or now - updated > timedelta(hours=48)):
+            return None
+        warnings = swiss.read(official, now)
+        if warnings is None:
+            return None
+        return Vigilance(max((swiss.SEVERITIES[w.degree] for w in warnings), default=0),
+                         tuple((w.name, swiss.SEVERITIES[w.degree]) for w in warnings), warnings, "MétéoSuisse")
     recognised = official is not None and (bool(re.search(r"meteo.?france", atmo.normal(official.attributes.get("attribution"))))
                                            or (platforms or {}).get(settings.vigilance_entity or "") == "meteo_france")
     level = known_color(official.state) if recognised else None
@@ -287,19 +313,20 @@ def build_brief(w: LocalWeather, settings: Settings, get: Callable[[str], Any], 
     if settings.pollen_source not in ("none", "atmo") and not settings.atmo_pollens:
         for pollen in settings.pollens:
             state = get(pollen.entity_id)
-            level = polleninfo.level(state)
+            level = polleninfo.usable_level(get, settings, pollen, now=now, zone=zone)
             if level is not None and 3 <= level <= 4:
                 label = polleninfo.name(pollen, state)
+                scale = "1 à 4" if polleninfo.provider(settings) == polleninfo.KLEENEX else "0 à 4"
                 add(Signal(f"legacy-{pollen.entity_id}", "environment", 2 if level == 4 else 1, f"{label} : pollens {'très élevés' if level == 4 else 'élevés'}",
-                           f"Niveau {polleninfo.provider_name(settings)}, sur une échelle de 0 à 4. Ce n’est pas une mesure faite chez vous.", "mdi:flower-pollen", pollen.entity_id,
+                           f"Niveau {polleninfo.provider_name(settings)}, sur une échelle de {scale}. Ce n’est pas une mesure faite chez vous.", "mdi:flower-pollen", pollen.entity_id,
                            short=f"Pollens : {label.lower()} {'très élevés' if level == 4 else 'élevés'}", index=level))
     if settings.vigilance_entity:
         official = read_vigilance(settings, get, now, platforms)
         if official is None:
-            caveats.append("Vigilance indisponible ou trop ancienne : consultez Météo-France.")
+            caveats.append("Vigilance indisponible ou trop ancienne : consultez le service officiel de votre région.")
         elif official.level > 0:
             add(Signal("official", "official", official.level, official.text,
-                       "Vigilance officielle de votre département. Ouvrez le capteur pour lire les consignes.", "mdi:alert-outline", settings.vigilance_entity))
+                       f"Vigilance officielle {official.source}. Ouvrez le capteur pour lire les consignes.", "mdi:alert-outline", settings.vigilance_entity))
 
     severity = max((s.severity for s in signals), default=0)
     signals.sort(key=lambda s: (-s.severity, GROUPS.index(s.group), s.key))

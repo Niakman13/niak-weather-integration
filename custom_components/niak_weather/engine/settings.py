@@ -23,11 +23,16 @@ ATMO_KEYS = tuple(atmo_key(m, t) for t in (False, True) for m in ATMO_METRICS)
 
 @dataclass(frozen=True)
 class LegacyPollen:
-    """A Polleninformation sensor of the older pollen source."""
+    """A species or group from a pollen provider, with optional availability diagnostics."""
 
     entity_id: str
     name: str = ""
     icon: str = ""
+    station_state_entity: str = ""
+    station: str = ""
+    updated_entity: str = ""
+    data_date_entity: str = ""
+    error_entity: str = ""
 
 
 @dataclass(frozen=True)
@@ -67,14 +72,16 @@ class Settings:
     # Air and pollens
     atmo_area: str | None = None
     pollen_source: str | None = None
-    """« atmo », « legacy » (one sensor per species: Polleninformation or IRM KMI) or « none »; unset means Atmo when an Atmo sensor is configured."""
+    """« atmo », « legacy » (one sensor per species) or « none »; unset means Atmo when an Atmo sensor is configured."""
     pollen_risk_entity: str | None = None
     """Polleninformation's overall allergy risk, next to its species (pollens)."""
     pollen_provider: str | None = None
-    """Where the species sensors (pollen_source « legacy ») come from: « polleninformation » (unset) or « irm_kmi »."""
+    """Species source: « polleninformation » (unset), « irm_kmi », « swiss_pollen » or « kleenex_pollenradar »."""
     atmo: Mapping[str, str] = field(default_factory=dict)
     """Atmo France sensors, by setting key (atmo_pm25_entity…)."""
     pollens: tuple[LegacyPollen, ...] = ()
+    pollen_station: str | None = None
+    """Swiss Pollen station code or Kleenex config entry id, shared by the selected species."""
 
     @classmethod
     def from_options(cls, options: Mapping[str, Any]) -> Settings:
@@ -86,7 +93,9 @@ class Settings:
             if value not in (None, ""):
                 values[key] = value
         values["atmo"] = {k: options[k] for k in ATMO_KEYS if options.get(k)}
-        values["pollens"] = tuple(LegacyPollen(str(p.get("id")), str(p.get("nom") or p.get("name") or ""), str(p.get("ico") or p.get("icon") or ""))
+        values["pollens"] = tuple(LegacyPollen(str(p.get("id")), str(p.get("nom") or p.get("name") or ""), str(p.get("ico") or p.get("icon") or ""),
+                                              str(p.get("station_state_entity") or ""), str(p.get("station") or ""),
+                                              str(p.get("updated_entity") or ""), str(p.get("data_date_entity") or ""), str(p.get("error_entity") or ""))
                                   for p in options.get("pollens") or () if isinstance(p, Mapping) and p.get("id"))
         if "weather_entity" not in values:
             raise ValueError("weather_entity is required")
@@ -96,6 +105,8 @@ class Settings:
         """Every sensor the engine reads: a change of one of them means a new calculation."""
         ids = {getattr(self, f.name) for f in fields(self) if f.name.endswith("_entity") and getattr(self, f.name)}
         ids |= set(self.atmo.values()) | {p.entity_id for p in self.pollens}
+        ids |= {p.station_state_entity for p in self.pollens if p.station_state_entity}
+        ids |= {entity for p in self.pollens for entity in (p.updated_entity, p.data_date_entity, p.error_entity) if entity}
         ids.add(self.sun_entity or "sun.sun")
         return ids
 

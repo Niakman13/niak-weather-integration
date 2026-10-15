@@ -9,7 +9,7 @@ Niak Weather assemble des données **déjà présentes** dans Home Assistant. Il
 | Entité météo `weather.*` | **Obligatoire** | Ciel de la zone, prévisions heure par heure et jour par jour. Météo-France est recommandé. |
 | Station météo | Conseillée | Les mesures prises chez vous. |
 | Soleil (`sun.sun`) | Conseillé, déjà présent en général | Jour et nuit, effets du soleil et d’une nuit claire sur le ressenti. |
-| Vigilance Météo-France | Facultative | La vigilance officielle du département. |
+| Vigilance officielle | Facultative | Les alertes de Météo-France ou de MeteoSwiss pour votre région. |
 | Saison | Facultative | La saison de l’intégration Saison ; sinon, calculée d’après la date et l’hémisphère. |
 | Atmo France | Facultative | Air extérieur et pollens, aujourd’hui et demain. |
 | Historique (Recorder) | Facultatif, actif par défaut dans Home Assistant | Courbes et tendances, cumuls de pluie et rafale du jour calculés quand la station ne les donne pas. |
@@ -23,7 +23,7 @@ Un guide en quatre étapes, chacune préremplie avec ce que Home Assistant conna
 0. **Bienvenue** : ce que fait Niak Weather et ce qu’il faut. Si vous aviez déjà la carte, **Reprendre les réglages d’une carte** : ils sont affichés à chaque étape, pour vérification.
 1. **Météo** : l’entité météo, le nom du lieu, la vigilance, la saison.
 2. **Station météo** : le modèle reconnu, puis chaque capteur. Laissez vide ce que la station ne mesure pas.
-3. **Qualité de l’air**, puis **Pollens** : la commune Atmo France pour l’air (ou aucune), puis la source des pollens : Atmo France, Polleninformation, IRM KMI (Belgique) ou aucune. Avec Polleninformation ou IRM KMI, vous choisissez ensuite ses capteurs.
+3. **Qualité de l’air**, puis **Pollens** : la commune Atmo France pour l’air (ou aucune), puis la source des pollens : Atmo France, Polleninformation, IRM KMI (Belgique), Swiss Pollen (Suisse), Kleenex / Scottex (France et autres pays couverts) ou aucune. Avec Swiss Pollen, choisissez une station commune aux espèces suivies ; avec les autres fournisseurs par espèce, choisissez leurs capteurs.
 4. **Capteurs et automatisations** : les familles d’entités à activer (Maintenant, Alertes, Prochaines heures, Jardin…).
 5. **Récapitulatif** : ce qui a été trouvé, et ce qui manque à certaines entités (un capteur UV, Atmo France…).
 
@@ -94,7 +94,7 @@ Niak Weather lit, pour aujourd’hui et pour demain, **19 mesures** : l’indice
 - Échelle : **0 (aucun) à 4 (très élevé)**, gardée telle quelle : la carte affiche « Niveau 2 sur 4 ».
 - Le panneau Pollens de la carte, le capteur `sensor.niak_weather_pollens` et la synthèse les utilisent.
 - Le niveau du jour est le risque d’allergie global quand il est choisi, sinon l’espèce la plus élevée.
-- Une seule source de pollens à la fois : Atmo France, Polleninformation ou IRM KMI.
+- Une seule source de pollens à la fois : Atmo France, Polleninformation, IRM KMI, Swiss Pollen ou Kleenex / Scottex.
 
 ### IRM KMI, les pollens en Belgique
 
@@ -104,6 +104,33 @@ Niak Weather lit, pour aujourd’hui et pour demain, **19 mesures** : l’indice
 - Pas de risque global : le niveau du jour est celui de l’espèce la plus élevée.
 - Pollens du jour seulement : le panneau « Pollens demain » reste vide.
 - Sa météo peut aussi servir d’entité météo de Niak Weather.
+
+### Swiss Pollen, les pollens en Suisse
+
+Installez [Swiss Pollen](https://github.com/frimtec/hass-swiss-pollen) dans HACS et configurez les espèces et stations souhaitées. Dans Niak, choisissez **Swiss Pollen (Suisse)**, une station de mesure, puis les espèces à suivre. Une station unique est proposée automatiquement ; plusieurs stations demandent un choix.
+
+- Niak reprend le niveau calculé par le fournisseur : **0 aucun, 1 faible, 2 modéré, 3 élevé, 4 très élevé**. Il ne convertit pas les concentrations en indice Atmo.
+- Les mesures concernent le présent : aucune prévision pollen pour demain n’est inventée.
+- Les capteurs de diagnostic « état de la station » doivent être activés. Si l’état est absent, hors service ou en erreur, le niveau reste indisponible, y compris lorsqu’un capteur conserve une ancienne valeur.
+- La carte, la synthèse et le capteur Pollens utilisent la même disponibilité.
+
+### Kleenex / Scottex — France et autres pays couverts
+
+Installez [Kleenex Pollen Radar](https://github.com/MarcoGos/kleenex_pollenradar) dans HACS et configurez le lieu. Choisissez ensuite **Kleenex / Scottex** dans Niak. Les pays couverts sont indiqués à côté du fournisseur : France, Italie, Pays-Bas, Royaume-Uni, Irlande et États-Unis. La Suisse n’est pas annoncée par ce fournisseur. Polleninformation indique « Europe, selon les zones » : la couverture dépend du lieu.
+
+Niak propose un seul lieu à la fois, puis les groupes **arbres, graminées, herbacées** et les capteurs détaillés par espèce que vous avez activés dans Kleenex. Il utilise les niveaux **1 faible, 2 modéré, 3 élevé, 4 très élevé** ; une concentration de zéro n’est pas transformée en niveau « aucun ».
+
+Les prévisions de **demain** sont retrouvées par leur date, sans supposer un ordre dans la liste. Une date absente reste inconnue. Niak contrôle les capteurs de diagnostic **Date** et **Last Updated (Pollen)** : ils doivent être activés. Les données d’un autre jour, sans date de mise à jour ou de plus de 48 heures restent indisponibles. Si le capteur facultatif **Error** est activé, une erreur signalée rend également les niveaux indisponibles.
+
+Niak reprend les entités Home Assistant existantes, sans connexion supplémentaire au service Kleenex. La carte, la synthèse et les automatisations utilisent les mêmes données validées.
+
+## MeteoSwiss — prévisions et vigilances suisses
+
+Installez [MeteoSwiss](https://github.com/izacus/hass-swissweather) dans HACS. Choisissez son entité `weather.*` pour les prévisions, et son capteur **Weather warnings** pour les vigilances officielles. Ce dernier regroupe toutes les alertes ; Niak le reconnaît même si vous l’avez renommé.
+
+Niak conserve les phénomènes, leurs degrés suisses de **1 à 5**, leurs consignes et leurs dates de validité. Les alertes expirées sont retirées ; les avertissements publiés pour les prochaines heures restent visibles. Des attributs incomplets restent inconnus.
+
+Le capteur Vigilance conserve son état compatible avec les automatisations existantes (`vert`, `jaune`, `orange`, `rouge`). Les degrés 2, 3 et 4–5 correspondent respectivement aux présentations jaune, orange et rouge. Le **degré 5 reste explicitement visible** dans le texte et les attributs `degre`, `echelle`, `degres_phenomenes` et `alertes` ; une transition de 4 à 5 déclenche aussi un événement de changement d’alerte. Les attributs `alertes` donnent les dates et les consignes ; le capteur source donne accès aux liens officiels.
 
 ## Historique (Recorder)
 
@@ -117,7 +144,7 @@ Les clés sont les mêmes que dans le YAML de la carte avant la 2.0 : les régla
 | --- | --- |
 | `weather_entity` | Entité météo, obligatoire |
 | `location`, `forecast_source` | Nom du lieu et du fournisseur, si vous voulez les changer |
-| `vigilance_entity` | Vigilance Météo-France du département |
+| `vigilance_entity` | Vigilance Météo-France ou capteur agrégé des alertes MeteoSwiss |
 | `season_entity` | Capteur de l’intégration Saison |
 | `sun_entity`, `sun_elevation_entity` | Soleil, si ce n’est pas `sun.sun` |
 | `station_model` | `gw2000a`, `ws90`, `netatmo` ou `manual` |
@@ -129,8 +156,9 @@ Les clés sont les mêmes que dans le YAML de la carte avant la 2.0 : les régla
 | `solar_radiation_entity`, `uv_index_entity`, `illuminance_entity` | Rayonnement, UV, luminosité |
 | `atmo_area` | Commune Atmo France |
 | `atmo_<mesure>_entity`, `atmo_<mesure>_tomorrow_entity` | Les mesures Atmo du jour et de demain (`air`, `pm25`, `grass`, `grass_concentration`…) |
-| `pollen_source` | `atmo`, `legacy` (un capteur par espèce : Polleninformation ou IRM KMI) ou `none` |
-| `pollen_provider` | `polleninformation` (par défaut) ou `irm_kmi` : d’où viennent les capteurs par espèce |
+| `pollen_source` | `atmo`, `legacy` (un capteur par espèce : Polleninformation, IRM KMI, Swiss Pollen ou Kleenex / Scottex) ou `none` |
+| `pollen_provider` | `polleninformation` (par défaut), `irm_kmi`, `swiss_pollen` ou `kleenex_pollenradar` : d’où viennent les capteurs par espèce |
+| `pollen_station` | Code de la station Swiss Pollen ou identifiant du lieu Kleenex / Scottex |
 | `air_source` | `none` : pas de qualité de l’air, même si la zone Atmo sert aux pollens |
 | `pollens`, `pollen_risk_entity` | Les capteurs par espèce suivis, et le risque d’allergie global de Polleninformation |
 | `families` | Les familles d’entités choisies à l’installation (elles décident des entités activées au départ) |

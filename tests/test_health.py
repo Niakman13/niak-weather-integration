@@ -1,7 +1,7 @@
 """The technical state shown on the « Météo » tab: orange only for what stops working, tips for what could be better."""
 from engine.health import Facts, Sensor, ago, report
 
-ENTITIES = (("feels_like", "Ressenti", "Maintenant", True, True), ("vigilance", "Vigilance Météo-France", "Alertes", True, False),
+ENTITIES = (("feels_like", "Ressenti", "Maintenant", True, True), ("vigilance", "Vigilance officielle", "Alertes", True, False),
             ("pluie_7j", "Pluie des 7 derniers jours", "Jardin", False, False))
 
 
@@ -39,9 +39,9 @@ def test_a_whole_silent_station_is_one_line():
 
 
 def test_an_enabled_entity_without_its_source_is_to_fix_at_the_right_step():
-    r = report(place(vigilance="", entities=ENTITIES, needs={"vigilance": "la vigilance Météo-France"}))
-    assert r["todo"][0] == {"level": "bad", "text": "Vigilance Météo-France : active sans source",
-                            "why": "Il faut la vigilance Météo-France : elle reste vide.", "stage": 0}
+    r = report(place(vigilance="", entities=ENTITIES, needs={"vigilance": "la vigilance officielle"}))
+    assert r["todo"][0] == {"level": "bad", "text": "Vigilance officielle : active sans source",
+                            "why": "Il faut la vigilance officielle : elle reste vide.", "stage": 0}
     assert r["sources"][1]["level"] == "bad"
     assert not any("vigilance" in t["text"].lower() for t in r["tips"])  # already said once
 
@@ -74,7 +74,7 @@ def test_tips_name_what_home_assistant_already_has():
     r = report(place(unused=[("pressure_entity", "Pression", "GW2000A Relative Pressure")], vigilance="", vigilance_found="Gardanne 13 Weather alert",
                      air="", atmo_installed=False, pollen="", pollen_available=True, ready_families=["Jardin"], history=False))
     texts = [t["text"] for t in r["tips"]]
-    assert texts == ["Ajouter : pression", "Calculer depuis l’historique", "Choisir la vigilance Météo-France", "Ajouter la qualité de l’air",
+    assert texts == ["Ajouter : pression", "Calculer depuis l’historique", "Choisir la vigilance officielle", "Ajouter la qualité de l’air",
                      "Suivre les pollens", "Entités Niak Weather à activer : Jardin"]
     assert "« GW2000A Relative Pressure »" in r["tips"][0]["why"] and r["tips_summary"] == "6 réglages à améliorer"
     assert all(t["level"] == "tip" for t in r["tips"])

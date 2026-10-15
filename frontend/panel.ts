@@ -185,7 +185,11 @@ export class WeatherSetup extends LitElement {
   const toggle=(id:string,on:boolean)=>void this.change({op:'pollens',value:on?[...chosen,id]:chosen.filter(x=>x!==id)});
   return html`${this.choiceList('pollen',p.sources,p.value,x=>void this.change({op:'pollen',value:x}))}
    ${p.value==='atmo'&&p.areas.length?this.zone('l-parea','Zone Atmo France des pollens',p.areas,p.area,x=>void this.change({op:'pollen',value:'atmo',area:x})):nothing}
-   ${p.species.length?html`<h2>Espèces suivies</h2><p class="hint">Toutes celles trouvées sont proposées ; décochez celles qui ne vous concernent pas.</p>
+   ${p.value==='swiss_pollen'&&p.stations.length?html`${this.zone('l-pstation','Station Swiss Pollen',p.station?p.stations:[{value:'',label:'Choisir une station…'},...p.stations],p.station,x=>void this.change({op:'pollen_station',value:x}))}
+    <p class="hint">Mesures actuelles, sans prévision pour demain. Les niveaux d’une station hors service restent indisponibles.</p>`:nothing}
+   ${p.value==='kleenex_pollenradar'&&p.stations.length?html`${this.zone('l-kplace','Lieu Kleenex / Scottex',p.station?p.stations:[{value:'',label:'Choisir un lieu…'},...p.stations],p.station,x=>void this.change({op:'pollen_station',value:x}))}
+    <p class="hint">Niveaux de faible à très élevé, aujourd’hui et demain. Les données trop anciennes restent indisponibles.</p>`:nothing}
+   ${p.species.length?html`<h2>${p.value==='kleenex_pollenradar'?'Espèces et groupes suivis':'Espèces suivies'}</h2><p class="hint">Tous les capteurs trouvés pour ce lieu sont proposés ; décochez ceux qui ne vous concernent pas.</p>
     ${p.species.map(s=>html`<label class="check"><input type="checkbox" .checked=${s.chosen} ?disabled=${this.busy} @change=${(e:Event)=>toggle(s.id,(e.target as HTMLInputElement).checked)}>
      <span>${s.label} <span class="hint inline">· ${s.state||'indisponible'}</span>${s.chosen&&!s.available?html`<span class="warn">Ne répond pas pour l’instant (hors saison ?).</span>`:nothing}</span></label>`)}`:nothing}
    ${p.risk?this.field(p.risk):nothing}

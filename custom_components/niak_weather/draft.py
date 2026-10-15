@@ -9,10 +9,12 @@ import json
 from functools import cache
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
+from homeassistant.util import dt as dt_util
 
 from .api import API_KEY
 from .config_flow import NONE, _clean, _context, _SourceSteps
@@ -21,13 +23,13 @@ from .engine import detection, ecosystem, families, polleninfo
 from .engine.settings import Settings
 
 AIR_SOURCES = ("atmo", NONE)
-POLLEN_SOURCES = ("atmo", polleninfo.POLLENINFORMATION, polleninfo.IRM_KMI, NONE)
+POLLEN_SOURCES = ("atmo", *polleninfo.PROVIDERS, NONE)
 SIMPLE = frozenset({"weather_entity", "location", "vigilance_entity", "season_entity", "sun_entity", "sun_elevation_entity",
                     "forecast_source", "station_history", "pollen_risk_entity", *detection.STATION_FIELDS})
 RECOMMENDED = frozenset({"temperature_entity", "humidity_entity", "rain_rate_entity", "wind_gust_entity", "wind_bearing_entity"})
 HELP = {
-    "weather_entity": "Les prévisions heure par heure et jour par jour. Météo-France de préférence. Une station facultative ajoute les mesures chez vous.",
-    "vigilance_entity": "Les alertes officielles du département s’ajoutent à celles que calcule Niak.",
+    "weather_entity": "Les prévisions heure par heure et jour par jour, par exemple Météo-France ou MétéoSuisse. Une station facultative ajoute les mesures chez vous.",
+    "vigilance_entity": "Les alertes officielles de Météo-France ou de MétéoSuisse s’ajoutent à celles que calcule Niak.",
     "season_entity": "Sans capteur, la saison suit la date.",
     "temperature_entity": "La température dehors, à l’ombre.",
     "rain_rate_entity": "Dit s’il pleut maintenant (mm/h). Un cumul de la journée ne le dit pas.",
@@ -149,9 +151,19 @@ class Draft(_SourceSteps):
             return self._air_source(value, change.get("area"))
         elif op == "pollen":
             return self._pollen(value, change.get("area"))
+        elif op == "pollen_station" and self.pollen_choice() in (polleninfo.SWISS_POLLEN, polleninfo.KLEENEX):
+            states, registry, _ = _context(self.hass)
+            if value not in polleninfo.stations(states, registry, self.pollen_choice()):
+                return "Choisissez un lieu de mesure disponible pour cette source de pollens."
+            s["pollen_station"] = value
+            s["pollens"] = [polleninfo.pollen_option(st.entity_id, st, registry) for st in states
+                            if polleninfo.place_of_source(st.entity_id, registry, self.pollen_choice()) == value]
         elif op == "pollens":
             states, registry, _ = _context(self.hass)
             by_id = {st.entity_id: st for st in states}
+            if self.pollen_choice() in (polleninfo.SWISS_POLLEN, polleninfo.KLEENEX) and any(
+                    polleninfo.place_of_source(i, registry, self.pollen_choice()) != s.get("pollen_station") for i in value or []):
+                return "Choisissez les espèces de la station ou du lieu sélectionné."
             s["pollens"] = [polleninfo.pollen_option(i, by_id.get(i), registry) for i in value or []]
         elif op == "families" and self.entry is None:
             s["families"] = [f for f, _ in families.FAMILIES if f in (value or [])]
@@ -187,14 +199,18 @@ class Draft(_SourceSteps):
                 # Another integration: its own sensors are proposed, not the other one's.
                 s.pop("pollens", None)
                 s.pop("pollen_risk_entity", None)
+                s.pop("pollen_station", None)
             s["pollen_provider"], s["pollen_source"] = source, "legacy"
             if "pollens" not in s:
                 # First time with this source: all its species, and the overall risk of its only place.
                 states, registry, _ = _context(self.hass)
                 by_id = {st.entity_id: st for st in states}
                 detected = polleninfo.detect(states, registry, source)
-                s["pollens"] = detected.get("pollens") or [polleninfo.pollen_option(i, by_id.get(i), registry)
-                                                           for i in polleninfo.candidates(states, registry, source)[0]]
+                s["pollens"] = (detected.get("pollens") or []) if source in (polleninfo.SWISS_POLLEN, polleninfo.KLEENEX) else (
+                    detected.get("pollens") or [polleninfo.pollen_option(i, by_id.get(i), registry)
+                                              for i in polleninfo.candidates(states, registry, source)[0]])
+                if detected.get("pollen_station"):
+                    s["pollen_station"] = detected["pollen_station"]
                 if detected.get("pollen_risk_entity"):
                     s["pollen_risk_entity"] = detected["pollen_risk_entity"]
         else:
@@ -246,9 +262,9 @@ class Draft(_SourceSteps):
             "fields": [
                 self._field("weather_entity", "Service météo", [st.entity_id for st in states if st.entity_id.startswith("weather.") and st.entity_id not in own],
                             required=True, warning="" if s.get("weather_entity") else "Choisissez le service qui donne les prévisions."),
-                self._field("vigilance_entity", "Vigilance Météo-France", vigilance,
+                self._field("vigilance_entity", "Vigilance officielle", vigilance,
                             warning="" if vigilance or s.get("vigilance_entity") else
-                            "Aucun capteur de vigilance trouvé : installez Météo-France avec votre département, puis « Rechercher à nouveau »."),
+                            "Aucun capteur de vigilance trouvé : installez Météo-France ou MeteoSwiss pour votre région, puis « Rechercher à nouveau »."),
                 self._field("season_entity", "Saison", detection.season_candidates(states, registry)),
             ],
             "location": s.get("location") or "", "location_placeholder": self._title(),
@@ -311,21 +327,35 @@ class Draft(_SourceSteps):
         return {"value": "atmo" if on else NONE, "sources": sources, "area": s.get("atmo_area") or "", "areas": areas}
 
     def _pollens(self) -> dict[str, Any]:
-        states, registry, _ = _context(self.hass)
+        states, registry, devices = _context(self.hass)
         areas, found, choice = self._areas(), self._pollen_found(), self.pollen_choice()
-        sources = [{"value": "atmo", "label": "Atmo France", "hint": "Un indice de 1 à 6 par espèce, pour une zone Atmo France",
+        sources = [{"value": "atmo", "label": polleninfo.source_label("atmo"), "hint": "Un indice de 1 à 6 par espèce, pour une zone Atmo France",
                     "available": bool(areas)},
-                   *({"value": p, "label": polleninfo.PROVIDERS[p] + (" (Belgique)" if p == polleninfo.IRM_KMI else ""),
-                      "hint": "Un capteur par espèce, niveaux de 0 à 4", "available": found[p]} for p in polleninfo.PROVIDERS),
+                   *({"value": p, "label": polleninfo.source_label(p),
+                      "hint": ("Groupes et espèces, niveaux de 1 à 4 ; aujourd’hui et demain" if p == polleninfo.KLEENEX else "Un capteur par espèce, niveaux de 0 à 4"), "available": found[p]} for p in polleninfo.PROVIDERS),
                    {"value": NONE, "label": "Pas de pollens", "hint": "", "available": True}]
         result: dict[str, Any] = {"value": choice, "sources": sources, "area": self.sources.get("atmo_area") or "", "areas": areas,
-                                  "species": [], "risk": None}
+                                  "species": [], "risk": None, "station": self.sources.get("pollen_station") or "",
+                                  "stations": polleninfo.places(states, registry, choice, devices) if choice in (polleninfo.SWISS_POLLEN, polleninfo.KLEENEX) else []}
         if choice in polleninfo.PROVIDERS:
             species, risks = polleninfo.candidates(states, registry, choice)
+            if choice in (polleninfo.SWISS_POLLEN, polleninfo.KLEENEX):
+                species = [i for i in species if polleninfo.place_of_source(i, registry, choice) == result["station"]]
             chosen = [p.get("id") for p in self.sources.get("pollens") or [] if isinstance(p, dict)]
             for entity_id in sorted(set(species) | set(chosen)):
                 entity = self._entity(entity_id) or {}
                 option = polleninfo.pollen_option(entity_id, self.hass.states.get(entity_id), registry)
+                if choice == polleninfo.SWISS_POLLEN:
+                    health = self.hass.states.get(option.get("station_state_entity", ""))
+                    entity["available"] = entity.get("available", False) and health is not None and health.state == "online"
+                    if not entity["available"]:
+                        entity["state"] = "station indisponible"
+                elif choice == polleninfo.KLEENEX:
+                    settings = _settings({**self.sources, "pollens": [option]})
+                    level = polleninfo.usable_level(self.hass.states.get, settings, settings.pollens[0],
+                                                   now=dt_util.utcnow(), zone=ZoneInfo(self.hass.config.time_zone))
+                    entity["available"] = level is not None
+                    entity["state"] = polleninfo.WORDS[level] if level is not None else "données indisponibles ou trop anciennes"
                 result["species"].append({**entity, "label": option["nom"] or entity.get("name"), "chosen": entity_id in chosen})
             if choice == polleninfo.POLLENINFORMATION:
                 result["risk"] = self._field("pollen_risk_entity", "Risque allergique global", risks)

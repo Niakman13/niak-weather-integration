@@ -86,8 +86,9 @@ class AlertWatch:
                     self._active[key] = _Active(level, item.reason, item.source, t, t, t)
                     events.append(AlertEvent(key, "debut", level, item.source, item.reason))
                     continue
+                native_change = key == "vigilance" and item.extra.get("fournisseur") == "MétéoSuisse" and item.reason != current.text
                 current.seen, current.text, current.source = t, item.reason, item.source
-                if level > current.level or (level < current.level and t - current.level_seen >= hold):
+                if native_change or level > current.level or (level < current.level and t - current.level_seen >= hold):
                     current.level, current.level_seen = level, t
                     events.append(AlertEvent(key, "change", level, item.source, item.reason))
                 elif level == current.level:

@@ -32,7 +32,7 @@ Tout est calculé une fois, dans Home Assistant : la carte affiche, vos automati
 
 - Home Assistant **2025.1** ou plus récent.
 - Une entité météo `weather.*`. **Météo-France** est conseillée.
-- En plus, si vous en avez : une station météo, la vigilance Météo-France, Atmo France (air et pollens).
+- En plus, si vous en avez : une station météo, les vigilances de Météo-France ou de MeteoSwiss, Atmo France (air et pollens), Polleninformation, IRM KMI, Swiss Pollen ou Kleenex / Scottex.
 
 ## Installation
 
@@ -51,7 +51,7 @@ Un guide en quatre étapes, puis un récapitulatif :
 
 1. **Météo** : l’entité météo, le nom du lieu, la vigilance, la saison.
 2. **Station météo** : le modèle (GW2000A, WS90, Netatmo ou autre), puis chaque capteur.
-3. **Qualité de l’air**, puis **Pollens** : l’air d’Atmo France, et les pollens d’Atmo France, de Polleninformation ou d’IRM KMI (Belgique).
+3. **Qualité de l’air**, puis **Pollens** : l’air d’Atmo France, et les pollens d’Atmo France, de Polleninformation, d’IRM KMI (Belgique), de Swiss Pollen (Suisse) ou de Kleenex / Scottex (France et autres pays couverts).
 4. **Capteurs et automatisations** : les familles d’entités à activer.
 
 Vous utilisez déjà la carte Niak Weather ? Le guide propose de reprendre ses réglages. Un champ laissé vide est un choix : il n’est jamais rempli à votre place.
@@ -77,7 +77,7 @@ Niak Weather dit ce que la météo implique ; vos automatisations décident quoi
 | Famille | Par exemple |
 | --- | --- |
 | **Maintenant** | Ressenti, point de rosée, temps observé, pluie en cours |
-| **Alertes** | Vigilance Météo-France, orage, vent fort, pluie forte, gel, canicule |
+| **Alertes** | Vigilance officielle (Météo-France ou MétéoSuisse), orage, vent fort, pluie forte, gel, canicule |
 | **Prochaines heures** | Pluie dans l’heure, sur 6 h et 24 h, minimale de la nuit, maximale de demain |
 | **Jardin** | Pluie des 7 derniers jours |
 | **Bâtiment** | Degrés-jours de chauffe et de climatisation |

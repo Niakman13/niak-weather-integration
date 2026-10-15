@@ -1,39 +1,94 @@
 """Pollens given one sensor per species, each on a scale from 0 (none) to 4 (very high). Said as it is, never converted to Atmo's scale of 1 to 6.
 
 - Polleninformation EU (krissen/polleninformation): words or numbers, an overall allergy risk, today and tomorrow.
-- IRM KMI (jdejaegh/irm-kmi-ha, Belgium): a colour per species, green to purple, today only; no overall risk."""
+- IRM KMI (jdejaegh/irm-kmi-ha, Belgium): a colour per species, green to purple, today only; no overall risk.
+- Swiss Pollen: current levels, guarded by station diagnostics.
+- Kleenex/Scottex: levels 1 to 4 by group or species, with dated forecasts and freshness diagnostics."""
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 from datetime import datetime, timedelta
 from typing import Any, Callable, Mapping, Sequence
 from zoneinfo import ZoneInfo
 
-from . import atmo
+from . import atmo, kleenex
 from .settings import LegacyPollen, Settings
 from .units import finite
 
 SCALE = 4
-POLLENINFORMATION, IRM_KMI = "polleninformation", "irm_kmi"
-PROVIDERS = {POLLENINFORMATION: "Polleninformation", IRM_KMI: "IRM KMI"}
+POLLENINFORMATION, IRM_KMI, SWISS_POLLEN = "polleninformation", "irm_kmi", "swiss_pollen"
+KLEENEX = kleenex.DOMAIN
+PROVIDERS = {POLLENINFORMATION: "Polleninformation", IRM_KMI: "IRM KMI", SWISS_POLLEN: "Swiss Pollen", KLEENEX: "Kleenex / Scottex"}
+COUNTRIES = {"atmo": "France", POLLENINFORMATION: "Europe, selon les zones", IRM_KMI: "Belgique", SWISS_POLLEN: "Suisse",
+             KLEENEX: "France, Italie, Pays-Bas, Royaume-Uni, Irlande, États-Unis"}
+
+
+def source_label(source: str) -> str:
+    return f"{PROVIDERS.get(source, 'Atmo France')} ({COUNTRIES[source]})"
 WORDS = ("Aucun", "Faible", "Modéré", "Élevé", "Très élevé")
 COLORS = atmo.COLORS[1:6]
 # The sensor's word, in any of the languages it writes (French words are feminine: « élevée », « très élevée »).
 _WORDS = {"none": 0, "aucun": 0, "aucune": 0, "low": 1, "faible": 1, "moderate": 2, "modere": 2, "moderee": 2, "high": 3, "eleve": 3, "elevee": 3,
           "fort": 3, "forte": 3, "very high": 4, "very_high": 4, "tres eleve": 4, "tres elevee": 4,
           # IRM KMI's colours (green: present but no risk; « none »: out of season).
-          "green": 0, "yellow": 1, "orange": 2, "red": 3, "purple": 4}
+          "green": 0, "yellow": 1, "orange": 2, "red": 3, "purple": 4,
+          "medium": 2, "strong": 3, "very_strong": 4}
 SPECIES = {"grasses": ("Graminées", "mdi:grass"), "ragweed": ("Ambroisie", "mdi:flower-pollen"), "mugwort": ("Armoise", "mdi:flower-pollen"),
            "olive": ("Olivier", "mdi:leaf-circle"), "birch": ("Bouleau", "mdi:tree-outline"), "alder": ("Aulne", "mdi:tree-outline"),
            "hazel": ("Noisetier", "mdi:tree-outline"), "ash": ("Frêne", "mdi:tree-outline"), "plane": ("Platane", "mdi:tree-outline"),
-           "cypress": ("Cyprès", "mdi:pine-tree"), "oak": ("Chêne", "mdi:tree-outline"), "poplar": ("Peuplier", "mdi:tree-outline")}
+           "cypress": ("Cyprès", "mdi:pine-tree"), "oak": ("Chêne", "mdi:tree-outline"), "poplar": ("Peuplier", "mdi:tree-outline"),
+           "beech": ("Hêtre", "mdi:tree-outline")}
 _RISK = re.compile(r"_allergy_risk$")
 _IRM = re.compile(r"-pollen-([a-z]+)$")
 
 
 def provider(settings: Settings) -> str:
     """The integration the species sensors come from."""
-    return IRM_KMI if settings.pollen_provider == IRM_KMI else POLLENINFORMATION
+    return settings.pollen_provider if settings.pollen_provider in PROVIDERS else POLLENINFORMATION
+
+
+def swiss_identity(entity_id: str, registry: Mapping[str, Mapping[str, Any]]) -> tuple[str, str] | None:
+    """A Swiss level sensor's station and species, independent of its translated or renamed entity id."""
+    entry = registry.get(entity_id) or {}
+    if not entity_id.startswith("sensor.") or entry.get("platform") != SWISS_POLLEN or entry.get("disabled_by"):
+        return None
+    match = re.fullmatch(r"([^.]+)\.([^.]+)\.level", str(entry.get("unique_id") or ""))
+    return (match[1], match[2]) if match else None
+
+
+def stations(states: Sequence[Any], registry: Mapping[str, Mapping[str, Any]], source: str = SWISS_POLLEN) -> list[str]:
+    identify = kleenex.identity if source == KLEENEX else swiss_identity
+    return sorted({identity[0] for s in states if (identity := identify(s.entity_id, registry))})
+
+
+def place_of_source(entity_id: str, registry: Mapping[str, Mapping[str, Any]], source: str) -> str:
+    identity = kleenex.identity(entity_id, registry) if source == KLEENEX else swiss_identity(entity_id, registry)
+    return identity[0] if identity else ""
+
+
+def places(states: Sequence[Any], registry: Mapping[str, Mapping[str, Any]], source: str,
+           devices: Mapping[str, Mapping[str, Any]]) -> list[dict[str, str]]:
+    result = []
+    for place in stations(states, registry, source):
+        entity = next(s.entity_id for s in states if place_of_source(s.entity_id, registry, source) == place)
+        device = devices.get((registry.get(entity) or {}).get("device_id") or "") or {}
+        label = str(device.get("name_by_user") or device.get("name") or place) if source == KLEENEX else place
+        result.append({"value": place, "label": label})
+    return result
+
+
+def usable_level(get: Callable[[str], Any], settings: Settings, pollen: LegacyPollen, tomorrow: bool = False,
+                 now: datetime | None = None, zone: ZoneInfo | None = None) -> int | None:
+    """Swiss station diagnostics take precedence over a retained level, including an off-season zero."""
+    if provider(settings) == KLEENEX:
+        r = kleenex.reading(get, pollen, tomorrow, now, zone) if now is not None and zone is not None else None
+        return r.value if r else None
+    if provider(settings) == SWISS_POLLEN:
+        health = get(pollen.station_state_entity) if pollen.station_state_entity else None
+        if tomorrow or health is None or health.state != "online":
+            return None
+    return level(get(pollen.entity_id), tomorrow)
 
 
 def provider_name(settings: Settings) -> str:
@@ -88,7 +143,13 @@ def readings(get: Callable[[str], Any], settings: Settings, tomorrow: bool, now:
     species = []
     for pollen in settings.pollens:
         state = get(pollen.entity_id)
-        r = reading(state, pollen.entity_id, tomorrow, now, zone)
+        r = kleenex.reading(get, pollen, tomorrow, now, zone) if provider(settings) == KLEENEX else reading(state, pollen.entity_id, tomorrow, now, zone)
+        if provider(settings) == SWISS_POLLEN:
+            if tomorrow:
+                continue
+            value = usable_level(get, settings, pollen)
+            r = replace(r, value=value, label=WORDS[value] if value is not None else "Indisponible",
+                        color=COLORS[value] if value is not None else atmo.COLORS[0], zone=pollen.station) if r is not None else None
         if r is not None:
             species.append((name(pollen, state), r))
     return risk, species
@@ -109,6 +170,10 @@ def candidates(states: Sequence[Any], registry: Mapping[str, Mapping[str, Any]],
     """The species sensors and the allergy-risk sensors of a source, by their integration (or, for Polleninformation, their name)."""
     if source == IRM_KMI:
         return sorted(state.entity_id for state in states if _irm_species(state.entity_id, registry)), []
+    if source == SWISS_POLLEN:
+        return sorted(s.entity_id for s in states if swiss_identity(s.entity_id, registry)), []
+    if source == KLEENEX:
+        return sorted(s.entity_id for s in states if kleenex.identity(s.entity_id, registry)), []
     species, risks = [], []
     for state in states:
         entity_id = state.entity_id
@@ -146,6 +211,9 @@ def detect(states: Sequence[Any], registry: Mapping[str, Mapping[str, Any]], sou
     """The species and the risk of the only place, when there is just one: with several, the user chooses."""
     species, risks = candidates(states, registry, source)
     by_id = {s.entity_id: s for s in states}
+    if source in (SWISS_POLLEN, KLEENEX):
+        places = stations(states, registry, source)
+        return {"pollens": [pollen_option(i, by_id.get(i), registry) for i in species], "pollen_station": places[0]} if len(places) == 1 else {}
     if source == IRM_KMI:
         places = {(registry.get(i) or {}).get("config_entry_id") for i in species}
         return {"pollens": [pollen_option(i, by_id.get(i), registry) for i in species]} if len(places) == 1 else {}
@@ -160,9 +228,20 @@ def detect(states: Sequence[Any], registry: Mapping[str, Mapping[str, Any]], sou
 
 def pollen_option(entity_id: str, state: Any, registry: Mapping[str, Mapping[str, Any]] | None = None) -> dict[str, str]:
     """A species as the settings store it."""
-    slug = _irm_species(entity_id, registry or {}) or (str(state.attributes.get("allergen_slug") or "") if state is not None else "")
+    if kleenex.identity(entity_id, registry or {}):
+        return kleenex.option(entity_id, registry or {})
+    identity = swiss_identity(entity_id, registry or {})
+    slug = (identity[1].lower() if identity else "") or _irm_species(entity_id, registry or {}) or (str(state.attributes.get("allergen_slug") or "") if state is not None else "")
+    if slug == "grass":
+        slug = "grasses"
     if not slug:
         match = re.search(r"_([a-z]+)$", entity_id)
         slug = match.group(1) if match else ""
     label, icon = SPECIES.get(slug, ("", "mdi:flower-pollen"))
-    return {"id": entity_id, "nom": label, "ico": icon}
+    option = {"id": entity_id, "nom": label, "ico": icon}
+    if identity:
+        station, plant = identity
+        diagnostic = next((i for i, e in (registry or {}).items() if e.get("platform") == SWISS_POLLEN
+                           and e.get("unique_id") == f"{station}.{plant}.station_state" and not e.get("disabled_by")), "")
+        option.update(station=station, station_state_entity=diagnostic)
+    return option
