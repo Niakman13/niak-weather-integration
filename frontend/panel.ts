@@ -3,7 +3,9 @@
 import {LitElement,html,unsafeCSS,nothing,type TemplateResult} from 'lit';
 import {customElement,property,state} from 'lit/decorators.js';
 import styles from './styles.css';
-import {NONE,stages,enabledKeys,provenance,sameSet,entityLine,grouped,capital,type Change,type Choice,type DraftReply,type Field,type Hass,type Line,type Place,type Places,type Sources,type View} from './model';
+import {NONE,stages,intros,enabledKeys,provenance,sameSet,entityLine,grouped,capital,type Change,type Choice,type DraftReply,type Field,type Hass,type Line,type Place,type Places,type Sources,type View} from './model';
+
+const FOLDED='niak-weather-folded-intros';
 
 @customElement('niak-weather-setup')
 export class WeatherSetup extends LitElement {
@@ -24,6 +26,8 @@ export class WeatherSetup extends LitElement {
  @state() private confirmLeave=false;
  @state() private allSensors='';
  @state() private placeTitle='';
+ // The step explanations folded by the user, kept in this browser.
+ @state() private folded:number[]=(()=>{try{return JSON.parse(localStorage.getItem(FOLDED)??'[]');}catch{return [];}})();
  private initial='';
  private initialEnabled:string[]=[];
  private savedOptions?:Sources;
@@ -114,6 +118,21 @@ export class WeatherSetup extends LitElement {
    ${f.warning?html`<p class="warn">${f.warning}</p>`:nothing}
    ${f.better?html`<button class="link" ?disabled=${this.busy} @click=${()=>this.set(f.key,f.better!.id)}>Choisir « ${f.better.name} » à la place</button>`:nothing}</div>`;
  }
+ // What the step is for, in a frame that folds and stays folded.
+ private intro(){
+  const open=!this.folded.includes(this.stage);
+  const toggle=(e:Event)=>{const now=(e.target as HTMLDetailsElement).open;if(now===open)return;
+   this.folded=now?this.folded.filter(s=>s!==this.stage):[...this.folded,this.stage];
+   try{localStorage.setItem(FOLDED,JSON.stringify(this.folded));}catch{/* private window: folded for this visit only */}};
+  return html`<details class="intro" ?open=${open} @toggle=${toggle}><summary>À quoi sert cet onglet ?</summary>
+   <ul>${intros[this.stage].map(l=>html`<li>${l}</li>`)}</ul></details>`;
+ }
+ // A zone of Atmo France, under the source that uses it.
+ private zone(id:string,label:string,areas:Choice[],value:string,pick:(v:string)=>void){
+  return html`<div class="field"><div class="field-top"><h3 id=${id}>${label}</h3></div>
+   <select aria-labelledby=${id} ?disabled=${this.busy} @change=${(e:Event)=>pick((e.target as HTMLSelectElement).value)}>
+    ${areas.map(x=>html`<option value=${x.value} ?selected=${x.value===value}>${x.label}</option>`)}</select></div>`;
+ }
  private bottom(next?:TemplateResult){
   return html`<div class="bottom"><button ?disabled=${this.busy||this.stage===0} @click=${()=>this.go(this.stage-1)}>Retour</button>
    ${next??html`<button class="primary" ?disabled=${this.busy} @click=${()=>this.go(this.stage+1)}>Continuer</button>`}</div>`;
@@ -156,18 +175,16 @@ export class WeatherSetup extends LitElement {
  }
  private air(v:View){
   const a=v.air;
-  return html`<p class="muted">L’indice ATMO du jour et ses polluants, publiés par Atmo France pour votre zone. Une précaution régionale, pas une mesure à vos fenêtres.</p>
+  return html`${this.choiceList('air',a.sources,a.value,x=>void this.change({op:'air',value:x}))}
    ${a.areas.length?nothing:html`<p class="notice">Atmo France n’est pas encore installée : <a href="https://github.com/sebcaps/atmofrance" target="_blank" rel="noreferrer">installer l’intégration Atmo France</a>, puis revenez ici.</p>`}
-   ${this.choiceList('air',[...a.areas.map(x=>({...x,hint:'Atmo France'})),{value:NONE,label:'Pas de qualité de l’air'}],a.value,x=>void this.change({op:'air',value:x}))}
+   ${a.value==='atmo'&&a.areas.length?this.zone('l-aarea','Zone Atmo France',a.areas,a.area,x=>void this.change({op:'air',value:'atmo',area:x})):nothing}
    ${this.bottom()}`;
  }
  private pollen(v:View){
   const p=v.pollen;const chosen=p.species.filter(s=>s.chosen).map(s=>s.id);
   const toggle=(id:string,on:boolean)=>void this.change({op:'pollens',value:on?[...chosen,id]:chosen.filter(x=>x!==id)});
   return html`${this.choiceList('pollen',p.sources,p.value,x=>void this.change({op:'pollen',value:x}))}
-   ${p.value==='atmo'&&p.areas.length>1?html`<div class="field"><div class="field-top"><h3 id="l-parea">Zone Atmo France des pollens</h3></div>
-    <select aria-labelledby="l-parea" ?disabled=${this.busy} @change=${(e:Event)=>void this.change({op:'pollen',value:'atmo',area:(e.target as HTMLSelectElement).value})}>
-     ${p.areas.map(x=>html`<option value=${x.value} ?selected=${x.value===p.area}>${x.label}</option>`)}</select></div>`:nothing}
+   ${p.value==='atmo'&&p.areas.length?this.zone('l-parea','Zone Atmo France des pollens',p.areas,p.area,x=>void this.change({op:'pollen',value:'atmo',area:x})):nothing}
    ${p.species.length?html`<h2>Espèces suivies</h2><p class="hint">Toutes celles trouvées sont proposées ; décochez celles qui ne vous concernent pas.</p>
     ${p.species.map(s=>html`<label class="check"><input type="checkbox" .checked=${s.chosen} ?disabled=${this.busy} @change=${(e:Event)=>toggle(s.id,(e.target as HTMLInputElement).checked)}>
      <span>${s.label} <span class="hint inline">· ${s.state||'indisponible'}</span>${s.chosen&&!s.available?html`<span class="warn">Ne répond pas pour l’instant (hors saison ?).</span>`:nothing}</span></label>`)}`:nothing}
@@ -178,13 +195,13 @@ export class WeatherSetup extends LitElement {
   const e=v.entities;
   if(e.new){
    const chosen=e.families.filter(f=>f.chosen).map(f=>f.key);
-   return html`<p class="muted">Les familles d’entités que Niak Weather crée dans Home Assistant. Vous pourrez ensuite les régler une par une.</p>
+   return html`<p class="muted">Choisissez les familles à créer ; vous pourrez ensuite régler leurs entités une par une.</p>
     ${e.families.map(f=>html`<label class="check"><input type="checkbox" .checked=${!!f.chosen} ?disabled=${this.busy}
      @change=${(ev:Event)=>void this.change({op:'families',value:(ev.target as HTMLInputElement).checked?[...chosen,f.key]:chosen.filter(x=>x!==f.key)})}>
      <span><strong>${f.name}</strong>${f.hint?html`<span class="hint">${f.hint}</span>`:nothing}</span></label>`)}${this.bottom()}`;
   }
   const flip=(key:string,on:boolean)=>{this.enabled=on?[...this.enabled,key]:this.enabled.filter(k=>k!==key);};
-  return html`<p class="muted">Les entités que Niak Weather crée dans Home Assistant, par famille. Une entité décochée disparaît ; la carte n’en a pas besoin.</p>
+  return html`<p class="muted">Une entité décochée disparaît de Home Assistant.</p>
    ${e.families.map(f=>{const items=f.entities??[];const on=items.filter(i=>this.enabled.includes(i.key)).length;
     return html`<details class="group" ?open=${items.some(i=>i.need&&this.enabled.includes(i.key))}><summary><strong>${f.name}</strong><span class="hint">${on} sur ${items.length}</span></summary>
      ${items.map(i=>html`<label class="check"><input type="checkbox" .checked=${this.enabled.includes(i.key)} @change=${(ev:Event)=>flip(i.key,(ev.target as HTMLInputElement).checked)}>
@@ -197,11 +214,11 @@ export class WeatherSetup extends LitElement {
   const entities=v.entities.new?v.entities.families.filter(f=>f.chosen).map(f=>f.name).join(', ')||'aucune famille'
    :`${this.enabled.length} actives`+(change?` (${change} qu’avant)`:'');
   return html`<dl class="summary">
-    <dt>Prévisions</dt><dd>${v.summary.weather} · « ${v.title} »</dd>
-    <dt>Station</dt><dd>${v.summary.station}${v.station.model!==NONE?(v.station.history?' · historique calculé':' · sans historique'):''}</dd>
+    <dt>Sources météo</dt><dd>${v.summary.weather} · « ${v.title} »</dd>
+    <dt>Station météo</dt><dd>${v.summary.station}${v.station.model!==NONE?(v.station.history?' · historique calculé':' · sans historique'):''}</dd>
     <dt>Qualité de l’air</dt><dd>${capital(v.summary.air)}</dd>
     <dt>Pollens</dt><dd>${capital(v.summary.pollen)}</dd>
-    <dt>Capteurs</dt><dd>${entities}</dd></dl>
+    <dt>Entités</dt><dd>${entities}</dd></dl>
    ${v.needs.length?html`<h2>À savoir</h2><ul>${v.needs.map(n=>html`<li class="warn">${n}. L’entité restera vide.</li>`)}</ul>`:nothing}
    <p class="notice">${this.entryId?'En enregistrant, le lieu redémarre avec ses nouveaux réglages : la carte se met à jour quelques secondes plus tard.':'En enregistrant, Niak Weather crée ce lieu et ses entités.'}</p>
    ${this.bottom(html`<div class="end"><button ?disabled=${this.busy} @click=${()=>this.leave()}>Abandonner</button>
@@ -253,7 +270,7 @@ export class WeatherSetup extends LitElement {
    <h1>${this.entryId?`Modifier ${this.placeTitle||v.title}`:'Nouveau lieu'}</h1><p class="step-count">Étape ${this.stage+1} sur ${stages.length}</p>
    <nav class="steps" aria-label="Étapes">${stages.map((s,i)=>html`<button aria-current=${i===this.stage?'step':'false'} @click=${()=>this.go(i)}>${s}</button>`)}</nav>
    ${this.error?html`<p class="notice error" role="alert">${this.error}</p>`:nothing}
-   ${body}</main>${this.busy?html`<p class="busy" role="status">Un instant…</p>`:nothing}`;
+   ${this.intro()}${body}</main>${this.busy?html`<p class="busy" role="status">Un instant…</p>`:nothing}`;
  }
  protected render(){
   if(this.editing&&this.view)return this.editor();

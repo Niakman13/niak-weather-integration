@@ -20,6 +20,7 @@ from .const import DOMAIN
 from .engine import detection, ecosystem, families, polleninfo
 from .engine.settings import Settings
 
+AIR_SOURCES = ("atmo", NONE)
 POLLEN_SOURCES = ("atmo", polleninfo.POLLENINFORMATION, polleninfo.IRM_KMI, NONE)
 SIMPLE = frozenset({"weather_entity", "location", "vigilance_entity", "season_entity", "sun_entity", "sun_elevation_entity",
                     "forecast_source", "station_history", "pollen_risk_entity", *detection.STATION_FIELDS})
@@ -145,12 +146,7 @@ class Draft(_SourceSteps):
         elif op == "redetect":
             self._fill("weather" if value == "weather" else "station", fill_empty=True)
         elif op == "air":
-            s["air_source"] = "none" if value == NONE else "atmo"
-            if value != NONE:
-                s["atmo_area"] = value
-            elif s.get("pollen_source") != "atmo":
-                s["atmo_area"] = ""
-            self._apply_atmo()
+            return self._air_source(value, change.get("area"))
         elif op == "pollen":
             return self._pollen(value, change.get("area"))
         elif op == "pollens":
@@ -161,6 +157,21 @@ class Draft(_SourceSteps):
             s["families"] = [f for f, _ in families.FAMILIES if f in (value or [])]
         else:
             return "Changement inconnu."
+        return ""
+
+    def _air_source(self, source: Any, area: str | None) -> str:
+        areas, s = self._areas(), self.sources
+        if source not in AIR_SOURCES:
+            return "Source de qualité de l’air inconnue."
+        if source == "atmo" and not areas:
+            return "Atmo France n’est pas installée."
+        s["air_source"] = "none" if source == NONE else "atmo"
+        if source == "atmo":
+            if area or not s.get("atmo_area"):
+                s["atmo_area"] = area or areas[0]["value"]
+        elif s.get("pollen_source") != "atmo":
+            s["atmo_area"] = ""
+        self._apply_atmo()
         return ""
 
     def _pollen(self, source: Any, area: str | None) -> str:
@@ -291,8 +302,13 @@ class Draft(_SourceSteps):
         return [{"value": i, "label": str(devices[i].get("name_by_user") or devices[i].get("name") or i)} for i in detection.netatmo_stations(devices)]
 
     def _air(self) -> dict[str, Any]:
-        s = self.sources
-        return {"value": NONE if s.get("air_source") == "none" or not s.get("atmo_area") else s["atmo_area"], "areas": self._areas()}
+        """Like the pollens: the integration that gives the air first, then its zone."""
+        s, areas = self.sources, self._areas()
+        sources = [{"value": "atmo", "label": "Atmo France", "hint": "L’indice ATMO de 1 à 6 et ses polluants, pour une zone Atmo France",
+                    "available": bool(areas)},
+                   {"value": NONE, "label": "Pas de qualité de l’air", "hint": "", "available": True}]
+        on = s.get("air_source") != "none" and bool(s.get("atmo_area"))
+        return {"value": "atmo" if on else NONE, "sources": sources, "area": s.get("atmo_area") or "", "areas": areas}
 
     def _pollens(self) -> dict[str, Any]:
         states, registry, _ = _context(self.hass)

@@ -17,7 +17,7 @@ export interface View {
  title:string;
  prevision:{fields:Field[];location:string;location_placeholder:string;advanced:Field[];forecast_source:string};
  station:{model:string;models:Choice[];device:string;devices:Choice[];profile:string;history:boolean;history_help:string;groups:{name:string;title:string;fields:Field[]}[]};
- air:{value:string;areas:Choice[]};
+ air:{value:string;sources:Choice[];area:string;areas:Choice[]};
  pollen:{value:string;sources:Choice[];area:string;areas:Choice[];species:Species[];risk:Field|null};
  entities:{new:boolean;families:Family[]};
  summary:{weather:string;station:string;air:string;pollen:string};
@@ -28,9 +28,27 @@ export interface DraftReply {draft:Sources;view:View;error:string}
 export type Change={op:string;key?:string;value?:unknown;area?:string};
 
 export const NONE='none';
-export const stages=['Prévisions','Station','Air','Pollens','Capteurs','Récapitulatif'];
+export const stages=['Sources météo','Station météo / Capteurs locaux','Qualité de l’air','Pollens','Entités','Récapitulatif'];
+// What each step is for, shown on top of it in a frame that folds: one idea per line.
+export const intros:string[][]=[
+ ['Les prévisions du lieu viennent d’un service météo installé dans Home Assistant, Météo-France par exemple.',
+  'C’est la seule source obligatoire : sans elle, pas de carte.',
+  'Niak Weather propose celle qu’il trouve ; vérifiez qu’elle correspond bien à votre lieu.'],
+ ['Ce que vos propres capteurs mesurent chez vous : température, pluie, vent…',
+  'Leurs mesures passent avant celles du service météo, plus loin de chez vous.',
+  'Facultatif : sans station, la carte s’appuie sur les prévisions seules.'],
+ ['L’indice de qualité de l’air du jour et ses polluants, pour votre zone.',
+  'Une précaution régionale, pas une mesure à vos fenêtres.',
+  'Choisissez la source, puis sa zone. Facultatif.'],
+ ['Le niveau des pollens par espèce, pour anticiper les allergies.',
+  'Choisissez la source, puis les espèces qui vous concernent. Facultatif.'],
+ ['Les entités que Niak Weather crée dans Home Assistant, rangées par famille.',
+  'Elles servent à vos automatisations et tableaux de bord ; la carte n’en a pas besoin.'],
+ ['Tout ce que vous avez choisi, onglet par onglet.',
+  'Rien ne change tant que vous n’avez pas enregistré ; un oubli, revenez à l’onglet voulu.'],
+];
 
-// The entities switched on, by key, as the « Capteurs » step shows them.
+// The entities switched on, by key, as the « Entités » step shows them.
 export function enabledKeys(view:View):string[]{
  return view.entities.new?[]:view.entities.families.flatMap(f=>(f.entities??[]).filter(e=>e.enabled).map(e=>e.key));
 }
