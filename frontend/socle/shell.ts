@@ -2,7 +2,7 @@
 // Copied unchanged into each brick from niak-ecosysteme/socle/ (see ECOSYSTEME.md § 8).
 import {LitElement,html,css,nothing,type PropertyValues} from 'lit';
 
-export const ELEMENT='niak-socle-1-2';
+export const ELEMENT='niak-socle-1-3';
 type Level='ok'|'action'|'unknown';
 export interface BrickStatus {level:Level;summary:string;details:string[];links:string[]}
 export interface Brick {domain:string;name:string;slug:string;version:string;icon:string;module_url:string;element:string;status:BrickStatus;tab?:string|null}
@@ -73,8 +73,8 @@ export class NiakShell extends LitElement {
     ${b.status.details.length?html`<ul>${b.status.details.map(d=>html`<li>${d}</li>`)}</ul>`:nothing}
     ${b.status.links.length?html`<p class="links">${b.status.links.map(l=>html`<span>${l}</span>`)}</p>`:nothing}
     <button class="primary" @click=${()=>this.go(b.slug)}>Ouvrir ${tabName(b)}</button></section>`)}
-   ${o.others.length?html`<h2 class="others-title">Les autres briques Niak</h2>${o.others.map(x=>html`<section class="other"><div><h3>${x.name}</h3><p class="muted">${x.installed?'Installée. Ses réglages restent dans Paramètres, en attendant qu’elle rejoigne ce panneau.':x.pitch}</p></div>
-    ${x.installed?html`<a class="button" href=${x.settings_path}>Ouvrir ses réglages</a>`:html`<a class="button" href=${x.url} target="_blank" rel="noreferrer">Découvrir</a>`}</section>`)}`:nothing}</main>`;}
+   ${o.others.length?html`<h2 class="others-title">À découvrir</h2>${o.others.map(x=>html`<section class="other"><div><h3>${x.name}</h3><p class="muted">${x.installed?'Installée. Ses réglages restent dans Paramètres, en attendant qu’elle rejoigne ce panneau.':x.pitch}</p></div>
+    ${x.installed?html`<a class="button" href=${x.settings_path}>Ouvrir ses réglages</a>`:html`<a class="button" href=${x.url} target="_blank" rel="noreferrer">Voir</a>`}</section>`)}`:nothing}</main>`;}
  protected render(){
   if(this.panel?.config?.redirect)return nothing;
   const [slug]=splitPath(this.route?.path);const o=this.overview;
