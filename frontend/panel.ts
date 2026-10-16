@@ -1,15 +1,16 @@
 // The « Météo » tab of the shared « Niak » panel: each place's settings, step by step, then saved at once.
 // Niak Weather computes everything (draft.py): this page shows the draft, sends each change and saves it.
-import {LitElement,html,unsafeCSS,nothing,type TemplateResult} from 'lit';
+import {LitElement,html,unsafeCSS,nothing,type TemplateResult,type PropertyValues} from 'lit';
 import {customElement,property,state} from 'lit/decorators.js';
 import styles from './styles.css';
+import {frame,hubStyles,modernStyles,hubIcon,helpTip} from './socle/ui';
 import {NONE,stages,intros,enabledKeys,provenance,sameSet,entityLine,grouped,capital,type Change,type Choice,type DraftReply,type Field,type Hass,type Line,type Place,type Places,type Sources,type View} from './model';
 
-const FOLDED='niak-weather-folded-intros';
+const categories=['sources','station','air','pollens','entites','recapitulatif'];
 
 @customElement('niak-weather-setup')
 export class WeatherSetup extends LitElement {
- static styles=unsafeCSS(styles);
+ static styles=[unsafeCSS(styles),hubStyles,modernStyles];
  @property({attribute:false}) hass?:Hass;
  @property({attribute:false}) route?:{path:string};
  @property({type:Boolean}) narrow=false;
@@ -26,24 +27,26 @@ export class WeatherSetup extends LitElement {
  @state() private confirmLeave=false;
  @state() private allSensors='';
  @state() private placeTitle='';
- // The step explanations folded by the user, kept in this browser.
- @state() private folded:number[]=(()=>{try{return JSON.parse(localStorage.getItem(FOLDED)??'[]');}catch{return [];}})();
+ private routeHandled:string|undefined;
+ private routeGeneration=0;
+ private drafts=new Map<string,{draft:Sources;view:View;stage:number;enabled:string[];initial:string;initialEnabled:string[];savedOptions?:Sources;touched:Set<string>;placeTitle:string}>();
  private initial='';
  private initialEnabled:string[]=[];
  private savedOptions?:Sources;
  private touched=new Set<string>();
  private generation=0;
- private beforeUnload=(e:BeforeUnloadEvent)=>{if(this.dirty()){e.preventDefault();e.returnValue='';}};
+ private beforeUnload=(e:BeforeUnloadEvent)=>{if(this.dirty()||[...this.drafts.values()].some(d=>JSON.stringify(d.draft)!==d.initial||!sameSet(d.enabled,d.initialEnabled))){e.preventDefault();e.returnValue='';}};
  connectedCallback(){super.connectedCallback();window.addEventListener('beforeunload',this.beforeUnload);}
- disconnectedCallback(){super.disconnectedCallback();window.removeEventListener('beforeunload',this.beforeUnload);}
- protected updated(){
+ disconnectedCallback(){super.disconnectedCallback();this.routeGeneration++;if(this.busy)this.routeHandled=undefined;window.removeEventListener('beforeunload',this.beforeUnload);}
+ protected updated(changed:PropertyValues){
   this.setAttribute('data-theme',this.hass?.themes?.darkMode===false?'light':'dark');
   if(this.hass&&!this.places&&!this.busy&&!this.error)void this.load();
+  if(changed.has('route')&&this.places)void this.followRoute();
  }
  private message(e:unknown){return typeof e==='object'&&e&&'message' in e?String((e as {message:unknown}).message):'Home Assistant ne répond pas. Réessayez.';}
  private async load(){
   this.busy=true;
-  try{this.places=await this.hass!.callWS<Places>({type:'niak_weather/panel/places'});this.error='';}
+  try{this.places=await this.hass!.callWS<Places>({type:'niak_weather/panel/places'});this.error='';await this.followRoute();}
   catch(e){this.error=this.message(e);}
   finally{this.busy=false;}
   // A place restarting after a save: look again in a moment, a few times at most.
@@ -54,17 +57,33 @@ export class WeatherSetup extends LitElement {
  private dirty(){return !!this.draft&&(JSON.stringify(this.draft)!==this.initial||!sameSet(this.enabled,this.initialEnabled));}
  private top(){this.scrollTop=0;this.renderRoot.querySelector('main')?.scrollIntoView?.({block:'start'});}
 
+ private path(path:string){this.routeHandled=path?'/'+path:'';history.pushState(null,'','/niak/meteo'+(path?'/'+path:''));window.dispatchEvent(new CustomEvent('location-changed'));}
+ private remember(){if(this.draft&&this.view)this.drafts.set(this.entryId??'nouveau',{draft:this.draft,view:this.view,stage:this.stage,enabled:this.enabled,initial:this.initial,initialEnabled:this.initialEnabled,savedOptions:this.savedOptions,touched:this.touched,placeTitle:this.placeTitle});}
+ private async followRoute(){
+  const path=this.route?.path??'';if(path===this.routeHandled)return;this.routeHandled=path;this.routeGeneration++;
+  const [section,id]=path.split('/').filter(Boolean),stage=categories.indexOf(section);this.remember();
+  const target=id??(this.editing?this.entryId:undefined)??(this.places?.places.length===1?this.places.places[0].entry_id:undefined);
+  if(stage>=0&&target){
+   const cached=this.drafts.get(target);if(cached){Object.assign(this,cached);this.entryId=target==='nouveau'?null:target;this.stage=stage;this.editing=true;return;}
+   if(target==='nouveau'||this.places?.places.some(p=>p.entry_id===target)){await this.open(target==='nouveau'?null:target,stage,false);return;}
+  }
+  this.editing=false;this.draft=undefined;this.view=undefined;this.confirmLeave=false;this.error='';
+ }
  // ---- Opening, changing, saving ----
- private async open(entryId:string|null,stage=0){
+ private async open(entryId:string|null,stage=0,route=true){
+  const cached=this.drafts.get(entryId??'nouveau');if(route&&cached){Object.assign(this,cached);this.entryId=entryId;this.stage=stage;this.editing=true;this.path(categories[stage]+'/'+(entryId??'nouveau'));return;}
+  const generation=this.routeGeneration;
   this.busy=true;this.error='';this.saved='';
   try{
    const reply=await this.hass!.callWS<DraftReply&{saved:Sources|null}>({type:'niak_weather/panel/open',...(entryId?{entry_id:entryId}:{})});
+   if(generation!==this.routeGeneration)return;
    this.placeTitle=this.places?.places.find(p=>p.entry_id===entryId)?.title??'';
    this.entryId=entryId;this.draft=reply.draft;this.view=reply.view;this.stage=stage;this.editing=true;this.touched=new Set();
    // Leaving asks first once something changed since opening; a new place always does.
    this.initial=entryId?JSON.stringify(reply.draft):'';
    this.savedOptions=reply.saved??undefined;
    this.enabled=enabledKeys(reply.view);this.initialEnabled=[...this.enabled];
+   if(route)this.path(categories[stage]+'/'+(entryId??'nouveau'));
    await this.updateComplete;this.top();
   }catch(e){this.error=this.message(e);}
   finally{this.busy=false;}
@@ -94,9 +113,9 @@ export class WeatherSetup extends LitElement {
   }catch(e){this.error=this.message(e);}
   finally{this.busy=false;}
  }
- private close(){this.editing=false;this.draft=undefined;this.view=undefined;this.confirmLeave=false;this.error='';void this.updateComplete.then(()=>this.top());}
+ private close(){this.drafts.delete(this.entryId??'nouveau');this.path('');this.editing=false;this.draft=undefined;this.view=undefined;this.confirmLeave=false;this.error='';void this.updateComplete.then(()=>{this.top();});}
  private leave(){if(this.dirty()&&!this.confirmLeave){this.confirmLeave=true;return;}this.close();}
- private go(stage:number){this.stage=stage;void this.updateComplete.then(()=>this.top());}
+ private go(stage:number){this.stage=stage;this.path(categories[stage]+'/'+(this.entryId??'nouveau'));void this.updateComplete.then(()=>{this.top();});}
 
  // ---- Pieces ----
  private choiceList(name:string,choices:Choice[],value:string,pick:(v:string)=>void){
@@ -106,8 +125,7 @@ export class WeatherSetup extends LitElement {
  }
  private field(f:Field):TemplateResult{
   const origin=provenance(f.key,f.value,this.savedOptions,this.touched);
-  return html`<div class="field"><div class="field-top"><h3 id=${'l-'+f.key}>${f.label}</h3><span>${f.need}</span></div>
-   ${f.help?html`<p class="hint">${f.help}</p>`:nothing}
+  return html`<div class="field"><div class="field-top"><h3 id=${'l-'+f.key}>${f.label}</h3><span>${f.need}</span>${f.help?helpTip(f.label,f.help):nothing}</div>
    <select aria-labelledby=${'l-'+f.key} ?disabled=${this.busy} @change=${(e:Event)=>this.set(f.key,(e.target as HTMLSelectElement).value)}>
     <option value="" ?selected=${!f.value}>${f.options.length?'— Aucun —':'— Aucun capteur trouvé —'}</option>
     ${grouped(f).map(g=>{const items=g.options.map(o=>html`<option value=${o.id} ?selected=${o.id===f.value}>${o.name}${o.state?` · ${o.state}`:''}</option>`);
@@ -119,15 +137,8 @@ export class WeatherSetup extends LitElement {
    ${f.better?html`<button class="link" ?disabled=${this.busy} @click=${()=>this.set(f.key,f.better!.id)}>Choisir « ${f.better.name} » à la place</button>`:nothing}</div>`;
  }
  // What the step is for, in a frame that folds and stays folded.
- private intro(){
-  const open=!this.folded.includes(this.stage);
-  const toggle=(e:Event)=>{const now=(e.target as HTMLDetailsElement).open;if(now===open)return;
-   this.folded=now?this.folded.filter(s=>s!==this.stage):[...this.folded,this.stage];
-   try{localStorage.setItem(FOLDED,JSON.stringify(this.folded));}catch{/* private window: folded for this visit only */}};
-  return html`<details class="intro" ?open=${open} @toggle=${toggle}><summary>À quoi sert cet onglet ?</summary>
-   <ul>${intros[this.stage].map(l=>html`<li>${l}</li>`)}</ul></details>`;
- }
- // A zone of Atmo France, under the source that uses it.
+ private intro(){return html`<div class="nk-step-help">${helpTip('Comprendre cette étape',html`<ul>${intros[this.stage].map(line=>html`<li>${line}</li>`)}</ul>`,'À quoi sert cette étape ?')}</div>`;}
+
  private zone(id:string,label:string,areas:Choice[],value:string,pick:(v:string)=>void){
   return html`<div class="field"><div class="field-top"><h3 id=${id}>${label}</h3></div>
    <select aria-labelledby=${id} ?disabled=${this.busy} @change=${(e:Event)=>pick((e.target as HTMLSelectElement).value)}>
@@ -217,13 +228,13 @@ export class WeatherSetup extends LitElement {
   const change=[added?`${added} de plus`:'',removed?`${removed} de moins`:''].filter(Boolean).join(', ');
   const entities=v.entities.new?v.entities.families.filter(f=>f.chosen).map(f=>f.name).join(', ')||'aucune famille'
    :`${this.enabled.length} actives`+(change?` (${change} qu’avant)`:'');
-  return html`<dl class="summary">
+  return html`${frame('Récapitulatif',html`<dl class="summary">
     <dt>Sources météo</dt><dd>${v.summary.weather} · « ${v.title} »</dd>
     <dt>Station météo</dt><dd>${v.summary.station}${v.station.model!==NONE?(v.station.history?' · historique calculé':' · sans historique'):''}</dd>
     <dt>Qualité de l’air</dt><dd>${capital(v.summary.air)}</dd>
     <dt>Pollens</dt><dd>${capital(v.summary.pollen)}</dd>
-    <dt>Entités</dt><dd>${entities}</dd></dl>
-   ${v.needs.length?html`<h2>À savoir</h2><ul>${v.needs.map(n=>html`<li class="warn">${n}. L’entité restera vide.</li>`)}</ul>`:nothing}
+    <dt>Entités</dt><dd>${entities}</dd></dl>`)}
+   ${v.needs.length?html`${frame('À savoir',html`<ul>${v.needs.map(n=>html`<li class="warn">${n}. L’entité restera vide.</li>`)}</ul>`)}`:nothing}
    <p class="notice">${this.entryId?'En enregistrant, le lieu redémarre avec ses nouveaux réglages : la carte se met à jour quelques secondes plus tard.':'En enregistrant, Niak Weather crée ce lieu et ses entités.'}</p>
    ${this.bottom(html`<div class="end"><button ?disabled=${this.busy} @click=${()=>this.leave()}>Abandonner</button>
     <button class="primary" ?disabled=${this.busy||!this.draft?.weather_entity} @click=${()=>void this.save()}>${this.entryId?'Enregistrer':'Créer ce lieu'}</button></div>`)}`;
@@ -232,14 +243,14 @@ export class WeatherSetup extends LitElement {
  // ---- Pages ----
  private home(){
   const p=this.places!;
-  return html`<main>
+  return html`<main><h1>Mes lieux météo</h1><p class="muted">${categories.includes((this.route?.path??'').split('/').filter(Boolean)[0])?'Choisissez le lieu à configurer : '+stages[categories.indexOf((this.route?.path??'').split('/').filter(Boolean)[0])]+'.':'Vos lieux configurés et leurs sources météo.'}</p>
    ${this.saved?html`<p class="notice" role="status">${this.saved}</p>`:nothing}
    ${p.places.length?p.places.map(place=>this.place(place)):html`<h1>Ma météo</h1>
-    <section class="card"><h2>Votre lieu</h2><p class="muted">Niak Weather propose ce qu’il trouve dans Home Assistant ; vous vérifiez chaque étape avant de créer le lieu.</p>
+    ${frame('Votre lieu',html`<p class="muted">Niak Weather propose ce qu’il trouve dans Home Assistant ; vous vérifiez chaque étape avant de créer le lieu.</p>
      ${p.can_add?html`<button class="primary" ?disabled=${this.busy} @click=${()=>void this.open(null)}>Configurer mon lieu</button>`
-      :html`<p class="warn">Aucun service météo dans Home Assistant : installez Météo-France (Paramètres → Appareils et services), puis revenez ici.</p>`}</section>`}
+      :html`<p class="warn">Aucun service météo dans Home Assistant : installez Météo-France (Paramètres → Appareils et services), puis revenez ici.</p>`}`,{className:''})}`}
    <div class="footer">${p.places.length&&p.can_add?html`<button class="link" ?disabled=${this.busy} @click=${()=>void this.open(null)}>Ajouter un lieu</button>`:nothing}
-    <span class="hint">L’ancien assistant reste dans Paramètres → Appareils et services → Niak Weather → Configurer.</span></div></main>`;
+    <span class="hint">Les sources et entités se règlent depuis les rubriques Weather.</span></div></main>`;
  }
  // One line of a frame: its state, what it means, and the step of the assistant that changes it.
  private line(entryId:string,l:Line){
@@ -247,23 +258,24 @@ export class WeatherSetup extends LitElement {
    ${l.stage!==null&&l.stage!==undefined?html`<button class="link go" ?disabled=${this.busy} @click=${()=>void this.open(entryId,l.stage!)}>${stages[l.stage]}</button>`:nothing}</li>`;
  }
  private place(p:Place){
+  const category=categories.indexOf((this.route?.path??'').split('/').filter(Boolean)[0]);
   const h=p.health,all=this.allSensors===p.entry_id,sensors=all?h.sensors:h.sensors.slice(0,8);
-  return html`<section class="place" aria-labelledby=${'p-'+p.entry_id}>
-   <div class="head"><div><h1 id=${'p-'+p.entry_id}>${p.title}</h1>
+  return html`<section class="place room-place" aria-labelledby=${'p-'+p.entry_id}>
+   <div class="head"><div><h2 id=${'p-'+p.entry_id}>${p.title}</h2>
     <p class="state ${h.level==='ok'?'ok':'bad'}"><span class="dot"></span>${h.summary}${h.tips_summary?html`<span class="muted"> · ${h.tips_summary}</span>`:nothing}</p></div>
-    <button class="primary" ?disabled=${this.busy} @click=${()=>void this.open(p.entry_id,0)}>Modifier</button></div>
+    <button class="primary" ?disabled=${this.busy} @click=${()=>void this.open(p.entry_id,Math.max(0,category))}>Configurer</button></div>
    ${!p.loaded&&!p.failed?html`<p class="notice" role="status">Le lieu redémarre…</p>`:nothing}
-   <p class="legend"><span class="ok"><span class="dot"></span>fonctionne</span><span class="bad"><span class="dot"></span>à régler</span><span class="tip"><span class="dot"></span>à améliorer</span><span class="none"><span class="dot"></span>non utilisé</span></p>
+    ${h.todo.length?html`${frame('À régler',html`<ul class="lines">${h.todo.map(l=>this.line(p.entry_id,l))}</ul>`,{className:'wide todo'})}`:nothing}
+    ${h.tips.length?html`${frame('À améliorer',html`<ul class="lines">${h.tips.map(l=>this.line(p.entry_id,l))}</ul>`,{className:'wide'})}`:nothing}
+   <details class="health-details"><summary>Sources, conseils et état du lieu</summary><p class="legend"><span class="ok"><span class="dot"></span>fonctionne</span><span class="bad"><span class="dot"></span>à régler</span><span class="tip"><span class="dot"></span>à améliorer</span><span class="none"><span class="dot"></span>non utilisé</span></p>
    <div class="grid">
-    ${h.todo.length?html`<section class="card wide todo"><h2>À régler</h2><ul class="lines">${h.todo.map(l=>this.line(p.entry_id,l))}</ul></section>`:nothing}
-    ${h.tips.length?html`<section class="card wide"><h2>À améliorer <small>facultatif</small></h2><ul class="lines">${h.tips.map(l=>this.line(p.entry_id,l))}</ul></section>`:nothing}
-    <section class="card"><h2>Sources</h2><ul class="lines">${h.sources.map(s=>html`<li class=${s.level}><span class="dot"></span><div><strong>${s.label}</strong><span class="why">${s.text}</span></div></li>`)}</ul></section>
-    ${h.sensors.length?html`<section class="card"><h2>Capteurs de la station <small>${h.sensors.length}</small></h2>
+    ${frame('Sources',html`<ul class="lines">${h.sources.map(s=>html`<li class=${s.level}><span class="dot"></span><div><strong>${s.label}</strong><span class="why">${s.text}</span></div></li>`)}</ul>`,{className:''})}
+    ${h.sensors.length?html`${frame('Capteurs de la station',html`
      <ul class="sensors">${sensors.map(s=>html`<li class=${s.level} title=${s.name}><span class="dot"></span><span>${s.label}</span><span class="v">${s.text}</span></li>`)}</ul>
-     ${h.sensors.length>8?html`<button class="link" aria-expanded=${all?'true':'false'} @click=${()=>{this.allSensors=all?'':p.entry_id;}}>${all?'Masquer':`Voir les ${h.sensors.length} capteurs`}</button>`:nothing}</section>`:nothing}
-    <section class="card"><h2>Entités Niak Weather</h2><ul class="lines">${h.entities.map(l=>this.line(p.entry_id,{...l,stage:null}))}</ul></section>
-    <section class="card"><h2>Versions et liens</h2><ul class="lines">${h.versions.map(l=>this.line(p.entry_id,{...l,stage:null}))}</ul></section>
-   </div></section>`;
+     ${h.sensors.length>8?html`<button class="link" aria-expanded=${all?'true':'false'} @click=${()=>{this.allSensors=all?'':p.entry_id;}}>${all?'Masquer':`Voir les ${h.sensors.length} capteurs`}</button>`:nothing}`,{count:h.sensors.length,collapsible:true})}`:nothing}
+    ${frame('Entités Niak Weather',html`<ul class="lines">${h.entities.map(l=>this.line(p.entry_id,{...l,stage:null}))}</ul>`,{className:''})}
+    ${frame('Versions et liens',html`<ul class="lines">${h.versions.map(l=>this.line(p.entry_id,{...l,stage:null}))}</ul>`,{collapsible:true,open:false})}
+   </div></details></section>`;
  }
  private editor(){
   const v=this.view!;
@@ -271,10 +283,10 @@ export class WeatherSetup extends LitElement {
   return html`<main><button class="link" @click=${()=>this.leave()}>← Ma météo</button>
    ${this.confirmLeave?html`<div class="notice" role="alert"><p>Vos changements ne sont pas enregistrés.</p><div class="actions">
     <button @click=${()=>{this.confirmLeave=false;}}>Continuer à modifier</button><button @click=${()=>this.close()}>Abandonner les changements</button></div></div>`:nothing}
-   <h1>${this.entryId?`Modifier ${this.placeTitle||v.title}`:'Nouveau lieu'}</h1><p class="step-count">Étape ${this.stage+1} sur ${stages.length}</p>
-   <nav class="steps" aria-label="Étapes">${stages.map((s,i)=>html`<button aria-current=${i===this.stage?'step':'false'} @click=${()=>this.go(i)}>${s}</button>`)}</nav>
+   <div class="workspace-head"><h1>${this.entryId?this.placeTitle||v.title:'Nouveau lieu'}</h1><p class="step-count">Les réglages de ce lieu météo</p></div>
+   ${!this.entryId?html`<nav class="steps" aria-label="Étapes">${stages.map((s,i)=>html`<button aria-current=${i===this.stage?'step':'false'} @click=${()=>this.go(i)}><span class="nk-step-index">${i+1}</span>${s}</button>`)}</nav>`:html`<div class="place-context"><span>Lieu météo : <strong>${this.placeTitle||v.title}</strong></span><button class="link" @click=${()=>this.go(5)}>Récapitulatif</button></div>`}
    ${this.error?html`<p class="notice error" role="alert">${this.error}</p>`:nothing}
-   ${this.intro()}${body}</main>${this.busy?html`<p class="busy" role="status">Un instant…</p>`:nothing}`;
+   <div class="room-content-head"><h2>${stages[this.stage]}</h2></div>${this.intro()}${body}</main>${this.busy?html`<p class="busy" role="status">Un instant…</p>`:nothing}`;
  }
  protected render(){
   if(this.editing&&this.view)return this.editor();

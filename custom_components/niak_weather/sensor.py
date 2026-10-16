@@ -188,7 +188,7 @@ def first_enabled(coordinator: NiakWeatherCoordinator, key: str, default: bool) 
 
 
 def device_info(coordinator: NiakWeatherCoordinator, device: str) -> DeviceInfo:
-    return DeviceInfo(identifiers={(DOMAIN, coordinator.config_entry.entry_id)}, name=device, manufacturer="Niakman13", model="Niak Weather",
+    return DeviceInfo(identifiers={(DOMAIN, coordinator.config_entry.entry_id)}, name=device, manufacturer="Niakman13", model="Niak Weather", configuration_url="homeassistant://niak/meteo",
                       entry_type=DeviceEntryType.SERVICE)
 
 

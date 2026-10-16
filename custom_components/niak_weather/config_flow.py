@@ -18,8 +18,7 @@ from homeassistant.helpers.selector import (BooleanSelector, EntitySelector, Ent
                                             SelectSelectorConfig, SelectSelectorMode, TextSelector)
 
 from .const import CARD_TYPE, DOMAIN, LOGGER
-from .api import API_KEY
-from .engine import atmo, detection, ecosystem, families, polleninfo
+from .engine import atmo, detection, families, polleninfo
 from .engine.settings import ATMO_KEYS, Settings, atmo_key
 from .engine.view import place_name
 
@@ -430,81 +429,14 @@ class NiakWeatherConfigFlow(_SourceSteps, ConfigFlow, domain=DOMAIN):
             **self._summary(), "families": ", ".join(FAMILY_NAMES[f] for f, _ in families.FAMILIES if f in chosen) or "aucune", "missing": "\n".join(f"- {m}" for m in missing) or "- Rien : tout ce qui est choisi a sa source."})
 
 
-class NiakWeatherOptionsFlow(_SourceSteps, OptionsFlow):
-    """A menu that stays open: each part is changed and checked, then everything is saved at once."""
-
-    _started = False
-    _enabled: set[str] | None = None
-    """The entities chosen in « Capteurs et automatisations », by key; None while that screen was not used."""
+class NiakWeatherOptionsFlow(OptionsFlow):
+    """The settings live in the « Météo » tab of the Niak panel: this screen only leads there."""
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        if not self._started:
-            self._started, self.sources = True, dict(self.config_entry.options)
-        entries = self._entities()
-        enabled = self._enabled if self._enabled is not None else {k for k, e in entries.items() if e.disabled_by is None}
-        return self.async_show_menu(step_id="init", menu_options=["weather", "station", "air", "entities", "ecosystem", "save"],
-                                    description_placeholders={**self._summary(), "entities": f"{len(enabled)} actives sur {len(entries)}",
-                                                              "ecosystem": ecosystem.summary(self._linked())})
-
-    async def _done(self, step: str) -> ConfigFlowResult:
-        return await (self.async_step_air() if step in ("air", "pollen") else self.async_step_init())
-
-    async def async_step_air(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """The air and the pollens, apart: each has its own screen; back to the main menu when done."""
-        return self.async_show_menu(step_id="air", menu_options=["air_quality", "pollen", "init"], description_placeholders=self._summary())
-
-    def _entities(self) -> dict[str, er.RegistryEntry]:
-        """This place's entities by key (the end of their unique id)."""
-        prefix = f"{self.config_entry.entry_id}_"
-        return {e.unique_id.removeprefix(prefix): e for e in er.async_entries_for_config_entry(er.async_get(self.hass), self.config_entry.entry_id)
-                if e.unique_id.startswith(prefix)}
-
-    async def async_step_entities(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Every entity, by family, ticked when it is enabled; what an entity still needs is said above."""
-        entries = self._entities()
         if user_input is not None:
-            self._enabled = {key for family, _ in families.FAMILIES for key in user_input.get(family) or []}
-            return await self.async_step_init()
-        enabled = self._enabled if self._enabled is not None else {k for k, e in entries.items() if e.disabled_by is None}
-        schema: dict[Any, Any] = {}
-        suggested: dict[str, list[str]] = {}
-        for family, keys in families.FAMILIES:
-            present = [k for k in keys if k in entries]
-            if present:
-                schema[vol.Optional(family)] = SelectSelector(SelectSelectorConfig(options=present, multiple=True, mode=SelectSelectorMode.LIST,
-                                                                                   translation_key="entity"))
-                suggested[family] = [k for k in present if k in enabled]
-        needs = families.needs(Settings.from_options(_clean(self.sources)))
-        notes = "\n".join(f"- {key_name(k)} : il faut {text}" for k, text in needs.items() if k in entries) or "- Chaque entité a sa source."
-        return self.async_show_form(step_id="entities", data_schema=self.add_suggested_values_to_schema(vol.Schema(schema), suggested),  # type: ignore[attr-defined]
-                                    description_placeholders={"needs": notes})
+            return self.async_create_entry(data=dict(self.config_entry.options))
+        return self.async_show_form(step_id="init", data_schema=vol.Schema({}), description_placeholders={"link": "/niak/meteo"})
 
-    def _linked(self) -> dict[str, int]:
-        api = self.hass.data.get(API_KEY)
-        return api.linked(self.config_entry.entry_id) if api is not None else {}
-
-    async def async_step_ecosystem(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """The other Niak bricks and their link with this place: Niak Weather only publishes, each brick links itself in its own settings."""
-        if user_input is not None:
-            return await self.async_step_init()
-        installed = {e.domain for e in self.hass.config_entries.async_entries() if e.domain.startswith("niak_")}
-        return self.async_show_form(step_id="ecosystem", data_schema=vol.Schema({}),
-                                    description_placeholders={"links": ecosystem.links(self._linked(), installed)})
-
-    async def async_step_save(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Everything at once: the entities switched on or off, the place's name, then the settings (which restart the place)."""
-        if self._enabled is not None:
-            registry = er.async_get(self.hass)
-            for key, entry in self._entities().items():
-                if key in self._enabled and entry.disabled_by is not None:
-                    registry.async_update_entity(entry.entity_id, disabled_by=None)
-                elif key not in self._enabled and entry.disabled_by is None:
-                    registry.async_update_entity(entry.entity_id, disabled_by=er.RegistryEntryDisabler.USER)
-            # Enabled entities appear once the place restarts, even when no setting changed.
-            self.hass.config_entries.async_schedule_reload(self.config_entry.entry_id)
-        if self._title() != self.config_entry.title:
-            self.hass.config_entries.async_update_entry(self.config_entry, title=self._title())
-        return self.async_create_entry(data=_clean(self.sources))
 
 
 def key_name(key: str) -> str:

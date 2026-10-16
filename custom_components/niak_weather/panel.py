@@ -47,7 +47,7 @@ async def async_setup_panel(hass: HomeAssistant, version: str) -> None:
         hass.data[f"{DOMAIN}_panel"] = True
     await async_register_brick(hass, {
         "domain": DOMAIN, "name": "Niak Weather", "slug": "meteo", "tab": "Météo", "version": version, "icon": "mdi:weather-partly-cloudy",
-        "module_url": f"{ASSETS}/panel.js?v={version}", "element": "niak-weather-setup", "status": weather_status, "legacy_path": "",
+        "navigation": 1, "module_url": f"{ASSETS}/panel.js?v={version}", "element": "niak-weather-setup", "status": weather_status, "legacy_path": "",
     }, f"{ASSETS}/niak-socle.js?v={version}")
 
 
