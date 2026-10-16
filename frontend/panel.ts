@@ -121,13 +121,13 @@ export class WeatherSetup extends LitElement {
 
  // ---- Pieces ----
  private choiceList(name:string,choices:Choice[],value:string,pick:(v:string)=>void){
-  return html`<div role="radiogroup">${choices.map(c=>html`<label class="choice ${c.value===value?'on':''} ${c.available===false?'off':''}">
+  return html`<div role="radiogroup" aria-label=${({model:'Modèle de station',air:'Source de qualité de l’air',pollen:'Source des pollens'} as Record<string,string>)[name]??name}>${choices.map(c=>html`<label class="choice ${c.value===value?'on':''} ${c.available===false?'off':''}">
    <input type="radio" name=${name} .checked=${c.value===value} ?disabled=${c.available===false||this.busy} @change=${()=>pick(c.value)}>
    <span><strong>${c.label}</strong>${c.available===false?html`<span>Pas encore installée</span>`:c.hint?html`<span>${c.hint}</span>`:nothing}</span></label>`)}</div>`;
  }
  private field(f:Field):TemplateResult{
   const origin=provenance(f.key,f.value,this.savedOptions,this.touched);
-  return html`<div class="field"><div class="field-top"><h3 id=${'l-'+f.key}>${f.label}</h3><span>${f.need}</span>${f.help?helpTip(f.label,f.help):nothing}</div>
+  return html`<div class="field nk-setting-row"><div class="field-top"><h3 id=${'l-'+f.key}>${f.label}</h3><span>${f.need}</span>${f.help?helpTip(f.label,f.help):nothing}</div>
    <select aria-labelledby=${'l-'+f.key} ?disabled=${this.busy} @change=${(e:Event)=>this.set(f.key,(e.target as HTMLSelectElement).value)}>
     <option value="" ?selected=${!f.value}>${f.options.length?'— Aucun —':'— Aucun capteur trouvé —'}</option>
     ${grouped(f).map(g=>{const items=g.options.map(o=>html`<option value=${o.id} ?selected=${o.id===f.value}>${o.name}${o.state?` · ${o.state}`:''}</option>`);
@@ -152,60 +152,44 @@ export class WeatherSetup extends LitElement {
  }
 
  // ---- The steps ----
- private prevision(v:View){
-  const p=v.prevision;
-  return html`${this.field(p.fields[0])}
-   <div class="field"><div class="field-top"><h3 id="l-location">Nom du lieu</h3><span>Facultatif</span></div>
-    <p class="hint">Affiché en tête de la carte. Vide : le nom vient du service météo.</p>
-    <input aria-labelledby="l-location" .value=${p.location} placeholder=${p.location_placeholder} ?disabled=${this.busy}
-     @change=${(e:Event)=>this.set('location',(e.target as HTMLInputElement).value.trim())}></div>
-   ${p.fields.slice(1).map(f=>this.field(f))}
+ private prevision(v:View){const p=v.prevision;
+  return html`${frame('Prévisions du lieu',html`${this.field(p.fields[0])}
+   <div class="field nk-setting-row"><div class="field-top"><h3 id="l-location">Nom du lieu</h3><span>Facultatif</span>${helpTip('Nom du lieu','Affiché en tête de la carte. Vide : le nom vient du service météo.')}</div>
+    <input aria-labelledby="l-location" .value=${p.location} placeholder=${p.location_placeholder} ?disabled=${this.busy} @change=${(e:Event)=>this.set('location',(e.target as HTMLInputElement).value.trim())}></div>`,{className:'nk-field-section nk-plain'})}
+   ${frame('Alertes et saison',html`${p.fields.slice(1).map(f=>this.field(f))}`,{className:'nk-field-section nk-plain'})}
    <button class="link" ?disabled=${this.busy} @click=${()=>void this.change({op:'redetect',value:'weather'})}>Rechercher à nouveau</button>
-   <details class="group"><summary><strong>Réglages avancés</strong><span class="hint">soleil, hauteur du soleil, nom de la source</span></summary>
-    <p class="hint">Laissés vides, Niak prend le soleil de Home Assistant.</p>
-    ${p.advanced.map(f=>this.field(f))}
-    <div class="field"><div class="field-top"><h3 id="l-source">Nom de la source des prévisions</h3><span>Facultatif</span></div>
-     <input aria-labelledby="l-source" .value=${p.forecast_source} ?disabled=${this.busy} @change=${(e:Event)=>this.set('forecast_source',(e.target as HTMLInputElement).value.trim())}></div>
-   </details>${this.bottom()}`;
+   ${frame('Réglages avancés',html`${helpTip('Soleil et prévisions','Laissés vides, Niak prend le soleil de Home Assistant.')}${p.advanced.map(f=>this.field(f))}
+    <div class="field nk-setting-row"><div class="field-top"><h3 id="l-source">Nom de la source des prévisions</h3><span>Facultatif</span></div><input aria-labelledby="l-source" .value=${p.forecast_source} ?disabled=${this.busy} @change=${(e:Event)=>this.set('forecast_source',(e.target as HTMLInputElement).value.trim())}></div>`,{collapsible:true,open:false})}${this.bottom()}`;
  }
- private station(v:View){
-  const s=v.station;
-  return html`<div class="field"><div class="field-top"><h3>Votre station</h3></div>
-    ${s.model!==NONE?html`<p class="hint">Reconnue : ${s.profile}</p>`:nothing}
-    ${this.choiceList('model',s.models,s.model,m=>void this.change({op:'station',value:m}))}</div>
+ private station(v:View){const s=v.station;
+  return html`${frame('Votre station',html`${s.model!==NONE?html`<p class="hint">Reconnue : ${s.profile}</p>`:nothing}
+   ${this.choiceList('model',s.models,s.model,m=>void this.change({op:'station',value:m}))}
+   ${s.model!==NONE?html`<div class="field nk-setting-row"><div class="field-top"><h3 id="l-device">Appareil</h3><span>Facultatif</span>${helpTip('Appareil de la station','Limite les capteurs proposés à cet appareil.')}</div>
+    <select aria-labelledby="l-device" ?disabled=${this.busy} @change=${(e:Event)=>void this.change({op:'device',value:(e.target as HTMLSelectElement).value})}>${s.devices.map(d=>html`<option value=${d.value} ?selected=${d.value===s.device}>${d.label}</option>`)}</select></div>`:nothing}`,{className:'nk-field-section nk-plain'})}
    ${s.model===NONE?html`<p class="muted">Sans station, Niak Weather s’appuie sur le service météo seul : pas de pluie mesurée, pas d’alerte de la station.</p>`:html`
-    <div class="field"><div class="field-top"><h3 id="l-device">Appareil</h3><span>Facultatif</span></div>
-     <p class="hint">Limite les capteurs proposés à cet appareil.</p>
-     <select aria-labelledby="l-device" ?disabled=${this.busy} @change=${(e:Event)=>void this.change({op:'device',value:(e.target as HTMLSelectElement).value})}>
-      ${s.devices.map(d=>html`<option value=${d.value} ?selected=${d.value===s.device}>${d.label}</option>`)}</select></div>
-    ${s.groups.map((g,i)=>html`<details class="group" ?open=${i<3||g.fields.some(f=>f.warning)}><summary><strong>${g.title}</strong>
-      <span class="hint">${g.fields.filter(f=>f.value).length} sur ${g.fields.length}${g.fields.some(f=>f.warning)?html` · <span class="warn-inline">à vérifier</span>`:nothing}</span></summary>
-     ${g.fields.map(f=>this.field(f))}</details>`)}
-    <label class="check"><input type="checkbox" .checked=${s.history} ?disabled=${this.busy} @change=${(e:Event)=>this.set('station_history',(e.target as HTMLInputElement).checked)}>
-     <span><strong>Calculer depuis l’historique</strong><span class="hint">${s.history_help}</span></span></label>
-    <button class="link" ?disabled=${this.busy} @click=${()=>void this.change({op:'redetect',value:'station'})}>Rechercher à nouveau les capteurs</button>`}
-   ${this.bottom()}`;
+    ${s.groups.map((g,i)=>frame(g.title,html`${g.fields.map(f=>this.field(f))}`,{count:`${g.fields.filter(f=>f.value).length} sur ${g.fields.length}${g.fields.some(f=>f.warning)?' · à vérifier':''}`,className:i<3||g.fields.some(f=>f.warning)?'nk-field-section nk-plain':'',collapsible:i>=3&&!g.fields.some(f=>f.warning),open:false}))}
+    ${frame('Historique de la station',html`<label class="check"><input type="checkbox" .checked=${s.history} ?disabled=${this.busy} @change=${(e:Event)=>this.set('station_history',(e.target as HTMLInputElement).checked)}><span><strong>Calculer depuis l’historique</strong></span></label>${helpTip('Calculer depuis l’historique',s.history_help,'Comprendre ce réglage')}`,{className:'nk-field-section nk-plain'})}
+    <button class="link" ?disabled=${this.busy} @click=${()=>void this.change({op:'redetect',value:'station'})}>Rechercher à nouveau les capteurs</button>`}${this.bottom()}`;
  }
- private air(v:View){
-  const a=v.air;
-  return html`${this.choiceList('air',a.sources,a.value,x=>void this.change({op:'air',value:x}))}
+ private air(v:View){const a=v.air;
+  return html`${frame('Source de qualité de l’air',html`${this.choiceList('air',a.sources,a.value,x=>void this.change({op:'air',value:x}))}
    ${a.areas.length?nothing:html`<p class="notice">Atmo France n’est pas encore installée : <a href="https://github.com/sebcaps/atmofrance" target="_blank" rel="noreferrer">installer l’intégration Atmo France</a>, puis revenez ici.</p>`}
-   ${a.value==='atmo'&&a.areas.length?this.zone('l-aarea','Zone Atmo France',a.areas,a.area,x=>void this.change({op:'air',value:'atmo',area:x})):nothing}
-   ${this.bottom()}`;
+   ${a.value==='atmo'&&a.areas.length?this.zone('l-aarea','Zone Atmo France',a.areas,a.area,x=>void this.change({op:'air',value:'atmo',area:x})):nothing}`,{className:'nk-field-section nk-plain'})}${this.bottom()}`;
  }
  private pollen(v:View){
   const p=v.pollen;const chosen=p.species.filter(s=>s.chosen).map(s=>s.id);
   const toggle=(id:string,on:boolean)=>void this.change({op:'pollens',value:on?[...chosen,id]:chosen.filter(x=>x!==id)});
-  return html`${this.choiceList('pollen',p.sources,p.value,x=>void this.change({op:'pollen',value:x}))}
+  return html`${frame('Source des pollens',html`${this.choiceList('pollen',p.sources,p.value,x=>void this.change({op:'pollen',value:x}))}
    ${p.value==='atmo'&&p.areas.length?this.zone('l-parea','Zone Atmo France des pollens',p.areas,p.area,x=>void this.change({op:'pollen',value:'atmo',area:x})):nothing}
    ${p.value==='swiss_pollen'&&p.stations.length?html`${this.zone('l-pstation','Station Swiss Pollen',p.station?p.stations:[{value:'',label:'Choisir une station…'},...p.stations],p.station,x=>void this.change({op:'pollen_station',value:x}))}
     <p class="hint">Mesures actuelles, sans prévision pour demain. Les niveaux d’une station hors service restent indisponibles.</p>`:nothing}
    ${p.value==='kleenex_pollenradar'&&p.stations.length?html`${this.zone('l-kplace','Lieu Kleenex / Scottex',p.station?p.stations:[{value:'',label:'Choisir un lieu…'},...p.stations],p.station,x=>void this.change({op:'pollen_station',value:x}))}
     <p class="hint">Niveaux de faible à très élevé, aujourd’hui et demain. Les données trop anciennes restent indisponibles.</p>`:nothing}
-   ${p.species.length?html`<h2>${p.value==='kleenex_pollenradar'?'Espèces et groupes suivis':'Espèces suivies'}</h2><p class="hint">Tous les capteurs trouvés pour ce lieu sont proposés ; décochez ceux qui ne vous concernent pas.</p>
+   `,{className:'nk-field-section nk-plain'})}
+   ${p.species.length?frame(p.value==='kleenex_pollenradar'?'Espèces et groupes suivis':'Espèces suivies',html`${helpTip('Espèces suivies','Tous les capteurs trouvés pour ce lieu sont proposés ; décochez ceux qui ne vous concernent pas.')}
     ${p.species.map(s=>html`<label class="check"><input type="checkbox" .checked=${s.chosen} ?disabled=${this.busy} @change=${(e:Event)=>toggle(s.id,(e.target as HTMLInputElement).checked)}>
-     <span>${s.label} <span class="hint inline">· ${s.state||'indisponible'}</span>${s.chosen&&!s.available?html`<span class="warn">Ne répond pas pour l’instant (hors saison ?).</span>`:nothing}</span></label>`)}`:nothing}
-   ${p.risk?this.field(p.risk):nothing}
+     <span>${s.label} <span class="hint inline">· ${s.state||'indisponible'}</span>${s.chosen&&!s.available?html`<span class="warn">Ne répond pas pour l’instant (hors saison ?).</span>`:nothing}</span></label>`)}`,{className:'nk-field-section nk-plain'}):nothing}
+   ${p.risk?frame(p.risk.label,html`${this.field(p.risk)}`,{className:'nk-field-section nk-plain'}):nothing}
    ${this.bottom()}`;
  }
  private entities(v:View){
@@ -213,16 +197,16 @@ export class WeatherSetup extends LitElement {
   if(e.new){
    const chosen=e.families.filter(f=>f.chosen).map(f=>f.key);
    return html`<p class="muted">Choisissez les familles à créer ; vous pourrez ensuite régler leurs entités une par une.</p>
-    ${e.families.map(f=>html`<label class="check"><input type="checkbox" .checked=${!!f.chosen} ?disabled=${this.busy}
+    ${frame('Familles d’entités',html`${e.families.map(f=>html`<label class="check"><input type="checkbox" .checked=${!!f.chosen} ?disabled=${this.busy}
      @change=${(ev:Event)=>void this.change({op:'families',value:(ev.target as HTMLInputElement).checked?[...chosen,f.key]:chosen.filter(x=>x!==f.key)})}>
-     <span><strong>${f.name}</strong>${f.hint?html`<span class="hint">${f.hint}</span>`:nothing}</span></label>`)}${this.bottom()}`;
+     <span><strong>${f.name}</strong>${f.hint?html`<span class="hint">${f.hint}</span>`:nothing}</span></label>`)}`,{className:'nk-field-section nk-plain'})}${this.bottom()}`;
   }
   const flip=(key:string,on:boolean)=>{this.enabled=on?[...this.enabled,key]:this.enabled.filter(k=>k!==key);};
   return html`<p class="muted">Une entité décochée disparaît de Home Assistant.</p>
    ${e.families.map(f=>{const items=f.entities??[];const on=items.filter(i=>this.enabled.includes(i.key)).length;
-    return html`<details class="group" ?open=${items.some(i=>i.need&&!i.optional&&this.enabled.includes(i.key))}><summary><strong>${f.name}</strong><span class="hint">${on} sur ${items.length}</span></summary>
+    return frame(f.name,html`
      ${items.map(i=>html`<label class="check"><input type="checkbox" .checked=${this.enabled.includes(i.key)} @change=${(ev:Event)=>flip(i.key,(ev.target as HTMLInputElement).checked)}>
-      <span>${i.name}${i.hint?html`<span class="hint">${i.hint}</span>`:nothing}${i.need?html`<span class=${i.optional?'hint':'warn'}>${i.need}</span>`:nothing}</span></label>`)}</details>`;})}
+      <span>${i.name}${i.hint?html`<span class="hint">${i.hint}</span>`:nothing}${i.need?html`<span class=${i.optional?'hint':'warn'}>${i.need}</span>`:nothing}</span></label>`)}`,{count:`${on} sur ${items.length}`,className:'nk-field-section nk-plain'});})}
    ${this.bottom()}`;
  }
  private recap(v:View){

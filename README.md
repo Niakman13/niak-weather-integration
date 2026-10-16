@@ -113,3 +113,7 @@ Le ressenti est une **estimation locale**, pas une mesure physiologique ni une v
 ## Licence
 
 [MIT](LICENSE)
+
+### Formulaires harmonisés
+
+Les réglages du hub partagent les mêmes composants : blocs par sujet, titres et espacements cohérents, aides en info-bulles et avertissements visibles. Weather regroupe les prévisions, alertes et saison, mesures de la station, air, pollens et entités. Les réglages généraux de Confort présentent leurs capteurs en lignes ouvertes dans chaque groupe. Les détails avancés restent repliables.
