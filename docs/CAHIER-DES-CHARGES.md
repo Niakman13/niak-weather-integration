@@ -50,7 +50,7 @@ Ces interfaces sont stables ; un changement incompatible change la version majeu
 - **Entité météo** `weather.niak_weather` (désactivée par défaut) : prévisions horaires et journalières.
 - **Action** `niak_weather.prevision` (`debut`, `fin`, `lieu`) : la météo d'une fenêtre de temps.
 - **Évènement** `niak_weather_alerte` : début, changement, fin d'une alerte.
-- **API WebSocket** `niak_weather/entries`, `niak_weather/subscribe` (vue v1, réservée à la carte ; les autres briques utilisent les interfaces ci-dessus).
+- **API WebSocket** `niak_weather/entries`, `niak_weather/subscribe` (vue v1, réservée à la carte ; les autres briques utilisent les interfaces ci-dessus). Depuis 2.5.3, une lecture Atmo pollen peut préciser `unavailableReason: "no_index"` pour le code 0 : cet ajout facultatif distingue l’absence d’indice exploitable d’une entité indisponible, sans changer les valeurs ni les concentrations.
 
 ## 5. Feuille de route
 

@@ -140,3 +140,17 @@ def test_independent_air_and_pollen_zones_keep_all_38_sensors():
     result = detect(states, registry, {"atmo_area": "", "atmo_pollen_area": "zone:commune:lege"})
     assert result["atmo_pollen_entity"] == "sensor.a_pollen"
     assert "atmo_air_entity" not in result
+
+
+def test_zero_index_is_distinguished_from_an_unavailable_entity_and_real_zero_concentration():
+    from engine.view import to_json
+    absent = read("0", True)
+    assert absent.value is None and absent.unavailable_reason == "no_index"
+    assert to_json(absent)["unavailableReason"] == "no_index"
+    for raw in ("unknown", "unavailable", "invalid"):
+        unavailable = read(raw, True)
+        assert unavailable.value is None and unavailable.unavailable_reason is None
+    assert read("1", True).unavailable_reason is None
+    concentration = read("0", True, {"unit_of_measurement": "µg/m³"}, concentration=True)
+    assert concentration.value == 0 and concentration.unavailable_reason is None
+    assert "unavailableReason" not in to_json(concentration)
