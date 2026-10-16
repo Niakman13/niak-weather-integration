@@ -108,6 +108,8 @@ def facts(hass: HomeAssistant, entry: Any, card_twice: bool = False) -> health.F
                     unused.append((field, field_label(field), _name(get(ids[0]), ids[0])))
     areas = atmo.areas(states, registry, devices)
     area = next((a["label"] for a in areas if a["value"] == sources.get("atmo_area")), sources.get("atmo_area") or "")
+    pollen_zone = sources.get("atmo_pollen_area", sources.get("atmo_area")) or ""
+    pollen_area = next((a["label"] for a in areas if a["value"] == pollen_zone), pollen_zone)
     air_entity = sources.get("atmo_air_entity")
     try:
         settings = Settings.from_options({k: v for k, v in sources.items() if v is not None})
@@ -118,7 +120,7 @@ def facts(hass: HomeAssistant, entry: Any, card_twice: bool = False) -> health.F
         pollen = f"{polleninfo.provider_name(settings)} · {len(settings.pollens)} espèce{'s' if len(settings.pollens) > 1 else ''}"
         pollen_ids = [p.entity_id for p in settings.pollens] + ([settings.pollen_risk_entity] if settings.pollen_risk_entity else [])
     elif settings is not None and settings.atmo_pollens and settings.atmo.get("atmo_pollen_entity"):
-        pollen, pollen_ids = f"Atmo France · {area}", [settings.atmo["atmo_pollen_entity"]]
+        pollen, pollen_ids = f"Atmo France · {pollen_area}", [settings.atmo["atmo_pollen_entity"]]
     needs = families.needs(settings) if settings is not None else {}
     keys = entity_keys(hass, entry)
     ids = {e.unique_id.removeprefix(f"{entry.entry_id}_"): e.entity_id

@@ -39,8 +39,8 @@ def needs(settings: Settings) -> dict[str, str]:
         "pressure_trend": not settings.pressure_entity and "un capteur de pression",
         "max_gust_today": not (settings.max_daily_gust_entity or settings.wind_gust_entity) and "un capteur de rafales",
         "temperature_trend": not (settings.temperature_trend_entity or settings.temperature_entity) and "un thermomètre extérieur",
-        "qualite_air": not settings.atmo.get("atmo_air_entity") and "Atmo France",
-        "pollens": not (legacy or atmo_pollen) and "Atmo France, Polleninformation ou IRM KMI",
+        "qualite_air": not settings.atmo.get("atmo_air_entity") and ("une zone Atmo France fournissant l’indice de qualité de l’air" if settings.atmo_area else "Atmo France"),
+        "pollens": not (legacy or atmo_pollen) and ("une zone Atmo France fournissant l’indice pollen" if settings.pollen_source == "atmo" and (settings.atmo_pollen_area or settings.atmo_area) else "Atmo France, Polleninformation ou IRM KMI"),
     }
     return {key: text for key, text in missing.items() if text}
 

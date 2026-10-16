@@ -146,7 +146,7 @@
       },
       "pollen_area": {
         "title": "Step 3 of 4 · Atmo zone for pollen",
-        "description": "The Atmo France town whose pollen Niak reads.",
+        "description": "The Atmo France zone whose pollen Niak reads. It can differ from the air quality zone.",
         "data": {
           "atmo_area": "Atmo France zone"
         }
@@ -321,7 +321,7 @@
       },
       "pollen_area": {
         "title": "Atmo zone for pollen",
-        "description": "The Atmo France town whose pollen Niak reads.",
+        "description": "The Atmo France zone whose pollen Niak reads. It can differ from the air quality zone.",
         "data": {
           "atmo_area": "Atmo France zone"
         }

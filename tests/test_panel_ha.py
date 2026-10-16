@@ -16,6 +16,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from custom_components.niak_weather import socle  # noqa: E402
 from custom_components.niak_weather.draft import Draft  # noqa: E402
 from custom_components.niak_weather.panel import weather_status  # noqa: E402
+from custom_components.niak_weather.engine.families import needs  # noqa: E402
+from custom_components.niak_weather.engine.settings import Settings  # noqa: E402
 
 STATION = {
     "sensor.gw2000a_outdoor_temperature": ("14.2", {"unit_of_measurement": "°C", "device_class": "temperature"}),
@@ -221,6 +223,54 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(draft.change({"op": "air", "value": "lyon"}), "Source de qualité de l’air inconnue.")
         self.assertEqual(draft.change({"op": "air", "value": "none"}), "")
         self.assertEqual(draft.sources["air_source"], "none")
+
+    async def test_atmo_zones_are_independent_and_old_settings_are_preserved(self):
+        air_zone, pollen_zone = "zone:epci:cc sud retz atlantique", "zone:commune:lege"
+        for entity, name, zone, kind in (
+            ("sensor.atmo_air", "Qualité globale", "CC Sud Retz Atlantique", "EPCI"),
+            ("sensor.atmo_pollen", "Qualité globale Pollen", "Legé", "commune"),
+        ):
+            self.hass.states.async_set(entity, "2", {"friendly_name": name, "attribution": "Atmo France",
+                                                   "Nom de la zone": zone, "Type de zone": kind})
+        draft = Draft(self.hass, {"weather_entity": "weather.maison", "air_source": "atmo",
+                                 "pollen_source": "atmo", "atmo_area": pollen_zone})
+        self.assertEqual(draft.change({"op": "air", "value": "atmo", "area": air_zone}), "")
+        self.assertEqual(draft.view()["pollen"]["area"], pollen_zone)
+        self.assertEqual(draft.sources["atmo_air_entity"], "sensor.atmo_air")
+        self.assertEqual(draft.sources["atmo_pollen_entity"], "sensor.atmo_pollen")
+        self.assertNotIn("qualite_air", needs(Settings.from_options(draft.sources)))
+        self.assertNotIn("pollens", needs(Settings.from_options(draft.sources)))
+        draft.change({"op": "air", "value": "none"})
+        self.assertEqual(draft.sources["atmo_pollen_entity"], "sensor.atmo_pollen")
+        draft.change({"op": "air", "value": "atmo", "area": air_zone})
+        draft.change({"op": "pollen", "value": "none"})
+        self.assertEqual(draft.sources["atmo_air_entity"], "sensor.atmo_air")
+        draft.change({"op": "pollen", "value": "atmo", "area": pollen_zone})
+        self.assertEqual(draft.view()["air"]["area"], air_zone)
+        self.assertEqual(draft.view()["summary"]["pollen"], "Atmo France · Legé")
+        self.assertEqual(draft.view()["summary"]["air"], "Atmo France · CC Sud Retz Atlantique")
+
+    async def test_assistant_always_offers_a_separate_pollen_zone(self):
+        from custom_components.niak_weather.config_flow import NiakWeatherConfigFlow, _clean
+        for entity, name, zone, kind in (
+            ("sensor.atmo_air", "Qualité globale", "CC Sud Retz Atlantique", "EPCI"),
+            ("sensor.atmo_pollen", "Qualité globale Pollen", "Legé", "commune"),
+        ):
+            self.hass.states.async_set(entity, "2", {"friendly_name": name, "attribution": "Atmo France",
+                                                   "Nom de la zone": zone, "Type de zone": kind})
+        flow = NiakWeatherConfigFlow()
+        flow.hass = self.hass
+        flow.sources = {"weather_entity": "weather.maison", "atmo_area": "zone:epci:cc sud retz atlantique",
+                        "air_source": "atmo"}
+        result = await flow.async_step_pollen({"pollen_source": "atmo"})
+        self.assertEqual(result["step_id"], "pollen_area")
+        result = await flow.async_step_pollen_area({"atmo_area": "zone:commune:lege"})
+        self.assertEqual(result["step_id"], "families")
+        self.assertEqual(flow.sources["atmo_air_entity"], "sensor.atmo_air")
+        self.assertEqual(flow.sources["atmo_pollen_entity"], "sensor.atmo_pollen")
+        saved = Settings.from_options(_clean(flow.sources))
+        self.assertEqual(saved.atmo_pollen_area, "zone:commune:lege")
+        self.assertEqual(saved.atmo_area, "zone:epci:cc sud retz atlantique")
 
     async def test_saving_without_a_weather_service_is_refused(self):
         with self.assertRaises(ValueError):

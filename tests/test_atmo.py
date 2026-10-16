@@ -126,3 +126,17 @@ def test_leaves_out_the_older_pollen_list_only_when_atmo_gives_the_pollens() -> 
     assert Settings.from_options({**old, "atmo_pollen_entity": "sensor.atmo"}).atmo_pollens
     assert not Settings.from_options({**old, "atmo_pollen_entity": "sensor.atmo", "pollen_source": "legacy"}).atmo_pollens
     assert atmo_key("grass_concentration", True) == "atmo_grass_concentration_tomorrow_entity"
+
+
+def test_independent_air_and_pollen_zones_keep_all_38_sensors():
+    states, registry = fixture("Legé")
+    for state in states:
+        metric = state.entity_id.removeprefix("sensor.a_").removesuffix("_j_1")
+        if metric in POLLUTION:
+            state.attributes.update({"Nom de la zone": "CC Sud Retz Atlantique", "Type de zone": "EPCI"})
+    result = detect(states, registry, {"atmo_area": "zone:epci:cc sud retz atlantique", "atmo_pollen_area": "zone:commune:lege"})
+    assert all(key in result for key in ATMO_KEYS)
+    # The pollen source works even when the air zone is explicitly disabled.
+    result = detect(states, registry, {"atmo_area": "", "atmo_pollen_area": "zone:commune:lege"})
+    assert result["atmo_pollen_entity"] == "sensor.a_pollen"
+    assert "atmo_air_entity" not in result

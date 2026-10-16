@@ -24,7 +24,7 @@ from .engine.settings import ATMO_KEYS, Settings, atmo_key
 from .engine.view import place_name
 
 SETTING_KEYS = frozenset({f.name for f in fields(Settings)} - {"atmo"}) | frozenset(ATMO_KEYS) | {"families", "air_source"}
-# The Atmo sensors of the air (its index and pollutants) and of the pollens: one zone gives both, each can be left out.
+# Air and pollen sensors have independent zones and can each be left out.
 AIR_KEYS = frozenset(atmo_key(m, t) for t in (False, True) for m in ("air", *atmo.POLLUTANT_METRICS))
 POLLEN_KEYS = frozenset(ATMO_KEYS) - AIR_KEYS
 NONE = "none"
@@ -201,7 +201,7 @@ class _SourceSteps:
         states, registry, devices = _context(self.hass)
         for key in ATMO_KEYS:
             self.sources.pop(key, None)
-        if self.sources.get("atmo_area"):
+        if self.sources.get("atmo_area") or self.sources.get("atmo_pollen_area"):
             self.sources = detection.fill(states, registry, devices, self.sources, "atmo")
         for key in (*(AIR_KEYS if self.sources.get("air_source") == "none" else ()), *(POLLEN_KEYS if self.sources.get("pollen_source") != "atmo" else ())):
             self.sources.pop(key, None)
@@ -213,6 +213,8 @@ class _SourceSteps:
             self.sources["air_source"] = "none"
             return await self._done("air")
         if user_input is not None:
+            # Freeze the previous shared choice before changing only the air zone.
+            self.sources.setdefault("atmo_pollen_area", self.sources.get("atmo_area"))
             area = user_input.get("atmo_area", NONE)
             self.sources["air_source"] = "none" if area == NONE else "atmo"
             if area != NONE:
@@ -258,7 +260,7 @@ class _SourceSteps:
                     self.sources["pollen_provider"] = source
                     source = "legacy"
                 self.sources["pollen_source"] = source
-                if source == "atmo" and not self.sources.get("atmo_area"):
+                if source == "atmo":
                     return await self.async_step_pollen_area()
                 self._apply_atmo()
                 if source == "legacy":
@@ -280,15 +282,16 @@ class _SourceSteps:
                                     errors=errors)
 
     async def async_step_pollen_area(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Atmo pollens without Atmo air: their zone."""
+        """The pollen zone, independent of the air zone."""
         areas = self._areas()
         if user_input is not None:
-            self.sources["atmo_area"] = user_input["atmo_area"]
+            self.sources["atmo_pollen_area"] = user_input["atmo_area"]
             self._apply_atmo()
             return await self._done("pollen")
         schema = vol.Schema({vol.Required("atmo_area"): SelectSelector(SelectSelectorConfig(
             options=[SelectOptionDict(value=a["value"], label=a["label"]) for a in areas], mode=SelectSelectorMode.DROPDOWN))})
-        return self.async_show_form(step_id="pollen_area", data_schema=schema)  # type: ignore[attr-defined]
+        return self.async_show_form(step_id="pollen_area", data_schema=self.add_suggested_values_to_schema(
+            schema, {"atmo_area": self.sources.get("atmo_pollen_area", self.sources.get("atmo_area"))}))  # type: ignore[attr-defined]
 
     async def async_step_pollen_sensors(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Polleninformation or IRM KMI: its species sensors (and Polleninformation's overall allergy risk), proposed, to check or change."""
@@ -348,8 +351,10 @@ class _SourceSteps:
         model = {"gw2000a": "GW2000A", "ws90": "WS90", "netatmo": "Netatmo", "manual": "Station"}.get(s.get("station_model") or "", "")
         count = len(s.get("pollens") or [])
         area = next((a["label"] for a in self._areas() if a["value"] == s.get("atmo_area")), s.get("atmo_area") or "")
+        pollen_zone = s.get("atmo_pollen_area", s.get("atmo_area")) or ""
+        pollen_area = next((a["label"] for a in self._areas() if a["value"] == pollen_zone), pollen_zone)
         provider = polleninfo.PROVIDERS[polleninfo.provider(Settings.from_options(_clean(s)))]
-        pollens = {"atmo": f"Atmo France · {area}", "legacy": f"{provider} · {count} espèce{'s' if count > 1 else ''}"}.get(
+        pollens = {"atmo": f"Atmo France · {pollen_area}", "legacy": f"{provider} · {count} espèce{'s' if count > 1 else ''}"}.get(
             s.get("pollen_source") or "", "aucune source")
         return {
             "weather": (str(weather.attributes.get("friendly_name") or s.get("weather_entity")) if weather else "à choisir")

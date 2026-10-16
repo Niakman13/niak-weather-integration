@@ -177,6 +177,7 @@ class Draft(_SourceSteps):
             return "Source de qualité de l’air inconnue."
         if source == "atmo" and not areas:
             return "Atmo France n’est pas installée."
+        s.setdefault("atmo_pollen_area", s.get("atmo_area"))
         s["air_source"] = "none" if source == NONE else "atmo"
         if source == "atmo":
             if area or not s.get("atmo_area"):
@@ -215,8 +216,8 @@ class Draft(_SourceSteps):
                     s["pollen_risk_entity"] = detected["pollen_risk_entity"]
         else:
             s["pollen_source"] = source
-            if source == "atmo" and (area or not s.get("atmo_area")):
-                s["atmo_area"] = area or areas[0]["value"]
+            if source == "atmo" and (area or not s.get("atmo_pollen_area", s.get("atmo_area"))):
+                s["atmo_pollen_area"] = area or areas[0]["value"]
         self._apply_atmo()
         return ""
 
@@ -334,7 +335,7 @@ class Draft(_SourceSteps):
                    *({"value": p, "label": polleninfo.source_label(p),
                       "hint": ("Groupes et espèces, niveaux de 1 à 4 ; aujourd’hui et demain" if p == polleninfo.KLEENEX else "Un capteur par espèce, niveaux de 0 à 4"), "available": found[p]} for p in polleninfo.PROVIDERS),
                    {"value": NONE, "label": "Pas de pollens", "hint": "", "available": True}]
-        result: dict[str, Any] = {"value": choice, "sources": sources, "area": self.sources.get("atmo_area") or "", "areas": areas,
+        result: dict[str, Any] = {"value": choice, "sources": sources, "area": self.sources.get("atmo_pollen_area", self.sources.get("atmo_area")) or "", "areas": areas,
                                   "species": [], "risk": None, "station": self.sources.get("pollen_station") or "",
                                   "stations": polleninfo.places(states, registry, choice, devices) if choice in (polleninfo.SWISS_POLLEN, polleninfo.KLEENEX) else []}
         if choice in polleninfo.PROVIDERS:
