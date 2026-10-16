@@ -1,14 +1,14 @@
-// Niak shared panel (socle v1.6): header, tabs and the home page listing every Niak brick.
+// Niak shared panel (socle v1.7): header, tabs and the home page listing every Niak brick.
 // Copied unchanged into each brick from niak-ecosysteme/socle/ (see ECOSYSTEME.md § 8).
 import {LitElement,html,css,nothing,type PropertyValues} from 'lit';
 import {frame,hubStyles,modernStyles,hubIcon} from './ui';
 
-export const ELEMENT='niak-socle-1-6';
+export const ELEMENT='niak-socle-1-7';
 type Level='ok'|'action'|'unknown';
 export interface BrickStatus {level:Level;summary:string;details:string[];links:string[]}
 export interface Brick {domain:string;name:string;slug:string;version:string;icon:string;module_url:string;element:string;status:BrickStatus;tab?:string|null;navigation?:number|null}
 export interface Other {domain:string;name:string;pitch:string;url:string;installed:boolean;settings_path:string}
-export interface Overview {version:1;socle:number[];bricks:Brick[];others:Other[];sidebar?:boolean}
+export interface Overview {version:1;socle:number[];bricks:Brick[];others:Other[];sidebar?:boolean;theme?:'ha'|'niak'}
 interface Hass {callWS<T>(msg:Record<string,unknown>):Promise<T>;themes?:{darkMode?:boolean}}
 type Tab=HTMLElement&{hass?:unknown;narrow?:boolean;route?:unknown};
 
@@ -36,8 +36,16 @@ export class NiakShell extends LitElement {
  private tabs=new Map<string,Tab>();
  private loading=false;
  private shown:string|undefined;
+ private viewportObserver?:ResizeObserver;
+ private viewportFrame=0;
+ private resizeViewport=()=>{cancelAnimationFrame(this.viewportFrame);this.viewportFrame=requestAnimationFrame(()=>{if(!this.isConnected)return;const top=Math.max(0,this.getBoundingClientRect().top),bottom=parseFloat(getComputedStyle(this).getPropertyValue('--safe-area-inset-bottom'))||0;const height=Math.max(0,(window.visualViewport?.height??window.innerHeight)-top-bottom)+'px';if(this.style.getPropertyValue('--nk-viewport-height')!==height)this.style.setProperty('--nk-viewport-height',height);});};
+ connectedCallback(){super.connectedCallback();window.addEventListener('resize',this.resizeViewport);window.visualViewport?.addEventListener('resize',this.resizeViewport);this.viewportObserver=new ResizeObserver(this.resizeViewport);this.viewportObserver.observe(this.parentElement??this);this.resizeViewport();}
+ disconnectedCallback(){super.disconnectedCallback();window.removeEventListener('resize',this.resizeViewport);window.visualViewport?.removeEventListener('resize',this.resizeViewport);this.viewportObserver?.disconnect();cancelAnimationFrame(this.viewportFrame);}
+
  protected updated(changed:PropertyValues){
   this.setAttribute('data-theme',this.hass?.themes?.darkMode===false?'light':'dark');
+  this.setAttribute('data-appearance',this.overview?.theme??'niak');
+  for(const el of this.tabs.values())el.setAttribute('data-appearance',this.overview?.theme??'niak');
   // A brick's former address (/niak-confort/…) leads to its tab, keeping the rest of the path.
   const redirect=this.panel?.config?.redirect;
   if(redirect){if(changed.has('route')||changed.has('panel'))navigate(redirect+(this.route?.path??''),true);return;}
@@ -65,6 +73,7 @@ export class NiakShell extends LitElement {
    el=document.createElement(brick.element) as Tab;el.setAttribute('embedded','');this.tabs.set(brick.slug,el);this.requestUpdate();
   }
   const [,rest]=splitPath(this.route?.path);
+  el.setAttribute('data-appearance',this.overview?.theme??'niak');
   el.hass=this.hass;el.narrow=this.narrow;el.route={prefix:`/niak/${brick.slug}`,path:rest};
  }
  // The sidebar entry (socle 1.6): shown only when this copy of the socle answers with the setting.
@@ -74,12 +83,19 @@ export class NiakShell extends LitElement {
   catch(e){this.error=typeof e==='object'&&e&&'message' in e?String(e.message):'Le réglage n’a pas été enregistré.';}
   finally{this.saving=false;}
  }
+ private async setTheme(theme:'ha'|'niak'){
+  this.saving=true;
+  try{const r=await this.hass!.callWS<{theme:'ha'|'niak'}>({type:'niak/set_theme',theme});if(this.overview)this.overview={...this.overview,theme:r.theme};}
+  catch(e){this.error=typeof e==='object'&&e&&'message' in e?String(e.message):'Le thème n’a pas été enregistré.';}
+  finally{this.saving=false;}
+ }
+ private appearance(){return frame('Thème du hub',html`<label class="theme-label" for="hub-theme">Apparence</label><select id="hub-theme" .value=${this.overview?.theme??'niak'} ?disabled=${this.saving} @change=${(e:Event)=>void this.setTheme((e.target as HTMLSelectElement).value as 'ha'|'niak')}><option value="ha">Suivre le thème Home Assistant</option><option value="niak">Utiliser le thème Niak</option></select><p class="muted">Home Assistant reprend les couleurs et la police de votre thème. Niak utilise sa propre palette, en suivant le mode clair ou sombre de Home Assistant.</p>`);}
  private display(){const on=this.overview?.sidebar;
   if(on===undefined)return nothing;
   return html`${frame('Affichage',html`<section class="other"><div><h3 id="sidebar-label">Niak dans le menu Home Assistant</h3>
    <p class="muted">${on?'Niak est dans le menu de gauche.':'Niak n’est pas dans le menu de gauche.'}</p>
    <p class="muted">Masqué, il reste ouvert par la roue de chaque intégration, dans Paramètres.</p></div>
-   <button role="switch" aria-checked=${on?'true':'false'} aria-labelledby="sidebar-label" ?disabled=${this.saving} @click=${()=>this.setSidebar(!on)}><span class="track"><span class="thumb"></span></span>${on?'Affiché':'Masqué'}</button></section>`,{collapsible:true,open:false})} `;}
+   <button role="switch" aria-checked=${on?'true':'false'} aria-labelledby="sidebar-label" ?disabled=${this.saving} @click=${()=>this.setSidebar(!on)}><span class="track"><span class="thumb"></span></span>${on?'Affiché':'Masqué'}</button></section>`)} `;}
  private menu(){this.dispatchEvent(new CustomEvent('hass-toggle-menu',{bubbles:true,composed:true}));}
  private go(slug:string){this.menuOpen=false;navigate('/niak'+(slug?'/'+slug:''));}
  private home(){const o=this.overview!;
@@ -105,7 +121,7 @@ export class NiakShell extends LitElement {
    </aside>
    <div class="content" ?inert=${this.menuOpen}>${this.error?html`<main><p class="notice" role="alert">${this.error}</p><button @click=${()=>{this.error='';void this.load();}}>Réessayer</button></main>`
     :!o?html`<main><p class="muted" role="status">Chargement…</p></main>`
-    :active?this.tabs.get(active)??html`<main><p class="muted" role="status">Chargement…</p></main>`:settings?html`<main><h1>Réglages Niak</h1><p class="muted">Les préférences communes à votre hub.</p>${this.display()}</main>`:slug?html`<main><h1>Cette page est indisponible</h1><p>La brique correspondante n’est pas installée ou cette adresse est inconnue.</p><button @click=${()=>this.go('')}>Retour à l’accueil</button></main>`:this.home()}</div>`;
+    :active?this.tabs.get(active)??html`<main><p class="muted" role="status">Chargement…</p></main>`:settings?html`<main><h1>Réglages Niak</h1><p class="muted">Les préférences communes à votre hub.</p>${this.appearance()}${this.display()}</main>`:slug?html`<main><h1>Cette page est indisponible</h1><p>La brique correspondante n’est pas installée ou cette adresse est inconnue.</p><button @click=${()=>this.go('')}>Retour à l’accueil</button></main>`:this.home()}</div>`;
  }
  static styles=[css`
   :host{display:flex;flex-direction:column;height:100%;color:var(--primary-text-color,#edf1f7);background:var(--primary-background-color,#151c25);font:16px/1.65 var(--paper-font-body1_-_font-family,Roboto,system-ui,sans-serif);--nk-accent:#a1c9e8;--nk-action-bg:#285f87;--nk-ok:#a1c9e8;--nk-todo:#f2a65a;--nk-border:var(--divider-color,#657386);--nk-muted:var(--secondary-text-color,#bdc5d1);--nk-surface:var(--card-background-color,#222932)}
@@ -146,7 +162,7 @@ export class NiakShell extends LitElement {
   @media(min-width:760px){header{display:grid;grid-template-columns:auto 1fr;gap:32px;align-items:center;padding:8px 28px}.bar{padding:0}nav a{margin:0}}
   .other{border-top:0;padding:0}.other+.other{margin-top:20px;padding-top:20px;border-top:1px solid var(--nk-border)}
  `,modernStyles,css`
- :host{position:relative;display:grid;grid-template-columns:264px minmax(0,1fr);height:100%;min-height:0}aside{padding:28px 18px 20px;border-right:1px solid var(--nk-border);overflow:auto;background:var(--nk-surface)}.brand{display:flex;align-items:center;gap:8px;padding:0 4px 26px}.brand strong{font-size:25px;letter-spacing:-.04em}.brand button{border:0;padding:8px;min-width:44px}.brand svg{width:25px;height:25px}nav{display:block;overflow:visible;margin:0 0 20px}nav+nav{border-top:1px solid var(--nk-border);padding-top:18px}.nav-label{margin:0 12px 9px;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--nk-muted)}nav a{display:flex;gap:12px;align-items:center;border:0;border-radius:24px;margin:3px 0;min-height:44px;padding:9px 13px;font-size:13px;white-space:normal}nav a svg{width:19px;height:19px;flex-shrink:0}nav a[aria-current=page]{background:var(--nk-selected);border:0;color:var(--primary-text-color);font-weight:600}nav a:hover{background:var(--nk-selected)}.content{min-width:0;overflow:auto;height:100%;grid-column:2}.content>*:not(main){height:100%}.mobile-bar,.backdrop{display:none}.other{padding:0}.other+ .other{margin-top:20px;padding-top:20px}.nk-home-head{margin-top:0}
+ :host{position:relative;display:grid;grid-template-columns:264px minmax(0,1fr);height:var(--nk-viewport-height,100dvh);min-height:0;grid-template-rows:minmax(0,1fr)}aside{padding:28px 18px 20px;border-right:1px solid var(--nk-border);overflow:auto;background:var(--nk-surface)}.brand{display:flex;align-items:center;gap:8px;padding:0 4px 26px}.brand strong{font-size:25px;letter-spacing:-.04em}.brand button{border:0;padding:8px;min-width:44px}.brand svg{width:25px;height:25px}nav{display:block;overflow:visible;margin:0 0 20px}nav+nav{border-top:1px solid var(--nk-border);padding-top:18px}.nav-label{margin:0 12px 9px;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--nk-muted)}nav a{display:flex;gap:12px;align-items:center;border:0;border-radius:24px;margin:3px 0;min-height:44px;padding:9px 13px;font-size:13px;white-space:normal}nav a svg{width:19px;height:19px;flex-shrink:0}nav a[aria-current=page]{background:var(--nk-selected);border:0;color:var(--primary-text-color);font-weight:600}nav a:hover{background:var(--nk-selected)}.content{min-width:0;overflow:auto;height:100%;grid-column:2}.content>*:not(main){height:100%}.mobile-bar,.backdrop{display:none}.theme-label{display:block;margin-bottom:6px}select{width:100%;max-width:460px;min-height:44px;padding:10px 14px;border:1px solid var(--nk-border);border-radius:15px;background:var(--nk-surface);color:inherit;font:inherit}.other{padding:0}.other+ .other{margin-top:20px;padding-top:20px}.nk-home-head{margin-top:0}
  @media(max-width:760px){:host{display:flex;flex-direction:column}.mobile-bar{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--nk-border);padding:7px 14px;flex-shrink:0}.mobile-bar strong{margin-right:auto;font-size:20px}.mobile-bar button{border:0;padding:8px;min-width:44px}aside{display:none;position:absolute;inset:0 auto 0 0;width:min(290px,86vw);z-index:21;border-radius:0 24px 24px 0;box-shadow:0 12px 40px #0003}aside.open{display:block}.backdrop{display:block;position:absolute;inset:0;border:0;border-radius:0;background:#0006;z-index:20;width:100%;height:100%;padding:0}.content{flex:1;height:auto}.other{gap:12px}.brand{padding-bottom:20px}}
  `];
 }
