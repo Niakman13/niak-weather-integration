@@ -29,7 +29,7 @@ export class WeatherSetup extends LitElement {
  @state() private placeTitle='';
  private routeHandled:string|undefined;
  private routeGeneration=0;
- private drafts=new Map<string,{draft:Sources;view:View;stage:number;enabled:string[];initial:string;initialEnabled:string[];savedOptions?:Sources;touched:Set<string>;placeTitle:string}>();
+ private drafts=new Map<string,{draft:Sources;view:View;stage:number;enabled:string[];error:string;initial:string;initialEnabled:string[];savedOptions?:Sources;touched:Set<string>;placeTitle:string}>();
  private initial='';
  private initialEnabled:string[]=[];
  private savedOptions?:Sources;
@@ -57,8 +57,8 @@ export class WeatherSetup extends LitElement {
  private dirty(){return !!this.draft&&(JSON.stringify(this.draft)!==this.initial||!sameSet(this.enabled,this.initialEnabled));}
  private top(){this.scrollTop=0;this.renderRoot.querySelector('main')?.scrollIntoView?.({block:'start'});}
 
- private path(path:string){this.routeHandled=path?'/'+path:'';history.pushState(null,'','/niak/meteo'+(path?'/'+path:''));window.dispatchEvent(new CustomEvent('location-changed'));}
- private remember(){if(this.draft&&this.view)this.drafts.set(this.entryId??'nouveau',{draft:this.draft,view:this.view,stage:this.stage,enabled:this.enabled,initial:this.initial,initialEnabled:this.initialEnabled,savedOptions:this.savedOptions,touched:this.touched,placeTitle:this.placeTitle});}
+ private path(path:string){if(!this.isConnected)return;this.routeHandled=path?'/'+path:'';history.pushState(null,'','/niak/meteo'+(path?'/'+path:''));window.dispatchEvent(new CustomEvent('location-changed'));}
+ private remember(){if(this.draft&&this.view)this.drafts.set(this.entryId??'nouveau',{draft:this.draft,view:this.view,stage:this.stage,enabled:this.enabled,error:this.error,initial:this.initial,initialEnabled:this.initialEnabled,savedOptions:this.savedOptions,touched:this.touched,placeTitle:this.placeTitle});}
  private async followRoute(){
   const path=this.route?.path??'';if(path===this.routeHandled)return;this.routeHandled=path;this.routeGeneration++;
   const [section,id]=path.split('/').filter(Boolean),stage=categories.indexOf(section);this.remember();
@@ -90,10 +90,11 @@ export class WeatherSetup extends LitElement {
  }
  private async change(change:Change){
   if(!this.draft||this.busy)return;
-  const generation=++this.generation;this.busy=true;this.error='';
+  const generation=++this.generation,owner=this.entryId??'nouveau';this.busy=true;this.error='';
   if(change.key)this.touched.add(change.key);
   try{
    const reply=await this.hass!.callWS<DraftReply>({type:'niak_weather/panel/change',draft:this.draft,change,...(this.entryId?{entry_id:this.entryId}:{})});
+   if(!this.editing||(this.entryId??'nouveau')!==owner){const cached=this.drafts.get(owner);if(cached)this.drafts.set(owner,{...cached,draft:reply.draft,view:reply.view,error:reply.error});return;}
    if(generation!==this.generation)return;
    this.draft=reply.draft;this.view=reply.view;this.error=reply.error;
   }catch(e){this.error=this.message(e);}
@@ -102,9 +103,10 @@ export class WeatherSetup extends LitElement {
  private set(key:string,value:unknown){void this.change({op:'set',key,value});}
  private async save(){
   if(!this.draft)return;
-  this.busy=true;this.error='';
+  const generation=this.routeGeneration;this.busy=true;this.error='';
   try{
    await this.hass!.callWS({type:'niak_weather/panel/save',draft:this.draft,...(this.entryId?{entry_id:this.entryId,enabled:this.enabled}:{})});
+   if(generation!==this.routeGeneration){this.places=undefined;return;}
    const title=this.view?.title??'',created=!this.entryId;
    this.close();
    this.saved=created?`${title} est créé : ses entités apparaissent dans quelques secondes.`
