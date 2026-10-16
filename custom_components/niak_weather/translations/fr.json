@@ -146,7 +146,7 @@
       },
       "pollen_area": {
         "title": "Étape 3 sur 4 · Zone Atmo des pollens",
-        "description": "La commune Atmo France dont Niak lira les pollens.",
+        "description": "La zone Atmo France dont Niak lira les pollens. Elle peut être différente de celle de la qualité de l’air.",
         "data": {
           "atmo_area": "Zone Atmo France"
         }
@@ -321,7 +321,7 @@
       },
       "pollen_area": {
         "title": "Zone Atmo des pollens",
-        "description": "La commune Atmo France dont Niak lira les pollens.",
+        "description": "La zone Atmo France dont Niak lira les pollens. Elle peut être différente de celle de la qualité de l’air.",
         "data": {
           "atmo_area": "Zone Atmo France"
         }

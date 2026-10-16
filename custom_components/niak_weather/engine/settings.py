@@ -71,6 +71,8 @@ class Settings:
     illuminance_entity: str | None = None
     # Air and pollens
     atmo_area: str | None = None
+    atmo_pollen_area: str | None = None
+    """Pollen zone; older settings fall back to atmo_area."""
     pollen_source: str | None = None
     """« atmo », « legacy » (one sensor per species) or « none »; unset means Atmo when an Atmo sensor is configured."""
     pollen_risk_entity: str | None = None

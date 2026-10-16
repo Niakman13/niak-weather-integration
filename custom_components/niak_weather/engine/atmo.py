@@ -212,16 +212,21 @@ def detect(states: Sequence[StateLike], registry: Mapping[str, Mapping[str, Any]
     area = options.get("atmo_area")
     chosen = area if area is not None else (next(iter(selected)) if len(selected) == 1 else groups[0]["value"] if len(groups) == 1
                                             else matches[0]["value"] if len(matches) == 1 else None)
-    if not chosen:
+    pollen_area = options.get("atmo_pollen_area", chosen)
+    if not chosen and not pollen_area:
         return found
-    if area is None:
+    if area is None and chosen:
         found["atmo_area"] = chosen
     if options.get("pollen_source") is None:
         found["pollen_source"] = "atmo"
     for key in ATMO_KEYS:
         if options.get(key) is not None:
             continue
-        ids = candidates(states, key, registry, chosen)
+        metric = re.sub(r"(?:_tomorrow)?_entity$", "", key[5:])
+        zone = chosen if metric in ("air", *POLLUTANT_METRICS) else pollen_area
+        if not zone:
+            continue
+        ids = candidates(states, key, registry, zone)
         if len(ids) == 1:
             found[key] = ids[0]
     return found

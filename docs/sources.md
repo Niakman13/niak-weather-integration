@@ -154,7 +154,8 @@ Les clés sont les mêmes que dans le YAML de la carte avant la 2.0 : les régla
 | `rain_rate_entity`, `daily_rain_entity`, `rain_24h_entity`, `weekly_rain_entity`, `monthly_rain_entity`, `yearly_rain_entity`, `event_rain_entity`, `rain_total_entity` | Intensité, cumuls de la station, compteur total |
 | `pressure_entity` | Pression relative |
 | `solar_radiation_entity`, `uv_index_entity`, `illuminance_entity` | Rayonnement, UV, luminosité |
-| `atmo_area` | Commune Atmo France |
+| `atmo_area` | Zone Atmo France pour la qualité de l’air et les polluants |
+| `atmo_pollen_area` | Zone Atmo France pour les pollens ; reprend `atmo_area` pour les anciens réglages |
 | `atmo_<mesure>_entity`, `atmo_<mesure>_tomorrow_entity` | Les mesures Atmo du jour et de demain (`air`, `pm25`, `grass`, `grass_concentration`…) |
 | `pollen_source` | `atmo`, `legacy` (un capteur par espèce : Polleninformation, IRM KMI, Swiss Pollen ou Kleenex / Scottex) ou `none` |
 | `pollen_provider` | `polleninformation` (par défaut), `irm_kmi`, `swiss_pollen` ou `kleenex_pollenradar` : d’où viennent les capteurs par espèce |
@@ -164,3 +165,5 @@ Les clés sont les mêmes que dans le YAML de la carte avant la 2.0 : les régla
 | `families` | Les familles d’entités choisies à l’installation (elles décident des entités activées au départ) |
 
 Les anciens réglages Thermal Comfort sont ignorés : Niak Weather calcule lui-même humidex, point de rosée et point de givre.
+
+Atmo France peut fournir l’air à l’échelle intercommunale et les pollens à celle de la commune. Choisissez leur zone séparément dans **Qualité de l’air** et **Pollens** : modifier l’une ne change pas l’autre.
