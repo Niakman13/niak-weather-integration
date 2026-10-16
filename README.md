@@ -56,9 +56,9 @@ Un guide en quatre étapes, puis un récapitulatif :
 
 Vous utilisez déjà la carte Niak Weather ? Le guide propose de reprendre ses réglages. Un champ laissé vide est un choix : il n’est jamais rempli à votre place.
 
-**Configurer** ouvre un menu qui reste ouvert : on change chaque partie, puis **Enregistrer et fermer**. On y active aussi chaque entité, par famille. Plusieurs lieux ? Ajoutez l’intégration une fois par lieu. [Détail des sources et des réglages](docs/sources.md).
+**Configurer** conduit au **hub Niak**. Depuis la version **2.5.0**, son menu regroupe Accueil Niak, Weather et Confort selon les briques installées. La vue d’ensemble Weather présente les lieux et leur bouton **Configurer**. Les rubriques **Sources météo**, **Station météo · capteurs locaux**, **Qualité de l’air**, **Pollens** et **Entités** ouvrent directement le réglage correspondant. Plusieurs lieux ? Choisissez le lieu à configurer. Le récapitulatif permet de vérifier et d’enregistrer l’ensemble.
 
-**Panneau Niak** (préversion 2.2) : les mêmes réglages se trouvent aussi dans l’entrée **Niak** de la barre latérale, onglet **Météo**, étape par étape, avec les capteurs proposés et ce qu’il reste à vérifier. L’onglet **Accueil** dit en une phrase si tout est suivi. Le panneau est commun aux briques Niak : avec Niak Confort, chacune a son onglet. **Configurer** reste disponible pendant la transition.
+L’interface suit le thème clair ou sombre de Home Assistant et s’adapte au téléphone. Les explications sont dans les aides nommées ; les recommandations restent visibles. Weather fonctionne seul. L’entrée Niak du menu Home Assistant peut être masquée dans **Accueil Niak → Réglages** ; le panneau reste accessible depuis la roue de l’intégration et le bouton **Visiter** de ses appareils. [Détail des sources et des réglages](docs/sources.md).
 
 ## La carte
 

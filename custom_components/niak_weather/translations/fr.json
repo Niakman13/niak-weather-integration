@@ -172,15 +172,8 @@
     "step": {
       "init": {
         "title": "Niak Weather",
-        "description": "**Météo** : {weather}\n**Station** : {station}\n**Qualité de l’air** : {air}\n**Pollens** : {pollen}\n**Capteurs** : {entities}\n**Écosystème Niak** : {ecosystem}\n\nChangez ce que vous voulez : rien n’est enregistré avant « Enregistrer et fermer ».",
-        "menu_options": {
-          "weather": "Météo",
-          "station": "Station météo",
-          "air": "Qualité de l’air et pollens",
-          "entities": "Capteurs et automatisations",
-          "ecosystem": "Écosystème Niak",
-          "save": "Enregistrer et fermer"
-        }
+        "description": "Les réglages de Niak Weather se font dans l’onglet Météo du panneau Niak.\n\n[Ouvrir les paramètres de Niak Weather]({link})",
+        "submit": "Fermer"
       },
       "weather": {
         "title": "Météo",

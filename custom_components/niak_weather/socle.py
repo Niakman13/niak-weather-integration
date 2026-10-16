@@ -15,15 +15,19 @@ import voluptuous as vol
 from homeassistant.components import frontend, websocket_api
 from homeassistant.components.panel_custom import async_register_panel
 from homeassistant.helpers.start import async_at_started
+from homeassistant.helpers.storage import Store
 
-SOCLE_VERSION = (1, 4)
+SOCLE_VERSION = (1, 6)
 # 1.1: an optional `tab`, the tab's own name when it is not the brick's (« Météo » for Niak Weather).
 # 1.2: async_register_card, the brick's card on every dashboard, also as a dashboard resource.
 # 1.3: the home page says « À découvrir » and « Voir » for the bricks not installed (same contract as 1.2).
 # 1.4: guarded card bundles, extra module only as fallback, encoded resource migration.
+# 1.5: the sidebar entry can be hidden (`niak/set_sidebar`, kept in .storage/niak_socle); the panel itself stays reachable at /niak.
+# 1.6: grouped navigation and optional brick `navigation=1` capability; older bricks keep their overview link.
 # The shell's custom element carries its version: two copies never fight over one name.
-ELEMENT = "niak-socle-1-4"
+ELEMENT = "niak-socle-1-6"
 KEY = "niak_socle"
+STORE_VERSION = 1
 PANEL = "niak"
 TITLE = "Niak"
 ICON = "mdi:home-heart"
@@ -43,6 +47,7 @@ _LOGGER = logging.getLogger(__name__)
 async def async_register_brick(hass, brick, shell_url):
     """Register a brick: {domain, name, slug, version, icon, module_url, element, status, legacy_path} and, since 1.1, `tab`."""
     data = hass.data.setdefault(KEY, {"bricks": {}, "panel": None})
+    await _load_settings(hass, data)
     data["bricks"][brick["domain"]] = {**brick, "socle": SOCLE_VERSION}
     if brick.get("legacy_path"):
         await _legacy_panel(hass, brick, shell_url)
@@ -52,11 +57,40 @@ async def async_register_brick(hass, brick, shell_url):
     data["panel"] = {"socle": SOCLE_VERSION, "shell_url": shell_url, "domain": brick["domain"]}
     # Re-registering replaces an older copy's handler: the newest socle answers.
     websocket_api.async_register_command(hass, _ws_overview)
+    websocket_api.async_register_command(hass, _ws_set_sidebar)
+    await _show_panel(hass, shell_url, data["settings"]["sidebar"])
+
+
+async def _load_settings(hass, data):
+    """What the user chose for the whole panel (shared by every brick): only whether the sidebar shows « Niak »."""
+    if "settings" in data:
+        return
+    stored = None
+    try:
+        stored = await Store(hass, STORE_VERSION, KEY).async_load()
+    except Exception:  # noqa: BLE001 - an unreadable file never keeps the panel from opening
+        _LOGGER.warning("Réglages du panneau Niak illisibles : menu affiché par défaut", exc_info=True)
+    data["settings"] = {"sidebar": stored.get("sidebar", True) is not False if isinstance(stored, dict) else True}
+
+
+async def _show_panel(hass, shell_url, sidebar):
+    """The panel at /niak, in the sidebar or not: hidden, it stays open to anyone who follows its address."""
     if frontend.async_panel_exists(hass, PANEL):
         frontend.async_remove_panel(hass, PANEL, warn_if_unknown=False)
     await async_register_panel(hass, frontend_url_path=PANEL, webcomponent_name=ELEMENT,
-                               sidebar_title=TITLE, sidebar_icon=ICON, module_url=shell_url,
-                               require_admin=True)
+                               sidebar_title=TITLE if sidebar else None, sidebar_icon=ICON if sidebar else None,
+                               module_url=shell_url, require_admin=True)
+
+
+async def async_set_sidebar(hass, visible):
+    """Show or hide « Niak » in the sidebar, at once, and remember it."""
+    data = hass.data.setdefault(KEY, {"bricks": {}, "panel": None})
+    await _load_settings(hass, data)
+    data["settings"]["sidebar"] = bool(visible)
+    await Store(hass, STORE_VERSION, KEY).async_save({"sidebar": bool(visible)})
+    if data.get("panel"):
+        await _show_panel(hass, data["panel"]["shell_url"], bool(visible))
+    return bool(visible)
 
 
 async def _legacy_panel(hass, brick, shell_url):
@@ -157,12 +191,13 @@ async def async_overview(hass):
     listed = sorted(bricks.values(), key=lambda b: (order.index(b["domain"]) if b["domain"] in order else len(order), b["name"]))
     result = []
     for brick in listed:
-        result.append({**{k: brick.get(k) for k in ("domain", "name", "slug", "version", "icon", "module_url", "element", "tab")},
+        result.append({**{k: brick.get(k) for k in ("domain", "name", "slug", "version", "icon", "module_url", "element", "tab", "navigation")},
                        "status": await _status(hass, brick)})
     others = [{**c, "installed": c["domain"] in hass.config.components,
                "settings_path": f"/config/integrations/integration/{c['domain']}"}
               for c in CATALOGUE if c["domain"] not in bricks]
-    return {"version": 1, "socle": list(SOCLE_VERSION), "bricks": result, "others": others}
+    sidebar = hass.data.get(KEY, {}).get("settings", {}).get("sidebar", True)
+    return {"version": 1, "socle": list(SOCLE_VERSION), "bricks": result, "others": others, "sidebar": sidebar}
 
 
 @websocket_api.websocket_command({vol.Required("type"): "niak/overview"})
@@ -170,3 +205,10 @@ async def async_overview(hass):
 @websocket_api.async_response
 async def _ws_overview(hass, connection, msg):
     connection.send_result(msg["id"], await async_overview(hass))
+
+
+@websocket_api.websocket_command({vol.Required("type"): "niak/set_sidebar", vol.Required("visible"): bool})
+@websocket_api.require_admin
+@websocket_api.async_response
+async def _ws_set_sidebar(hass, connection, msg):
+    connection.send_result(msg["id"], {"sidebar": await async_set_sidebar(hass, msg["visible"])})

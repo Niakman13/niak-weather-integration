@@ -172,15 +172,8 @@
     "step": {
       "init": {
         "title": "Niak Weather",
-        "description": "**Weather**: {weather}\n**Station**: {station}\n**Air quality**: {air}\n**Pollen**: {pollen}\n**Sensors**: {entities}\n**Niak ecosystem**: {ecosystem}\n\nChange what you want: nothing is saved before « Save and close ».",
-        "menu_options": {
-          "weather": "Weather",
-          "station": "Weather station",
-          "air": "Air quality and pollen",
-          "entities": "Sensors and automations",
-          "ecosystem": "Niak ecosystem",
-          "save": "Save and close"
-        }
+        "description": "Niak Weather's settings are in the Météo tab of the Niak panel.\n\n[Open Niak Weather settings]({link})",
+        "submit": "Close"
       },
       "weather": {
         "title": "Weather",
