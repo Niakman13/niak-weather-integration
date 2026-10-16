@@ -229,6 +229,43 @@ try {
   assert.ok(await inCard(root => !!root.querySelector('.hero-main, .nw-tile, ha-card')), 'The card still draws after loading twice');
   report.twice = offered;
 
+  // A missing Atmo forecast is distinct from a source error; zero concentrations stay factual.
+  const atmoScenario = JSON.parse(readFileSync('../tests/fixtures/atmo-pollen-missing-tomorrow.json'));
+  const atmoView = scenario => {
+    const result = spawnSync('python3', ['../scripts/view_cli.py'], { input: JSON.stringify(scenario), encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+    return result.stdout;
+  };
+  let atmoResponse = atmoView(atmoScenario);
+  assert.equal(JSON.parse(atmoResponse).view.air.tomorrow[0].primary.unavailableReason, 'no_index');
+  await page.route('**/demo/view', route => route.fulfill({ contentType: 'application/json', body: atmoResponse }));
+  for (const width of [375, 1180]) {
+    await page.setViewportSize({ width, height: 1100 });
+    await show({ format: 'full', width, animated: false });
+    const forecast = page.locator('niak-weather-card').locator('section[aria-label="Pollens demain"]');
+    assert.ok((await forecast.textContent()).includes('Prévision non disponible'));
+    assert.ok((await forecast.textContent()).includes('Atmo France ne fournit pas d’indice pollen exploitable pour demain'));
+    await forecast.locator('summary').click();
+    assert.ok((await forecast.innerText()).includes('0 µg/m³'), 'Zero concentration is preserved');
+    assert.ok((await forecast.innerText()).includes('peut être une valeur réelle ou remplacer une donnée manquante'));
+    const today = page.locator('niak-weather-card').locator('section[aria-label="Pollens aujourd’hui"]');
+    assert.ok((await today.textContent()).includes('Très faible'));
+    assert.ok(!(await today.textContent()).includes('peut être une valeur réelle'), 'Valid level and genuine zero are kept');
+    const overflow = await forecast.evaluate(e => {
+      const card = e.getRootNode().host.getBoundingClientRect();
+      return [...e.querySelectorAll('*')].some(n => n.getBoundingClientRect().right > card.right + 1);
+    });
+    assert.equal(overflow, false, `Atmo message overflow at ${width}`);
+    await forecast.screenshot({ path: `${out}/atmo-pollen-missing-${width}.png` });
+  }
+  const failedScenario = structuredClone(atmoScenario);
+  failedScenario.states['sensor.pollen_j_1'].state = 'unavailable';
+  atmoResponse = atmoView(failedScenario);
+  await show({ format: 'full', width: 1180, animated: false });
+  assert.ok(!(await page.locator('niak-weather-card').locator('section[aria-label="Pollens demain"]').textContent()).includes('Prévision non disponible'), 'Unavailable source is not presented as an Atmo code 0');
+  await page.unroute('**/demo/view');
+  report.atmoMissingForecast = 'Atmo code 0, genuine zero concentrations and unavailable entities remain distinct, mobile and desktop';
+
   // Swiss providers travel through the Python engine and the real card bundle, at mobile and desktop widths.
   const swiss = spawnSync('python3', ['../scripts/view_cli.py'], {
     input: readFileSync('../tests/fixtures/swiss-weather.json'), encoding: 'utf8',

@@ -102,7 +102,7 @@ export interface DayForecast {
   low?: number; high?: number; rain: number; wind?: number; bearing?: number; gust?: number;
 }
 
-export interface AtmoReading { entityId: string; label: string; value?: number; color: string; zone: string; updated: string; unit?: string; stale: boolean }
+export interface AtmoReading { entityId: string; label: string; value?: number; color: string; zone: string; updated: string; unit?: string; stale: boolean; unavailableReason?: 'no_index' }
 export interface AirItem { label: string; reading: AtmoReading; concentration?: AtmoReading }
 export interface AirPanel {
   kind: 'air' | 'pollen'; tomorrow: boolean; zone: string; primary?: AtmoReading;

@@ -1,0 +1,66 @@
+{
+  "now": "2026-10-16T20:00:00+02:00",
+  "time_zone": "Europe/Paris",
+  "options": {
+    "weather_entity": "weather.home",
+    "pollen_source": "atmo",
+    "atmo_pollen_entity": "sensor.pollen",
+    "atmo_grass_entity": "sensor.grass",
+    "atmo_grass_concentration_entity": "sensor.grass_concentration",
+    "atmo_pollen_tomorrow_entity": "sensor.pollen_j_1",
+    "atmo_grass_tomorrow_entity": "sensor.grass_j_1",
+    "atmo_grass_concentration_tomorrow_entity": "sensor.grass_concentration_j_1"
+  },
+  "states": {
+    "weather.home": {
+      "state": "sunny",
+      "attributes": {
+        "friendly_name": "Lieu de test"
+      }
+    },
+    "sensor.pollen": {
+      "state": "1",
+      "attributes": {
+        "Nom de la zone": "Lieu de test",
+        "Date de mise à jour": "2026-10-16T16:17:00+02:00"
+      }
+    },
+    "sensor.grass": {
+      "state": "1",
+      "attributes": {
+        "Nom de la zone": "Lieu de test",
+        "Date de mise à jour": "2026-10-16T16:17:00+02:00"
+      }
+    },
+    "sensor.grass_concentration": {
+      "state": "0",
+      "attributes": {
+        "Nom de la zone": "Lieu de test",
+        "Date de mise à jour": "2026-10-16T16:17:00+02:00",
+        "unit_of_measurement": "µg/m³"
+      }
+    },
+    "sensor.pollen_j_1": {
+      "state": "0",
+      "attributes": {
+        "Nom de la zone": "Lieu de test",
+        "Date de mise à jour": "2026-10-16T16:17:00+02:00"
+      }
+    },
+    "sensor.grass_j_1": {
+      "state": "0",
+      "attributes": {
+        "Nom de la zone": "Lieu de test",
+        "Date de mise à jour": "2026-10-16T16:17:00+02:00"
+      }
+    },
+    "sensor.grass_concentration_j_1": {
+      "state": "0",
+      "attributes": {
+        "Nom de la zone": "Lieu de test",
+        "Date de mise à jour": "2026-10-16T16:17:00+02:00",
+        "unit_of_measurement": "µg/m³"
+      }
+    }
+  }
+}

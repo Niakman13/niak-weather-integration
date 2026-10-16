@@ -91,6 +91,8 @@ class Reading:
     """Only for concentrations."""
     stale: bool
     """Published more than 48 h ago: not used to decide anything."""
+    unavailable_reason: str | None = None
+    """Atmo pollen index 0: no usable index, distinct from an unavailable entity."""
 
 
 def reading(state: StateLike | None, entity_id: str, pollen: bool, now: datetime, zone: ZoneInfo, concentration: bool = False) -> Reading | None:
@@ -120,7 +122,8 @@ def reading(state: StateLike | None, entity_id: str, pollen: bool, now: datetime
     return Reading(entity_id=entity_id, label=label, value=number if valid else None, color=color, zone=str(attributes.get("Nom de la zone") or ""),
                    updated=published.astimezone(zone).strftime("%d/%m %H:%M") if published else "",
                    unit=str(attributes.get("unit_of_measurement") or "") if concentration else None,
-                   stale=published is not None and now - published > timedelta(hours=48))
+                   stale=published is not None and now - published > timedelta(hours=48),
+                   unavailable_reason="no_index" if pollen and not concentration and number == 0 and not attributes.get("unit_of_measurement") else None)
 
 
 def read_metric(get: Any, settings: Settings, metric: str, tomorrow: bool, now: datetime, zone: ZoneInfo) -> Reading | None:

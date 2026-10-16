@@ -167,3 +167,5 @@ Les clés sont les mêmes que dans le YAML de la carte avant la 2.0 : les régla
 Les anciens réglages Thermal Comfort sont ignorés : Niak Weather calcule lui-même humidex, point de rosée et point de givre.
 
 Atmo France peut fournir l’air à l’échelle intercommunale et les pollens à celle de la commune. Choisissez leur zone séparément dans **Qualité de l’air** et **Pollens** : modifier l’une ne change pas l’autre.
+
+Pour les pollens Atmo France, l’indice 0 signifie qu’aucun indice exploitable n’est fourni. Pour demain, la carte indique **Prévision non disponible** et en explique la raison. Une concentration à 0 reste affichée : elle peut être réellement nulle ou remplacer une donnée manquante dans l’intégration Atmo ; la carte précise cette ambiguïté si l’indice associé est indisponible. Une entité `unknown` ou `unavailable` reste distincte de ce code 0.
