@@ -49,6 +49,11 @@ def _translations() -> dict[str, Any]:
     return json.loads((Path(__file__).parent / "translations" / "fr.json").read_text(encoding="utf-8"))
 
 
+async def async_load_labels(hass: HomeAssistant) -> None:
+    """Reads the labels once, outside the event loop: the tab's commands then find them in the cache."""
+    await hass.async_add_executor_job(_translations)
+
+
 def _label(text: str) -> tuple[str, str]:
     """« Ressenti — la température ressentie » → its name and its hint."""
     name, _, hint = text.partition(" — ")

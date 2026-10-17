@@ -11,6 +11,7 @@ from homeassistant.loader import async_get_integration
 from .api import API_KEY, NiakWeatherApi
 from .const import DOMAIN
 from .coordinator import NiakWeatherConfigEntry, NiakWeatherCoordinator, alert_store
+from .draft import async_load_labels
 from .panel import CARD_URL, async_setup_panel
 from .socle import async_remove_card
 from .services import async_setup_services
@@ -28,6 +29,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     # The contract for the other Niak bricks (Niak Confort, future Niak Chauffage…).
     hass.data[API_KEY] = NiakWeatherApi(hass)
     # The « Météo » tab of the shared « Niak » panel, and Niak Weather's line on its home page.
+    await async_load_labels(hass)
     await async_setup_panel(hass, version)
     return True
 
