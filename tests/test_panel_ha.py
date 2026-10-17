@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 try:
     from homeassistant.config_entries import ConfigEntries
@@ -14,6 +15,7 @@ except ImportError:  # pragma: no cover - the engine's own test run
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from custom_components.niak_weather import socle  # noqa: E402
+from custom_components.niak_weather import draft as draft_module  # noqa: E402
 from custom_components.niak_weather.draft import Draft  # noqa: E402
 from custom_components.niak_weather.panel import weather_status  # noqa: E402
 from custom_components.niak_weather.engine.families import needs  # noqa: E402
@@ -46,6 +48,16 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self):
         await self.hass.async_stop()
         self.directory.cleanup()
+
+    async def test_the_labels_are_read_outside_the_event_loop(self):
+        # Home Assistant warns of a blocking call when fr.json is read in the event loop (« Detected blocking call to read_text »).
+        draft_module._translations.cache_clear()
+        await draft_module.async_load_labels(self.hass)
+        with mock.patch.object(Path, "read_text", side_effect=AssertionError("fichier lu dans la boucle")), \
+                mock.patch("builtins.open", side_effect=AssertionError("fichier lu dans la boucle")):
+            view = Draft.start(self.hass, None).view()
+            self.assertEqual(draft_module.entity_label("feels_like")[0], "Ressenti")
+        self.assertIn("Vigilance officielle : il faut la vigilance officielle", view["needs"])
 
     async def test_a_new_place_starts_from_what_home_assistant_has(self):
         draft = Draft.start(self.hass, None)
