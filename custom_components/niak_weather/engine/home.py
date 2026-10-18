@@ -20,6 +20,8 @@ class Place:
     """Whether the weather service gave its forecast."""
     needs: Sequence[str] = ()
     """Enabled entities still missing their source, as « Vigilance : il faut la vigilance officielle »."""
+    down: Sequence[str] = ()
+    """The chosen air and pollen sources that do not answer, as « Atmo France ne répond pas : pollens »."""
     links: Sequence[str] = ()
     """The Niak bricks listening to this place, by name."""
 
@@ -48,6 +50,7 @@ def status(places: Sequence[Place], card_twice: bool = False) -> dict:
         if not place.forecast:
             todo.append(f"Prévisions pas encore reçues du service météo{where}")
         todo.extend(f"{need}{where}" for need in place.needs)
+        todo.extend(f"{source}{where}" for source in place.down)
     if card_twice:
         todo.append("Carte installée deux fois : retirez la carte Niak Weather de HACS")
     links = [f"Relié à {name} · {place.title}" for place in places for name in place.links]

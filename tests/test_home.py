@@ -39,3 +39,9 @@ def test_the_card_installed_twice_is_an_action():
     result = status([Place("Maison", station=3)], card_twice=True)
     assert result["level"] == "action" and result["summary"] == "1 lieu suivi avec sa station, 1 point à régler."
     assert result["details"] == ["Carte installée deux fois : retirez la carte Niak Weather de HACS"]
+
+
+def test_a_silent_air_source_is_orange():
+    result = status([Place("Maison", station=3, down=["Atmo France ne répond pas : qualité de l’air et pollens"])])
+    assert result["level"] == "action" and result["summary"] == "1 lieu suivi avec sa station, 1 point à régler."
+    assert result["details"] == ["Atmo France ne répond pas : qualité de l’air et pollens"]
