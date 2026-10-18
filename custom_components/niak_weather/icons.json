@@ -65,6 +65,9 @@
       },
       "pollens": {
         "default": "mdi:flower-pollen-outline"
+      },
+      "bulletin": {
+        "default": "mdi:text-box-outline"
       }
     },
     "binary_sensor": {

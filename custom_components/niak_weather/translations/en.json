@@ -391,6 +391,7 @@
         "gel": "Frost — yes/no",
         "canicule": "Heatwave — yes/no",
         "uv_fort": "High UV — yes/no",
+        "bulletin": "Today’s bulletin — the forecast text, to read aloud or send",
         "next_rain": "Rain in — hours before the next rain",
         "pluie_heure": "Rain within the hour — mm",
         "pluie_6h": "Rain over 6 h — mm",
@@ -440,6 +441,9 @@
       },
       "brief": {
         "name": "In brief"
+      },
+      "bulletin": {
+        "name": "Today’s bulletin"
       },
       "next_rain": {
         "name": "Rain in"

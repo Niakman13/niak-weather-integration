@@ -81,6 +81,8 @@ def normalise_condition(condition: str | None) -> str:
 
 
 STORMY = ("lightning", "lightning-rainy", "hail")
+# Falling rain or snow saturates the air: 99 % humidity then says nothing about fog.
+WET = ("rainy", "pouring", "lightning-rainy", "snowy", "snowy-rainy", "hail")
 
 
 def verdict(m: Measures, forecast_condition: str | None, hours: Sequence[Hour] = ()) -> Verdict:
@@ -110,7 +112,9 @@ def verdict(m: Measures, forecast_condition: str | None, hours: Sequence[Hour] =
     rate = m.rain_rate
     rain_level = 0 if rate is None or rate < 0.3 else 1 if rate < 1 else 2 if rate < 4 else 3 if rate < 12 else 4
     fog = (m.humidity is not None and m.humidity >= 97 and m.temperature is not None and m.dew_point is not None
-           and m.temperature - m.dew_point <= 0.4 and rain_level == 0)
+           and m.temperature - m.dew_point <= 0.4 and rain_level == 0
+           # Without a gauge reading, the bulletin's rain wins: only a gauge measuring nothing can contradict it.
+           and not (rate is None and forecast in WET))
     sunshine = solar is not None and solar >= 350
     observed = ""
     if not forecast.startswith("snow"):

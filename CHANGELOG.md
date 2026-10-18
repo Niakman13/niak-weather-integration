@@ -1,3 +1,8 @@
+## 2.5.5b3 — Bulletin du jour et brouillard sous la pluie
+
+- Nouveau capteur **Bulletin du jour** (`sensor.niak_weather_bulletin_du_jour`) : le texte de la prévision, prêt à lire sur une enceinte ou à envoyer en notification. Le texte entier et chaque moment de la journée sont aussi en attributs.
+- Correction : sans pluviomètre, une humidité de 99 % ne fait plus afficher « Brouillard » quand le bulletin annonce de la pluie ou de la neige. Un pluviomètre qui ne mesure rien garde le brouillard.
+
 ## 2.5.5b2 — WAQI, deuxième source pour l’air
 
 - Nouvelle source de qualité de l’air au choix, à côté d’Atmo France : **WAQI** (intégration « World Air Quality Index » de Home Assistant, jeton gratuit sur aqicn.org).

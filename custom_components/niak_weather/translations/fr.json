@@ -391,6 +391,7 @@
         "gel": "Gel — oui/non",
         "canicule": "Canicule — oui/non",
         "uv_fort": "UV forts — oui/non",
+        "bulletin": "Bulletin du jour — le texte de la prévision, à lire ou envoyer",
         "next_rain": "Pluie dans — heures avant la prochaine pluie",
         "pluie_heure": "Pluie dans l’heure — mm",
         "pluie_6h": "Pluie prévue sur 6 h — mm",
@@ -440,6 +441,9 @@
       },
       "brief": {
         "name": "En bref"
+      },
+      "bulletin": {
+        "name": "Bulletin du jour"
       },
       "next_rain": {
         "name": "Pluie dans"
