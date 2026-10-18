@@ -68,6 +68,7 @@ Les prévisions du fournisseur, résumées en chiffres utiles.
 
 | Entité | Ce qu’elle donne | Exemple d’usage |
 | --- | --- | --- |
+| `sensor.niak_weather_bulletin_du_jour` | Le bulletin du jour en toutes lettres ; le texte entier et chaque moment de la journée en attributs (`text`, `periods`) | Le lire sur une enceinte, l’envoyer chaque matin |
 | `sensor.niak_weather_pluie_dans` | Les heures avant la prochaine pluie | Lancer une tonte si la pluie est loin |
 | `sensor.niak_weather_pluie_heure` | La pluie prévue dans l’heure, en mm | Fermer avant l’averse |
 | `sensor.niak_weather_pluie_6h` | La pluie prévue sur 6 h | Seuil d’arrosage, récupérateur d’eau |

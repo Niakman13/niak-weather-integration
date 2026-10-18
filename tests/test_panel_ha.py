@@ -228,7 +228,7 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
     async def test_the_air_is_chosen_by_source_like_the_pollens(self):
         draft = Draft.start(self.hass, None)
         air = draft.view()["air"]
-        self.assertEqual([s["value"] for s in air["sources"]], ["atmo", "none"])
+        self.assertEqual([s["value"] for s in air["sources"]], ["atmo", "waqi", "none"])
         self.assertFalse(air["sources"][0]["available"])
         self.assertEqual(air["value"], "none")
         self.assertEqual(draft.change({"op": "air", "value": "atmo"}), "Atmo France n’est pas installée.")

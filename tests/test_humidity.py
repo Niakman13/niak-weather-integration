@@ -52,6 +52,21 @@ def test_does_not_call_the_bulletin_humidity_a_fog_observed_by_the_station() -> 
     assert not w.observed and not w.observed_fog
 
 
+def test_announced_rain_wins_over_a_saturated_station_without_a_gauge() -> None:
+    # Issue #3: 99 % at the station all night, rain in the bulletin, no rain gauge: it rains, it is not fog.
+    station = {"sensor.t": State("11.2"), "sensor.h": State("99")}
+    options = {"temperature_entity": "sensor.t", "humidity_entity": "sensor.h"}
+    for wet in ("rainy", "pouring", "snowy"):
+        w = local({"weather.city": State(wet, {"temperature": 11}), **station}, **options)
+        assert (w.condition, w.observed, w.observed_fog) == (wet, False, False)
+    # A dry bulletin keeps the fog seen by the station.
+    w = local({"weather.city": State("cloudy", {"temperature": 11}), **station}, **options)
+    assert (w.condition, w.observed, w.observed_fog) == ("fog", True, True)
+    # A gauge measuring nothing contradicts the bulletin's rain: the fog stays.
+    w = local({"weather.city": State("rainy", {"temperature": 11}), **station, "sensor.r": State("0")}, **options, rain_rate_entity="sensor.r")
+    assert (w.condition, w.observed_fog) == ("fog", True)
+
+
 # ── Tonight in the brief ─────────────────────────────────────────────────────
 
 def night(low: float, precipitation: float | None = None, wind: float | None = None, humidity: float | None = None) -> list[Hour]:

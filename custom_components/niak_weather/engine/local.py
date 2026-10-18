@@ -249,8 +249,8 @@ def build_local(get: Getter, settings: Settings, hours: Sequence[Hour], history:
                 narrative=rain_narrative(value("rain_today"), value("rain_week"), value("rain_month")),
                 next_hours=v.next_rain_hours, next_amount=v.next_rain_amount)
     uv_text = "" if uv is None or uv < 0 else "faible" if uv < 3 else "modéré" if uv < 6 else "fort" if uv < 8 else "très fort" if uv < 11 else "extrême"
-    observed_fog = (humidity_source == "station" and humidity is not None and humidity >= 97 and temperature is not None and dew_value is not None
-                    and temperature - dew_value <= 0.4 and (value("rain_rate") or 0) < 0.3)
+    # The verdict only sees fog with the station's own moisture, and never under rain measured or announced.
+    observed_fog = v.observed and v.condition == "fog"
     local = LocalWeather(
         temperature=temperature, humidity=humidity, humidity_source=humidity_source, dew_point=dew_value, frost_point=frost, humidex=humidex_value,
         feel=feel, wind=wind_info, rain=rain, pressure=pressure,

@@ -24,8 +24,12 @@ from .engine.moisture import humidex
 ALERTS = ["none", *(a.value for a in Alert)]
 # Entity ids that say what they are, the same in every home: sensor.niak_weather_ressenti, sensor.niak_weather_pluie_24h…
 OBJECT_IDS = {"feels_like": "ressenti", "dew_point": "point_de_rosee", "frost_point": "point_de_givre", "humidex": "humidex", "alert": "alerte",
-              "brief": "en_bref", "next_rain": "pluie_dans", "pressure_trend": "tendance_pression", "rain_24h": "pluie_24h",
+              "brief": "en_bref", "bulletin": "bulletin_du_jour", "next_rain": "pluie_dans", "pressure_trend": "tendance_pression", "rain_24h": "pluie_24h",
               "max_gust_today": "rafale_max_jour", "temperature_trend": "tendance_temperature"}
+
+
+def _bulletin(s: Snapshot) -> dict[str, Any]:
+    return s.view.get("bulletin") or {}
 
 
 def _feels(s: Snapshot) -> float | None:
@@ -87,6 +91,11 @@ SENSORS: tuple[NiakSensorDescription, ...] = (
                               "points": [{"key": p.key, "group": p.group, "severity": p.severity, "text": p.text} for p in s.brief.signals],
                               # The day's bulletin, as the card writes it: « Ce soir et cette nuit, pluie jusqu’à 20 h (3 mm)… »
                               "bulletin": (s.view.get("bulletin") or {}).get("summary")}),
+    # The day's bulletin on its own, to read aloud or send: the state stops at 255 characters, the attribute keeps it whole.
+    NiakSensorDescription(
+        key="bulletin", translation_key="bulletin", value=lambda s: (_bulletin(s).get("summary") or "")[:255] or None,
+        attributes=lambda s: {"text": _bulletin(s).get("summary"),
+                              "periods": [{"label": p.get("label"), "text": p.get("text")} for p in _bulletin(s).get("periods", ())]}),
     NiakSensorDescription(
         key="next_rain", translation_key="next_rain", device_class=SensorDeviceClass.DURATION, native_unit_of_measurement=UnitOfTime.HOURS,
         value=lambda s: s.local.rain.next_hours, attributes=lambda s: {"amount": s.local.rain.next_amount}),
@@ -195,7 +204,7 @@ def device_info(coordinator: NiakWeatherCoordinator, device: str) -> DeviceInfo:
 class NiakWeatherSensor(CoordinatorEntity[NiakWeatherCoordinator], SensorEntity):
     _attr_has_entity_name = True
     # The brief's long texts are for automations and dashboards, not for the Recorder.
-    _unrecorded_attributes = frozenset({"summary", "points", "phrase", "bulletin"})
+    _unrecorded_attributes = frozenset({"summary", "points", "phrase", "bulletin", "text", "periods"})
     entity_description: NiakSensorDescription
 
     def __init__(self, coordinator: NiakWeatherCoordinator, description: NiakSensorDescription, prefix: str, device: str) -> None:
