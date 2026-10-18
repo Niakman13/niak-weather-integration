@@ -173,8 +173,10 @@ export class WeatherSetup extends LitElement {
  }
  private air(v:View){const a=v.air;
   return html`${frame('Source de qualité de l’air',html`${this.choiceList('air',a.sources,a.value,x=>void this.change({op:'air',value:x}))}
-   ${a.areas.length?nothing:html`<p class="notice">Atmo France n’est pas encore installée : <a href="https://github.com/sebcaps/atmofrance" target="_blank" rel="noreferrer">installer l’intégration Atmo France</a>, puis revenez ici.</p>`}
-   ${a.value==='atmo'&&a.areas.length?this.zone('l-aarea','Zone Atmo France',a.areas,a.area,x=>void this.change({op:'air',value:'atmo',area:x})):nothing}`,{className:'nk-field-section nk-plain'})}${this.bottom()}`;
+   ${a.areas.length||a.value==='waqi'?nothing:html`<p class="notice">Atmo France n’est pas encore installée : <a href="https://github.com/sebcaps/atmofrance" target="_blank" rel="noreferrer">installer l’intégration Atmo France</a>, puis revenez ici.</p>`}
+   ${a.stations.length||a.value==='atmo'?nothing:html`<p class="notice">WAQI n’est pas encore installée : créez un jeton gratuit sur <a href="https://aqicn.org/data-platform/token/" target="_blank" rel="noreferrer">aqicn.org</a>, puis ajoutez l’intégration « World Air Quality Index » dans Paramètres → Appareils et services.</p>`}
+   ${a.value==='atmo'&&a.areas.length?this.zone('l-aarea','Zone Atmo France',a.areas,a.area,x=>void this.change({op:'air',value:'atmo',area:x})):nothing}
+   ${a.value==='waqi'&&a.stations.length?this.zone('l-astation','Station WAQI',a.stations,a.station,x=>void this.change({op:'air',value:'waqi',area:x})):nothing}`,{className:'nk-field-section nk-plain'})}${this.bottom()}`;
  }
  private pollen(v:View){
   const p=v.pollen;const chosen=p.species.filter(s=>s.chosen).map(s=>s.id);

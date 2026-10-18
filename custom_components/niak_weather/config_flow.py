@@ -18,11 +18,11 @@ from homeassistant.helpers.selector import (BooleanSelector, EntitySelector, Ent
                                             SelectSelectorConfig, SelectSelectorMode, TextSelector)
 
 from .const import CARD_TYPE, DOMAIN, LOGGER
-from .engine import atmo, detection, families, polleninfo
-from .engine.settings import ATMO_KEYS, Settings, atmo_key
+from .engine import atmo, detection, families, polleninfo, waqi
+from .engine.settings import ATMO_KEYS, WAQI_KEYS, Settings, atmo_key
 from .engine.view import place_name
 
-SETTING_KEYS = frozenset({f.name for f in fields(Settings)} - {"atmo"}) | frozenset(ATMO_KEYS) | {"families", "air_source"}
+SETTING_KEYS = frozenset({f.name for f in fields(Settings)} - {"atmo", "waqi"}) | frozenset(ATMO_KEYS) | frozenset(WAQI_KEYS) | {"families"}
 # Air and pollen sensors have independent zones and can each be left out.
 AIR_KEYS = frozenset(atmo_key(m, t) for t in (False, True) for m in ("air", *atmo.POLLUTANT_METRICS))
 POLLEN_KEYS = frozenset(ATMO_KEYS) - AIR_KEYS
@@ -195,38 +195,56 @@ class _SourceSteps:
         states, registry, devices = _context(self.hass)
         return atmo.areas(states, registry, devices)
 
+    def _stations(self) -> list[dict[str, str]]:
+        _, registry, devices = _context(self.hass)
+        return waqi.stations(registry, devices)
+
     def _apply_atmo(self) -> None:
-        """The Atmo sensors of the zone, only those wanted: the air's when the air is on, the pollens' when Atmo gives the pollens."""
+        """The Atmo sensors of the zone, only those wanted: the air's when Atmo gives the air, the pollens' when Atmo gives the pollens.
+        With WAQI, the sensors of its station instead of Atmo's air."""
         states, registry, devices = _context(self.hass)
-        for key in ATMO_KEYS:
+        for key in (*ATMO_KEYS, *WAQI_KEYS, "waqi_place"):
             self.sources.pop(key, None)
         if self.sources.get("atmo_area") or self.sources.get("atmo_pollen_area"):
             self.sources = detection.fill(states, registry, devices, self.sources, "atmo")
-        for key in (*(AIR_KEYS if self.sources.get("air_source") == "none" else ()), *(POLLEN_KEYS if self.sources.get("pollen_source") != "atmo" else ())):
+        for key in (*(AIR_KEYS if self.sources.get("air_source") in ("none", "waqi") else ()), *(POLLEN_KEYS if self.sources.get("pollen_source") != "atmo" else ())):
             self.sources.pop(key, None)
+        if self.sources.get("air_source") == "waqi" and self.sources.get("waqi_station"):
+            self.sources.update(waqi.detect(registry, devices, self.sources["waqi_station"]))
+        else:
+            self.sources.pop("waqi_station", None)
+
+    def _set_air(self, choice: str) -> None:
+        """« none », an Atmo France zone, or « waqi:<station> »."""
+        # Freeze the previous shared choice before changing only the air zone.
+        self.sources.setdefault("atmo_pollen_area", self.sources.get("atmo_area"))
+        if choice.startswith("waqi:"):
+            self.sources["air_source"], self.sources["waqi_station"] = "waqi", choice.removeprefix("waqi:")
+        else:
+            self.sources["air_source"] = "none" if choice == NONE else "atmo"
+        if self.sources["air_source"] == "atmo":
+            self.sources["atmo_area"] = choice
+        elif self.sources.get("pollen_source") != "atmo":
+            self.sources["atmo_area"] = ""
+        self._apply_atmo()
 
     async def async_step_air_quality(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """The air: the Atmo France zone, or none."""
-        areas = self._areas()
-        if user_input is None and not areas and self.skip_empty:
+        """The air: an Atmo France zone, a WAQI station, or none."""
+        areas, stations = self._areas(), self._stations()
+        if user_input is None and not areas and not stations and self.skip_empty:
             self.sources["air_source"] = "none"
             return await self._done("air")
         if user_input is not None:
-            # Freeze the previous shared choice before changing only the air zone.
-            self.sources.setdefault("atmo_pollen_area", self.sources.get("atmo_area"))
-            area = user_input.get("atmo_area", NONE)
-            self.sources["air_source"] = "none" if area == NONE else "atmo"
-            if area != NONE:
-                self.sources["atmo_area"] = area
-            elif self.sources.get("pollen_source") != "atmo":
-                self.sources["atmo_area"] = ""
-            self._apply_atmo()
+            self._set_air(user_input.get("atmo_area", NONE))
             return await self._done("air")
         states, registry, devices = _context(self.hass)
         filled = detection.fill(states, registry, devices, self.sources, "atmo")
-        current = NONE if self.sources.get("air_source") == "none" else filled.get("atmo_area") or NONE
+        source = self.sources.get("air_source")
+        current = (NONE if source == "none" else f"waqi:{self.sources.get('waqi_station')}" if source == "waqi" and self.sources.get("waqi_station")
+                   else filled.get("atmo_area") or NONE)
         schema = vol.Schema({vol.Required("atmo_area"): SelectSelector(SelectSelectorConfig(
-            options=[SelectOptionDict(value=NONE, label="Aucune"), *(SelectOptionDict(value=a["value"], label=a["label"]) for a in areas)],
+            options=[SelectOptionDict(value=NONE, label="Aucune"), *(SelectOptionDict(value=a["value"], label=f"Atmo France · {a['label']}") for a in areas),
+                     *(SelectOptionDict(value=f"waqi:{s['value']}", label=f"WAQI · {s['label']} (mesure ; demain : Open-Meteo)") for s in stations)],
             mode=SelectSelectorMode.DROPDOWN))})
         hint = "" if areas else "\n\nAtmo France n’est pas encore installée : [installer l’intégration Atmo France](https://github.com/sebcaps/atmofrance), puis revenez ici."
         return self.async_show_form(step_id="air_quality", data_schema=self.add_suggested_values_to_schema(schema, {"atmo_area": current}),  # type: ignore[attr-defined]
@@ -359,7 +377,8 @@ class _SourceSteps:
             "weather": (str(weather.attributes.get("friendly_name") or s.get("weather_entity")) if weather else "à choisir")
                        + (" · vigilance" if s.get("vigilance_entity") else ""),
             "station": f"{model + ' · ' if model else ''}{len(station)} capteur{'s' if len(station) > 1 else ''}" if station else "pas de station",
-            "air": f"Atmo France · {area}" if area and s.get("air_source") != "none" else "aucune",
+            "air": (f"WAQI · {s.get('waqi_place') or s.get('waqi_station')}" if s.get("air_source") == "waqi"
+                    else f"Atmo France · {area}" if area and s.get("air_source") != "none" else "aucune"),
             "pollen": pollens,
         }
 

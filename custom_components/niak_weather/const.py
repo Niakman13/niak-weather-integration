@@ -15,6 +15,8 @@ FORECAST_INTERVAL = timedelta(minutes=15)
 FORECAST_RETRY = timedelta(minutes=1)
 HISTORY_INTERVAL = timedelta(minutes=5)
 RAIN_INTERVAL = timedelta(minutes=15)
+AIR_INTERVAL = timedelta(minutes=15)
+"""Checks whether tomorrow's air forecast (Open-Meteo, with WAQI) is due: it is fetched once an hour."""
 TICK = timedelta(minutes=1)
 """Everything that depends on the time of day (next hours, date, trends) is recomputed at least this often."""
 DEBOUNCE_SECONDS = 2

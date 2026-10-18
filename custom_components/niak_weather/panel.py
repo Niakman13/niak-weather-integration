@@ -110,7 +110,8 @@ def facts(hass: HomeAssistant, entry: Any, card_twice: bool = False) -> health.F
     area = next((a["label"] for a in areas if a["value"] == sources.get("atmo_area")), sources.get("atmo_area") or "")
     pollen_zone = sources.get("atmo_pollen_area", sources.get("atmo_area")) or ""
     pollen_area = next((a["label"] for a in areas if a["value"] == pollen_zone), pollen_zone)
-    air_entity = sources.get("atmo_air_entity")
+    waqi_air = sources.get("air_source") == "waqi"
+    air_entity = sources.get("waqi_air_entity" if waqi_air else "atmo_air_entity")
     try:
         settings = Settings.from_options({k: v for k, v in sources.items() if v is not None})
     except ValueError:
@@ -145,7 +146,8 @@ def facts(hass: HomeAssistant, entry: Any, card_twice: bool = False) -> health.F
         vigilance_found=_name(get(found[0]), found[0]) if found and not sources.get("vigilance_entity") else "",
         season=_name(get(sources["season_entity"]), sources["season_entity"]) if sources.get("season_entity") else "",
         station=MODELS.get(model, "") if model != NONE else "", sensors=sensors, history=bool(sources.get("station_history", True)),
-        unused=unused, air=f"Atmo France · {area}" if area and sources.get("air_source") != "none" else "",
+        unused=unused, air=(f"WAQI · {sources.get('waqi_place') or sources.get('waqi_station')}" if waqi_air and sources.get("waqi_station")
+                            else f"Atmo France · {area}" if area and sources.get("air_source") not in ("none", "waqi") else ""),
         air_ok=bool(air_entity) and get(air_entity) is not None and get(air_entity).state not in GONE,
         atmo_installed=bool(areas), pollen=pollen,
         pollen_ok=any(get(i) is not None and get(i).state not in GONE for i in pollen_ids),

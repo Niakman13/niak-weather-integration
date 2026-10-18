@@ -110,7 +110,7 @@ export interface AirPanel {
   worse?: AirItem; details: AirItem[]; updated: string; stale: boolean;
   /** The top of the index: 6 for Atmo France (when absent), 4 for Polleninformation and IRM KMI, whose level starts at 0 (none). */
   scale?: number;
-  /** Who gives it when it is not Atmo France (« Polleninformation », « IRM KMI »); absent from integrations before 2.1. */
+  /** Who gives it when it is not Atmo France (« Polleninformation », « IRM KMI », « WAQI », « Open-Meteo »); absent from integrations before 2.1. */
   source?: string;
 }
 

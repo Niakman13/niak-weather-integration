@@ -11,7 +11,7 @@ from enum import Enum
 from typing import Any, Callable, Mapping, Sequence
 from zoneinfo import ZoneInfo
 
-from . import alerts, polleninfo
+from . import alerts, polleninfo, waqi
 from .atmo import METRICS, POLLEN_METRICS, POLLUTANT_METRICS, Reading, read_metric
 from .brief import Brief
 from .bulletin import Bulletin, build_bulletin
@@ -173,7 +173,7 @@ class AirPanel:
     scale: int = 6
     """The top of the index: 6 for Atmo France, 4 for Polleninformation and IRM KMI."""
     source: str | None = None
-    """Who gives it, when it is not Atmo France: « Polleninformation », « IRM KMI »."""
+    """Who gives it, when it is not Atmo France: « Polleninformation », « IRM KMI », « WAQI », « Open-Meteo »."""
 
 
 @dataclass(frozen=True)
@@ -501,7 +501,8 @@ def _air(get: Getter, settings: Settings, now: datetime, zone: ZoneInfo, tomorro
         top = worst[0] if worst else None
         worse = top if top is not None and (not usable(primary) or (top.reading.value or 0) > (primary.value or 0)) else None
         return (AirPanel(kind, tomorrow, " / ".join(dict.fromkeys(r.zone for r in readings if r.zone)), primary, worse, tuple(details),
-                         " / ".join(dict.fromkeys(r.updated for r in readings if r.updated)), any(r.stale for r in readings)),)
+                         " / ".join(dict.fromkeys(r.updated for r in readings if r.updated)), any(r.stale for r in readings),
+                         source=waqi.source(settings, readings[0].entity_id) if kind == "air" else None),)
 
     pollution = [AirItem(name(m), r) for m in POLLUTANT_METRICS if (r := read(m)) is not None]
     species = []

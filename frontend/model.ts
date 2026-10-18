@@ -17,7 +17,7 @@ export interface View {
  title:string;
  prevision:{fields:Field[];location:string;location_placeholder:string;advanced:Field[];forecast_source:string};
  station:{model:string;models:Choice[];device:string;devices:Choice[];profile:string;history:boolean;history_help:string;groups:{name:string;title:string;fields:Field[]}[]};
- air:{value:string;sources:Choice[];area:string;areas:Choice[]};
+ air:{value:string;sources:Choice[];area:string;areas:Choice[];station:string;stations:Choice[]};
  pollen:{value:string;sources:Choice[];area:string;areas:Choice[];species:Species[];risk:Field|null;station:string;stations:Choice[]};
  entities:{new:boolean;families:Family[]};
  summary:{weather:string;station:string;air:string;pollen:string};

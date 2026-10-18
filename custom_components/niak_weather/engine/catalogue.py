@@ -40,7 +40,7 @@ class Item:
     """A number, a word, True/False for a yes/no, or None when unknown."""
     reason: str = ""
     source: str | None = None
-    """« station », « bulletin », « prevision », « vigilance » or « atmo »."""
+    """« station », « bulletin », « prevision », « vigilance », « atmo » or « waqi »."""
     start: datetime | None = None
     end: datetime | None = None
     partial: bool = False
@@ -452,19 +452,21 @@ def _polleninformation(get: Callable[[str], Any], settings: Settings, now: datet
 
 
 def _atmo(get: Callable[[str], Any], settings: Settings, kind: str, metrics: Sequence[str], now: datetime, zone: ZoneInfo) -> Item:
-    """The Atmo France index of the day (1 to 6), its word and what weighs most."""
+    """The Atmo France index of the day (1 to 6), its word and what weighs most; for the air, WAQI's station said on the same scale."""
+    measured = kind == "air" and settings.air_source == "waqi"
+    source = "waqi" if measured else "atmo"
     reading = atmo.read_metric(get, settings, kind, False, now, zone)
     if reading is None:
-        return Item(None, "Atmo France non configuré", "atmo")
+        return Item(None, "Station WAQI non choisie" if measured else "Atmo France non configuré", source)
     if reading.value == 7 and not reading.stale:
-        return Item(None, "Événement signalé par Atmo : pas d’indice ce jour", "atmo")
+        return Item(None, "Événement signalé par Atmo : pas d’indice ce jour", source)
     if reading.value is None or reading.stale or reading.value > 6:
-        return Item(None, "Indice Atmo indisponible ou trop ancien", "atmo")
+        return Item(None, "Mesure WAQI indisponible ou trop ancienne" if measured else "Indice Atmo indisponible ou trop ancien", source)
     details = [(m, r) for m in metrics if (r := atmo.read_metric(get, settings, m, False, now, zone)) is not None and r.value is not None and not r.stale]
     main = max(details, key=lambda x: x[1].value or 0)[0] if details else None
     tomorrow = atmo.read_metric(get, settings, kind, True, now, zone)
     index = int(reading.value)
     detail = atmo.short_label(main) if main else None
-    return Item(index, f"{reading.label} ({index}/6)" + (f" · {detail}" if detail else ""), "atmo",
+    return Item(index, f"{reading.label} ({index}/6)" + (f" · {detail}" if detail else ""), source,
                 extra={"libelle": reading.label, "principal": detail, "zone": reading.zone or None,
                        "demain": int(tomorrow.value) if tomorrow and tomorrow.value is not None and not tomorrow.stale and tomorrow.value <= 6 else None})
