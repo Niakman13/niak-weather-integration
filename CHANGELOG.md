@@ -1,3 +1,7 @@
+## 2.5.5 — Stable : WAQI, Bulletin du jour, brouillard sous la pluie
+
+Reprend les préversions 2.5.5b1 à 2.5.5b3 ci-dessous : panne d’une source d’air ou de pollens signalée, WAQI comme deuxième source pour l’air, capteur Bulletin du jour, brouillard corrigé sous la pluie.
+
 ## 2.5.5b3 — Bulletin du jour et brouillard sous la pluie
 
 - Nouveau capteur **Bulletin du jour** (`sensor.niak_weather_bulletin_du_jour`) : le texte de la prévision, prêt à lire sur une enceinte ou à envoyer en notification. Le texte entier et chaque moment de la journée sont aussi en attributs.
