@@ -132,9 +132,9 @@
       },
       "air_quality": {
         "title": "Step 3 of 4 · Air quality",
-        "description": "Your town’s air index and its pollutants, published by Atmo France. « None »: no air quality.{hint}",
+        "description": "The air index from 1 to 6 and its pollutants.\n\n- **Atmo France**: your town’s forecast.\n- **WAQI**: the chosen station’s measure; tomorrow comes from Open-Meteo’s forecast (Copernicus), at the home’s position.\n\n« None »: no air quality.{hint}",
         "data": {
-          "atmo_area": "Atmo France zone"
+          "atmo_area": "Source"
         }
       },
       "pollen": {
@@ -300,9 +300,9 @@
       },
       "air_quality": {
         "title": "Air quality",
-        "description": "Your town’s air index and its pollutants, published by Atmo France. « None »: no air quality.{hint}",
+        "description": "The air index from 1 to 6 and its pollutants.\n\n- **Atmo France**: your town’s forecast.\n- **WAQI**: the chosen station’s measure; tomorrow comes from Open-Meteo’s forecast (Copernicus), at the home’s position.\n\n« None »: no air quality.{hint}",
         "data": {
-          "atmo_area": "Atmo France zone"
+          "atmo_area": "Source"
         }
       },
       "pollen": {

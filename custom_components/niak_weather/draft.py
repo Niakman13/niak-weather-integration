@@ -22,7 +22,7 @@ from .const import DOMAIN
 from .engine import detection, ecosystem, families, polleninfo
 from .engine.settings import Settings
 
-AIR_SOURCES = ("atmo", NONE)
+AIR_SOURCES = ("atmo", "waqi", NONE)
 POLLEN_SOURCES = ("atmo", *polleninfo.PROVIDERS, NONE)
 SIMPLE = frozenset({"weather_entity", "location", "vigilance_entity", "season_entity", "sun_entity", "sun_elevation_entity",
                     "forecast_source", "station_history", "pollen_risk_entity", *detection.STATION_FIELDS})
@@ -97,11 +97,13 @@ class Draft(_SourceSteps):
         draft._fill("weather")
         draft._fill("station")
         if entry is None:
-            areas = draft._areas()
-            draft.sources["air_source"] = "atmo" if areas else "none"
+            areas, stations = draft._areas(), draft._stations()
+            draft.sources["air_source"] = "atmo" if areas else "waqi" if stations else "none"
             if areas:
                 draft._fill("atmo")
                 draft.sources.setdefault("atmo_area", areas[0]["value"])
+            elif stations:
+                draft.sources["waqi_station"] = stations[0]["value"]
             draft._apply_atmo()
             found = draft._pollen_found()
             draft.change({"op": "pollen", "value": "atmo" if areas else next((p for p, ok in found.items() if ok), NONE)})
@@ -182,14 +184,18 @@ class Draft(_SourceSteps):
             return "Source de qualité de l’air inconnue."
         if source == "atmo" and not areas:
             return "Atmo France n’est pas installée."
-        s.setdefault("atmo_pollen_area", s.get("atmo_area"))
-        s["air_source"] = "none" if source == NONE else "atmo"
+        if source == "waqi":
+            stations = [x["value"] for x in self._stations()]
+            if not stations:
+                return "WAQI n’est pas installée."
+            if area and area not in stations:
+                return "Choisissez une station WAQI disponible."
+            self._set_air(f"waqi:{area or (s.get('waqi_station') if s.get('waqi_station') in stations else stations[0])}")
+            return ""
         if source == "atmo":
-            if area or not s.get("atmo_area"):
-                s["atmo_area"] = area or areas[0]["value"]
-        elif s.get("pollen_source") != "atmo":
-            s["atmo_area"] = ""
-        self._apply_atmo()
+            self._set_air(area or (s.get("atmo_area") if s.get("atmo_area") else areas[0]["value"]))
+        else:
+            self._set_air(NONE)
         return ""
 
     def _pollen(self, source: Any, area: str | None) -> str:
@@ -326,11 +332,15 @@ class Draft(_SourceSteps):
     def _air(self) -> dict[str, Any]:
         """Like the pollens: the integration that gives the air first, then its zone."""
         s, areas = self.sources, self._areas()
-        sources = [{"value": "atmo", "label": "Atmo France", "hint": "L’indice ATMO de 1 à 6 et ses polluants, pour une zone Atmo France",
+        stations = self._stations()
+        sources = [{"value": "atmo", "label": "Atmo France", "hint": "La prévision de votre commune : indice de 1 à 6 et ses polluants",
                     "available": bool(areas)},
+                   {"value": "waqi", "label": "WAQI", "hint": "La mesure d’une station près de chez vous ; demain : prévision Open-Meteo",
+                    "available": bool(stations)},
                    {"value": NONE, "label": "Pas de qualité de l’air", "hint": "", "available": True}]
-        on = s.get("air_source") != "none" and bool(s.get("atmo_area"))
-        return {"value": "atmo" if on else NONE, "sources": sources, "area": s.get("atmo_area") or "", "areas": areas}
+        value = "waqi" if s.get("air_source") == "waqi" else "atmo" if s.get("air_source") != "none" and s.get("atmo_area") else NONE
+        return {"value": value, "sources": sources, "area": s.get("atmo_area") or "", "areas": areas,
+                "station": s.get("waqi_station") or "", "stations": stations}
 
     def _pollens(self) -> dict[str, Any]:
         states, registry, devices = _context(self.hass)

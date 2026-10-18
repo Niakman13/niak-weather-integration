@@ -31,7 +31,8 @@ function detail(item: AirItem): string {
 
 function panel(p: AirPanel): TemplateResult {
   const air = p.kind === 'air', r = p.primary, scale = p.scale ?? 6, value = known(r, scale), atmo = scale === 6;
-  const source = atmo ? 'Atmo France' : p.source ?? 'Polleninformation';
+  // WAQI and Open-Meteo use Atmo's scale of 6 but name themselves.
+  const source = p.source ?? (atmo ? 'Atmo France' : 'Polleninformation');
   const worse = p.worse ? known(p.worse.reading, scale) ?? 0 : 0;
   const absentForecast = !air && atmo && p.tomorrow && !r?.stale && r?.unavailableReason === 'no_index';
   const ambiguousZero = !air && atmo && p.details.some(d => d.concentration?.value === 0 && known(d.reading, scale) === undefined);
@@ -48,7 +49,7 @@ function panel(p: AirPanel): TemplateResult {
     ${p.details.length || p.updated ? html`<details class="nw-details"><summary><ha-icon icon="mdi:chevron-right"></ha-icon>${air ? 'Détail des polluants' : 'Détail des pollens'}</summary>
       ${p.details.length ? html`<ul>${p.details.map(d => html`<li data-entity=${d.reading.entityId}><span>${d.label}</span><b>${detail(d)}</b></li>`)}</ul>` : nothing}
       ${ambiguousZero ? html`<p>Une concentration à 0 peut être une valeur réelle ou remplacer une donnée manquante chez Atmo France. Elle ne permet pas, à elle seule, de conclure à une absence de pollen.</p>` : nothing}
-      ${p.updated ? html`<p>${atmo ? 'Publication Atmo' : `Mise à jour ${source}`} : ${p.updated}.${p.stale ? ' Certaines données sont anciennes : à vérifier dans l’intégration.' : ''}</p>` : nothing}</details>` : nothing}
+      ${p.updated ? html`<p>${atmo && !p.source ? 'Publication Atmo' : `Mise à jour ${source}`} : ${p.updated}.${p.stale ? ' Certaines données sont anciennes : à vérifier dans l’intégration.' : ''}</p>` : nothing}</details>` : nothing}
   </section>`;
 }
 

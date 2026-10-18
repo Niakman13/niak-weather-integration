@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from typing import Any, Callable, Mapping, Sequence
 from zoneinfo import ZoneInfo
 
-from . import atmo, polleninfo, swiss
+from . import atmo, polleninfo, swiss, waqi
 from .forecast import Day, Hour
 from .local import LocalWeather
 from .settings import Settings
@@ -291,10 +291,12 @@ def build_brief(w: LocalWeather, settings: Settings, get: Callable[[str], Any], 
         dated = {"at": noon.timestamp(), "clock": "demain"} if next_day else {}
         for kind, readings in (("air", air), ("pollen", pollens)):
             fresh = sorted((x for x in readings if not x[1].stale and (x[1].value or 0) <= 6), key=lambda x: -(x[1].value or 0))
+            # WAQI measures today's air at a station; Open-Meteo forecasts tomorrow's: both said on Atmo's scale.
+            origin = waqi.source(settings, readings[0][1].entity_id) if kind == "air" and readings else None
             if any(x[1].stale for x in readings):
-                caveats.append(f"Atmo {'air' if kind == 'air' else 'pollens'} {when} : données trop anciennes, non utilisées.")
+                caveats.append(f"{origin or 'Atmo'} {'air' if kind == 'air' else 'pollens'} {when} : données trop anciennes, non utilisées.")
             if any(not x[1].updated for x in fresh):
-                caveats.append(f"Atmo {'air' if kind == 'air' else 'pollens'} : date de publication inconnue.")
+                caveats.append(f"{origin or 'Atmo'} {'air' if kind == 'air' else 'pollens'} : date de publication inconnue.")
             if fresh:
                 metric, r = fresh[0]
                 v = r.value or 0
@@ -303,7 +305,11 @@ def build_brief(w: LocalWeather, settings: Settings, get: Callable[[str], Any], 
                 said = f"{'Air extérieur : ' if kind == 'air' else 'Pollens : niveau '}{r.label.lower()}"
                 add(Signal(f"{kind}-{str(next_day).lower()}", "environment", 2 if v >= serious else 1 if v >= watch else 0,
                            f"{said} {when}{detail}",
-                           f"Indice Atmo {int(v)} sur 6{', zone ' + r.zone if r.zone else ''}. {'Publié le ' + r.updated + '.' if r.updated else 'Date de publication inconnue.'} Ce n’est pas une mesure faite chez vous.",
+                           (f"Indice Atmo {int(v)} sur 6{', zone ' + r.zone if r.zone else ''}. {'Publié le ' + r.updated + '.' if r.updated else 'Date de publication inconnue.'} Ce n’est pas une mesure faite chez vous."
+                            if origin is None else
+                            f"Mesure WAQI{', ' + r.zone if r.zone else ''}, ramenée au niveau {int(v)} sur 6. {'Relevée le ' + r.updated + '.' if r.updated else 'Heure de mesure inconnue.'} Ce n’est pas une mesure faite chez vous."
+                            if origin == waqi.NAME else
+                            f"Prévision Open-Meteo (modèle européen Copernicus), niveau {int(v)} sur 6. {'Calculée le ' + r.updated + '.' if r.updated else ''} Ce n’est pas une mesure faite chez vous."),
                            "mdi:air-filter" if kind == "air" else "mdi:flower-pollen", r.entity_id, **dated, short=f"{said}{detail}", index=v))
             event = next((x for x in readings if x[1].value == 7 and not x[1].stale), None)
             if event:

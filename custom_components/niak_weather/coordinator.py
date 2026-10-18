@@ -12,19 +12,23 @@ from functools import partial
 from typing import Any
 from zoneinfo import ZoneInfo
 
+import aiohttp
+
 from homeassistant.components.recorder import get_instance, history, statistics
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import CoreState, Event, EventStateChangedData, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.debounce import Debouncer
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event, async_track_time_interval
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
-from .const import DEBOUNCE_SECONDS, DOMAIN, FORECAST_INTERVAL, FORECAST_RETRY, HISTORY_INTERVAL, LOGGER, RAIN_INTERVAL, TICK
+from .const import AIR_INTERVAL, DEBOUNCE_SECONDS, DOMAIN, FORECAST_INTERVAL, FORECAST_RETRY, HISTORY_INTERVAL, LOGGER, RAIN_INTERVAL, TICK
+from .engine import open_meteo, waqi
 from .engine.brief import Brief
 from .engine.catalogue import Item
 from .engine.compute import compute
@@ -87,6 +91,9 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         self.statistics: list[Statistic] = []
         self.statistics_unit: str | None = None
         self.platforms: dict[str, str] = {}
+        self.air_forecast: open_meteo.Data | None = None
+        """Tomorrow's air from Open-Meteo, only when WAQI gives the air: WAQI has no forecast."""
+        self._air_tried: datetime | None = None
         self._cancel_retry: Callable[[], None] | None = None
         self._stop_listeners: set[Callable[[], None]] = set()
         self._retries = 0
@@ -101,8 +108,9 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         self.watch = AlertWatch(await self._store.async_load())
         # Listen first: a weather service that starts while the first fetches run is caught at once.
         entry.async_on_unload(async_track_state_change_event(self.hass, sorted(ids), self._on_state_change))
-        await asyncio.gather(self._load_forecasts(), self._load_history(), self._load_rain())
-        for interval, load in ((FORECAST_INTERVAL, self._load_forecasts), (HISTORY_INTERVAL, self._load_history), (RAIN_INTERVAL, self._load_rain)):
+        await asyncio.gather(self._load_forecasts(), self._load_history(), self._load_rain(), self._load_air_forecast())
+        for interval, load in ((FORECAST_INTERVAL, self._load_forecasts), (HISTORY_INTERVAL, self._load_history), (RAIN_INTERVAL, self._load_rain),
+                               (AIR_INTERVAL, self._load_air_forecast)):
             entry.async_on_unload(async_track_time_interval(self.hass, self._in_background(load), interval))
         entry.async_on_unload(self._cancel_forecast_retry)
         entry.async_on_unload(self._stopped)
@@ -169,8 +177,11 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
     def _compute(self) -> Snapshot:
         hass = self.hass
         now = dt_util.now()
-        result = compute(hass.states.get, self.settings, self.hours, self.days, self.history, self.rain_history, self.statistics, self.statistics_unit,
-                         now, ZoneInfo(hass.config.time_zone), hass.config.latitude, hass.config.elevation or 0, self.platforms)
+        zone = ZoneInfo(hass.config.time_zone)
+        # WAQI's station today and Open-Meteo tomorrow stand where Atmo France's air sensors would be.
+        settings, get = waqi.overlay(self.settings, hass.states.get, self.air_forecast, now, zone)
+        result = compute(get, settings, self.hours, self.days, self.history, self.rain_history, self.statistics, self.statistics_unit,
+                         now, zone, hass.config.latitude, hass.config.elevation or 0, self.platforms)
         events = self.watch.update(result.catalogue, now)
         if events:
             self._store.async_delay_save(self.watch.as_dict, 10)
@@ -227,6 +238,22 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
             self._schedule_forecast_retry()
         else:
             self._retries = 0
+
+    async def _load_air_forecast(self) -> None:
+        """Tomorrow's air from Open-Meteo, at the home's position, each hour; a failure keeps the previous forecast and is retried ten minutes later."""
+        now = dt_util.utcnow()
+        if self.settings.air_source != "waqi" or not open_meteo.due(self.air_forecast, self._air_tried, now):
+            return
+        self._air_tried = now
+        hass = self.hass
+        try:
+            params = open_meteo.params(hass.config.latitude, hass.config.longitude, ZoneInfo(hass.config.time_zone))
+            async with asyncio.timeout(30), async_get_clientsession(hass).get(open_meteo.URL, params=params) as response:
+                response.raise_for_status()
+                payload = await response.json()
+            self.air_forecast = open_meteo.parse(payload, now)
+        except (aiohttp.ClientError, TimeoutError, ValueError) as err:
+            LOGGER.warning("Open-Meteo air forecast unavailable: %s", err)
 
     @callback
     def _schedule_forecast_retry(self) -> None:
