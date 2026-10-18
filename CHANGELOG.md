@@ -1,3 +1,8 @@
+## 2.5.6 — Stable : bordures des événements
+
+- Correction : dans les Événements, l’icône de la phrase qui défile (pluie, qualité de l’air…) n’a plus son bord gauche coupé.
+- Correction : le contour de la pastille active de la frise n’est plus mangé par son icône.
+
 ## 2.5.5 — Stable : WAQI, Bulletin du jour, brouillard sous la pluie
 
 Reprend les préversions 2.5.5b1 à 2.5.5b3 ci-dessous : panne d’une source d’air ou de pollens signalée, WAQI comme deuxième source pour l’air, capteur Bulletin du jour, brouillard corrigé sous la pluie.
