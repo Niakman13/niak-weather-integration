@@ -100,6 +100,17 @@ def _line(level: str, text: str, why: str = "", stage: int | None = None) -> dic
     return {"level": level, "text": text, "why": why, "stage": stage}
 
 
+def silent_sources(f: Facts) -> list[str]:
+    """The chosen air and pollen sources that do not answer, one line per provider: « Atmo France ne répond pas : qualité de l’air et pollens »."""
+    if f.failed or f.restarting:
+        return []
+    down: dict[str, list[str]] = {}
+    for what, value, good in (("qualité de l’air", f.air, f.air_ok), ("pollens", f.pollen, f.pollen_ok)):
+        if value and not good:
+            down.setdefault(value.split(" · ")[0], []).append(what)
+    return [f"{provider} ne répond pas : {' et '.join(whats)}" for provider, whats in down.items()]
+
+
 def report(f: Facts) -> dict:
     todo: list[dict] = []
     tips: list[dict] = []
@@ -132,6 +143,8 @@ def report(f: Facts) -> dict:
                     tips.append(_line("tip", f"Compléter : {names.get(key, key)}", f"Facultatif : {text} permet cette fonction.", 1))
                 continue
             todo.append(_line("bad", f"{names.get(key, key)} : active sans source", f"Il faut {text} : elle reste vide.", NEED_STAGE.get(key, 1)))
+    for text in silent_sources(f):
+        todo.append(_line("bad", text, "Ses valeurs restent vides tant qu’elle ne revient pas : voyez son intégration dans Appareils et services.", 2))
     if f.card_twice:
         todo.append(_line("bad", "Carte installée deux fois", "Retirez la carte Niak Weather de HACS : l’intégration la fournit maintenant.", None))
 

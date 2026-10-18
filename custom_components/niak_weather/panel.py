@@ -163,7 +163,8 @@ def place(hass: HomeAssistant, entry: Any, card_twice: bool = False) -> tuple[di
     status = home.Place(title=entry.title, loaded=not f.failed, station=len(f.sensors),
                         silent=[s.label for s in f.sensors if s.status != "ok"],
                         forecast=f.restarting or f.failed or f.forecast_age is not None,
-                        needs=[needs_text(k, t) for k, t in f.needs.items() if k in enabled and k not in families.STATION_DEPENDENT], links=f.links)
+                        needs=[needs_text(k, t) for k, t in f.needs.items() if k in enabled and k not in families.STATION_DEPENDENT],
+                        down=health.silent_sources(f), links=f.links)
     return info, status
 
 

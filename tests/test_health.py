@@ -100,3 +100,12 @@ def test_entities_versions_and_links():
 
 def test_ages_read_naturally():
     assert [ago(0.5), ago(12), ago(180), ago(3 * 1440)] == ["à l’instant", "il y a 12 min", "il y a 3 h", "il y a 3 j"]
+
+
+def test_a_silent_air_or_pollen_source_is_to_fix_once_per_provider():
+    r = report(place(air_ok=False, pollen_ok=False))
+    assert r["level"] == "action" and [t["text"] for t in r["todo"]] == ["Atmo France ne répond pas : qualité de l’air et pollens"]
+    assert r["todo"][0]["stage"] == 2
+    r = report(place(pollen="Polleninformation · 3 espèces", pollen_ok=False))
+    assert [t["text"] for t in r["todo"]] == ["Polleninformation ne répond pas : pollens"]
+    assert report(place(air_ok=False, restarting=True))["todo"] == []  # Home Assistant starting: sources come back by themselves
