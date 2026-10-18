@@ -240,8 +240,9 @@ while (!customElements.get('home-assistant')) {
 
     /* The sentence: one point at a time, sliding up. */
     .head { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
-    .say { position:relative; flex:1; min-width:0; height:38px; overflow:hidden; }
-    .item { position:absolute; inset:0; display:flex; gap:10px; align-items:center; opacity:0; translate:0 100%; transition:opacity .45s var(--nw-ease), translate .45s var(--nw-ease); }
+    /* Clipped for the slide, so it starts 3 px further left: the outline of the badge stays whole. */
+    .say { position:relative; flex:1; min-width:0; height:38px; overflow:hidden; margin-left:-3px; }
+    .item { position:absolute; inset:0 0 0 3px; display:flex; gap:10px; align-items:center; opacity:0; translate:0 100%; transition:opacity .45s var(--nw-ease), translate .45s var(--nw-ease); }
     .item.on { opacity:1; translate:0 0; } .item.off { opacity:0; translate:0 -100%; }
     .item > div { min-width:0; }
     .when { font-size:var(--nw-fs-label); line-height:13px; letter-spacing:var(--nw-label-spacing); text-transform:uppercase; font-weight:700; white-space:nowrap;
@@ -268,9 +269,11 @@ while (!customElements.get('home-assistant')) {
     .pin:focus-visible { outline:none; } .pin:focus-visible .chip { outline:2px solid var(--nw-accent); outline-offset:2px; }
     .chip { --chip:var(--nw-glass-strong); position:relative; display:flex; gap:5px; align-items:center; padding:3px 6px 3px 4px; border-radius:var(--nw-radius-pill);
       white-space:nowrap; font-size:var(--nw-fs-small); line-height:16px; font-weight:600; font-variant-numeric:tabular-nums;
-      background:var(--chip); border:1px solid var(--nw-line); transition:background .35s, transform .35s var(--nw-ease), box-shadow .35s; }
+      background:var(--chip); border:1px solid transparent; transition:background .35s, transform .35s var(--nw-ease), box-shadow .35s; }
+    /* The outline is drawn above the icons: the ring of the icon in front never eats into it. */
+    .chip::before { content:''; position:absolute; inset:-1px; z-index:2; border-radius:inherit; border:1px solid var(--edge, var(--nw-line)); pointer-events:none; }
     .stem { width:1px; height:12px; background:var(--nw-line); }
-    .pin.on .chip { --chip:color-mix(in srgb, var(--tone) 40%, var(--nw-bg)); transform:translateY(-2px); border-color:transparent; box-shadow:0 6px 14px rgb(0 0 0 / .12); }
+    .pin.on .chip { --chip:color-mix(in srgb, var(--tone) 40%, var(--nw-bg)); transform:translateY(-2px); --edge:transparent; box-shadow:0 6px 14px rgb(0 0 0 / .12); }
     /* Stacked icons, all in the label's colour: each ringed with it to stand apart; the point on show is darker and comes forward. */
     .stack { display:flex; }
     .mini { position:relative; display:grid; place-items:center; width:20px; height:20px; border-radius:50%;
@@ -282,7 +285,7 @@ while (!customElements.get('home-assistant')) {
     .count { display:grid; place-items:center; min-width:16px; height:16px; padding:0 4px; box-sizing:border-box; border-radius:8px;
       font-size:var(--nw-fs-label); font-weight:700; background:var(--nw-fg); color:var(--nw-bg); }
     /* A label holding an alert: the charter's alert outline and halo (a fixed shadow whose opacity breathes). */
-    .pin.al .chip { border-color:color-mix(in oklab, var(--al) 70%, transparent); box-shadow:0 0 6px 0 color-mix(in oklab, var(--al) 32%, transparent); }
+    .pin.al .chip { --edge:color-mix(in oklab, var(--al) 70%, transparent); box-shadow:0 0 6px 0 color-mix(in oklab, var(--al) 32%, transparent); }
     .pin.al .chip::after { content:''; position:absolute; inset:-1px; border-radius:inherit; pointer-events:none; opacity:0;
       box-shadow:0 0 14px 2px color-mix(in oklab, var(--al) 55%, transparent); animation:nw-glow 5.2s ease-in-out infinite; animation-play-state:var(--nw-motion, running); }
     .lane { position:absolute; left:0; right:0; top:40px; height:16px; display:flex; gap:2px; }

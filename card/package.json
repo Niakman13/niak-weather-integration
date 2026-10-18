@@ -1,6 +1,6 @@
 {
   "name": "niak-weather-card",
-  "version": "2.5.5",
+  "version": "2.5.6",
   "private": true,
   "description": "The Niak Weather card, served by the integration on every dashboard",
   "type": "module",
