@@ -73,3 +73,19 @@ def test_a_brick_that_says_who_it_is_shows_linked_to_its_place_until_it_stops():
     assert api.linked("a") == {"": 1} and a.listeners != []
     other()
     assert api.linked("a") == {} and a.listeners == []
+
+
+def test_air_follows_the_chosen_source_on_atmo_scale():
+    from engine.catalogue import Item
+    at = datetime(2026, 10, 18, 13, tzinfo=timezone.utc)
+    waqi = Settings(weather_entity="weather.home", air_source="waqi", waqi={"waqi_air_entity": "sensor.gardanne_aqi"},
+                    atmo={"atmo_air_entity": "sensor.atmo_qualite_globale"})
+    e = entry("e1", "Gardanne", waqi)
+    e.runtime_data.data = SimpleNamespace(catalogue={"qualite_air": Item(2, "Moyen (2/6)", "waqi", extra={"libelle": "Moyen"})}, computed=at)
+    assert NiakWeatherApi(hass_with(e)).air() == {"entry_id": "e1", "source": "waqi", "provider": "WAQI", "entity_id": "sensor.gardanne_aqi",
+                                                   "index": 2, "label": "Moyen", "at": "2026-10-18T13:00:00+00:00"}
+    e.runtime_data.data = SimpleNamespace(catalogue={"qualite_air": Item(None, "Mesure WAQI indisponible", "waqi")}, computed=at)
+    assert NiakWeatherApi(hass_with(e)).air()["index"] is None  # the source does not answer
+    atmo = entry("e2", "Gardanne", Settings(weather_entity="weather.home", atmo={"atmo_air_entity": "sensor.atmo_qualite_globale"}))
+    assert NiakWeatherApi(hass_with(atmo)).air()["entity_id"] == "sensor.atmo_qualite_globale"
+    assert NiakWeatherApi(hass_with(entry("e3", "Gardanne", Settings(weather_entity="weather.home")))).air() is None

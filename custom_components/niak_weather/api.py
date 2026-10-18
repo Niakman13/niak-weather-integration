@@ -61,6 +61,26 @@ class NiakWeatherApi:
                  "wind_bearing": h.wind_bearing, "condition": h.condition}
                 for h in entry.runtime_data.hours if h.time is not None]
 
+    def air(self, entry_id: str | None = None) -> dict[str, Any] | None:
+        """Today's outdoor air from the source chosen in Niak Weather, on Atmo's scale: 1 Bon to 6 Extrêmement mauvais.
+
+        `source` is « atmo » (the regional index of the day) or « waqi » (a station's measure); `entity_id` its sensor.
+        `index` is None while the source does not answer. None without a place or without an air source."""
+        entry = self._entry(entry_id)
+        if entry is None:
+            return None
+        settings = entry.runtime_data.settings
+        waqi = settings.air_source == "waqi"
+        entity_id = settings.waqi.get("waqi_air_entity") if waqi else settings.atmo.get("atmo_air_entity")
+        if settings.air_source == "none" or not entity_id:
+            return None
+        data = getattr(entry.runtime_data, "data", None)
+        item = data.catalogue.get("qualite_air") if data is not None else None
+        index = item.value if item is not None and isinstance(item.value, int) and 1 <= item.value <= 6 else None
+        return {"entry_id": entry.entry_id, "source": "waqi" if waqi else "atmo", "provider": "WAQI" if waqi else "Atmo France",
+                "entity_id": entity_id, "index": index, "label": item.extra.get("libelle") if index is not None else None,
+                "at": data.computed.isoformat() if data is not None else None}
+
     def add_listener(self, entry_id: str | None, update: Callable[[], None], brick: str | None = None) -> Callable[[], None]:
         """Calls `update` whenever this place is recomputed (new measures or forecasts).
 
