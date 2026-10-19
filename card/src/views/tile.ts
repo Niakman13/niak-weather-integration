@@ -57,14 +57,22 @@ export function forecastStrip(v: WeatherView, tab: 'hours' | 'days', onTab: (tab
 /** The hours/days switch must not start a long press on the card. */
 const stopPress = (e: Event) => e.stopPropagation();
 
-/** « En ce moment »: condition, temperature, then the source. Shared by the tile and the banner. */
+/** Today's forecast low and high under the temperature, until midnight; nothing when the forecast gives neither. */
+export function todayRange(v: WeatherView): TemplateResult | typeof nothing {
+  const d = v.days.find(day => day.today);
+  if (!d || (d.low === undefined && d.high === undefined)) return nothing;
+  const tip = `Prévu aujourd’hui : ${[d.low === undefined ? '' : `mini ${d.low} °C`, d.high === undefined ? '' : `maxi ${d.high} °C`].filter(Boolean).join(', ')}`;
+  return html`<span class="range" title=${tip} aria-label=${tip}>${d.low === undefined ? nothing : html`<span>↓ ${d.low}°</span>`}${d.high === undefined ? nothing : html`<span>↑ ${d.high}°</span>`}</span>`;
+}
+
+/** « En ce moment »: condition, temperature and today's low and high, then the source. Shared by the tile and the banner. */
 export function nowBlock(v: WeatherView, kicker: boolean, extra: unknown = nothing): TemplateResult {
   const n = v.now;
   return html`<div class="nw-now">${kicker ? label('En ce moment') : nothing}
     <span class="cond" data-entity=${n.conditionEntity ?? nothing} title=${n.source}><ha-icon icon=${n.icon}></ha-icon>${n.label}</span>
     ${n.temperature === undefined ? html`<span class="cond">Température indisponible</span>`
       : html`<span class="temp" data-entity=${n.temperatureEntity ?? nothing} aria-label=${`${n.temperatureSource} : ${nf(n.temperature)} degrés Celsius`}>${nf(n.temperature)}<small>°C</small></span>`}
-    ${extra}<span class="nw-badge">${n.temperatureSource}</span></div>`;
+    ${todayRange(v)}${extra}<span class="nw-badge">${n.temperatureSource}</span></div>`;
 }
 
 /** « Événements »: the timeline of the coming hours, with the points of now and of the next hours over the forecast sky. Shared with the banner. */
