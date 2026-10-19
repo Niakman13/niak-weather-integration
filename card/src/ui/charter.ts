@@ -95,6 +95,9 @@ export const pieces = css`
   .nw-now .cond ha-icon { --mdc-icon-size:17px; }
   .nw-now .temp { font-size:var(--nw-fs-value); font-weight:700; letter-spacing:-1px; line-height:1.05; white-space:nowrap; }
   .nw-now .temp small { font-size:var(--nw-fs-text); font-weight:400; vertical-align:super; margin-left:2px; letter-spacing:0; }
+  /* Today's low and high: a quiet line under the temperature. */
+  .nw-now .range { display:flex; gap:10px; font-size:var(--nw-fs-small); font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap;
+    color:color-mix(in srgb, currentColor 82%, transparent); }
   /* Storm and downpour clouds stay dark whatever the theme: the text on them turns white, the pills keep the theme. */
   .dark-sky .nw-now { color:#fff; text-shadow:0 1px 5px #0b1a2b99; }
   .dark-sky .nw-now .nw-label { color:rgba(255,255,255,.88); }

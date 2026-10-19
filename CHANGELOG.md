@@ -1,3 +1,7 @@
+## 2.5.8 — Stable : mini et maxi du jour
+
+- Nouveauté : sous la température actuelle, la tuile et la carte complète montrent le mini et le maxi prévus aujourd’hui (↓ 16° ↑ 25°), jusqu’à minuit.
+
 ## 2.5.6 — Stable : bordures des événements
 
 - Correction : dans les Événements, l’icône de la phrase qui défile (pluie, qualité de l’air…) n’a plus son bord gauche coupé.
