@@ -28,13 +28,15 @@ class Result:
 
 def compute(get: Callable[[str], Any], settings: Settings, hours: Sequence[Hour], days: Sequence[Day], history: Mapping[str, Sequence[Change]],
             rain_history: Mapping[str, Sequence[Change]], statistics: Sequence[Statistic], statistics_unit: str | None, now: datetime, zone: ZoneInfo,
-            latitude: float | None = None, elevation: float = 0, platforms: Mapping[str, str] | None = None) -> Result:
+            latitude: float | None = None, elevation: float = 0, platforms: Mapping[str, str] | None = None,
+            original_condition: str | None = None) -> Result:
     """`hours` and `days` are the whole forecasts; `history` covers six hours (and today for gusts), `rain_history` eight days."""
     # The engine reads the next hours, first one first: an hour already over is no longer « next ».
     upcoming = [h for h in hours if h.time is None or h.time.timestamp() > now.timestamp() - 3600][:18]
     local = build_local(get, settings, upcoming, history, now, zone)
     derived = derive_station(get, settings, statistics, statistics_unit, {**history, **rain_history}, now, zone) if settings.station_history else None
     brief = build_brief(local, settings, get, hours, days, now, zone, platforms)
-    view = build_view(get, settings, local, brief, hours, days, history, rain_history, derived, now, zone, latitude, elevation)
+    view = build_view(get, settings, local, brief, hours, days, history, rain_history, derived, now, zone, latitude, elevation,
+                      original_condition)
     catalogue = build_catalogue(local, brief, derived, settings, get, hours, days, now, zone, platforms)
     return Result(local, brief, derived, view, catalogue)

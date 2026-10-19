@@ -5,6 +5,7 @@
 - Amélioration : une pluie plus naturelle, chaque goutte avec sa longueur, son épaisseur et sa vitesse.
 - Amélioration : une neige plus douce, aux flocons de tailles variées, un peu flous de près.
 - Amélioration : le brouillard se voit mieux sur un thème clair.
+- Nouveauté : le ciel animé distingue ce que Météo-France distingue : bruine, averses avec éclaircies, pluie verglaçante, brume, bancs de brouillard, brouillard givrant, quelques flocons, neige forte, risque d’orages, orage avec grêle… Le plus fidèle avec le capteur « Condition d’origine » de Météo-France activé ; sans lui, une partie se déduit des chiffres.
 
 ## 2.5.9 — Stable : appui court au choix
 
