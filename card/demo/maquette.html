@@ -102,11 +102,12 @@
 .card {position:relative;isolation:isolate;overflow:hidden;border-radius:var(--nw-radius-card);background:var(--card-background-color);border:1px solid var(--divider-color);
   container-type:inline-size;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;transition:box-shadow .2s}
 .card:focus-visible {outline:2px solid var(--primary-color);outline-offset:2px}
-.sky {position:absolute;top:0;right:0;z-index:-2;width:calc(100% / var(--k));height:calc(100% / var(--k));transform:scale(var(--k));transform-origin:top right;pointer-events:none;--k:.5}
+.sky {position:absolute;top:0;right:0;z-index:-2;width:calc(100% / var(--k));height:calc(100% / var(--k));transform:scale(var(--k));transform-origin:top right;pointer-events:none;--k:.5;--nw-orb-x:calc(100% - 370px)}
 .veil {position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(90deg,var(--card-background-color) 0%,color-mix(in srgb,var(--card-background-color) 96%,transparent) 18%,
   color-mix(in srgb,var(--card-background-color) 70%,transparent) 30%,color-mix(in srgb,var(--card-background-color) 30%,transparent) 46%,transparent 64%)}
+/* Comme la carte en production : le bas s'estompe à peine, le sol (rebonds, neige, givre) reste visible. */
 .card.open .veil {background:linear-gradient(90deg,var(--card-background-color) 0%,color-mix(in srgb,var(--card-background-color) 92%,transparent) 30%,color-mix(in srgb,var(--card-background-color) 40%,transparent) 60%,transparent 85%),
-  linear-gradient(0deg,var(--card-background-color) 0%,color-mix(in srgb,var(--card-background-color) 70%,transparent) 30%,transparent 60%)}
+  linear-gradient(0deg,color-mix(in srgb,var(--card-background-color) 55%,transparent) 0%,transparent 30%)}
 .top {display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"meta now" "brief now";column-gap:14px;row-gap:8px;padding:var(--nw-pad);align-items:center}
 .meta {grid-area:meta;align-self:start;display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0}
 .place {font-size:11px;color:var(--secondary-text-color)} .brief {grid-area:brief;min-width:0;min-height:38px}
@@ -115,7 +116,7 @@
 /* La source apparaît en fondu sous la température, hors du flux : rien ne bouge. */
 .top .nw-now .nw-badge {position:absolute;top:100%;right:0;margin-top:6px;opacity:0;transform:translateY(-4px);transition:opacity .3s .15s,transform .3s .15s;pointer-events:none}
 .card.open .top .nw-now .nw-badge {opacity:1;transform:none}
-@container (max-width:480px) {.top {grid-template-areas:"meta now" "brief brief"} .sky {--k:.42}}
+@container (max-width:480px) {.top {grid-template-areas:"meta now" "brief brief"} .sky {--k:.42;--nw-orb-x:calc(100% - 300px)}}
 /* Le volet qui se déplie : la hauteur s'anime avec grid-template-rows (pas de calcul en JS). */
 .more {display:grid;grid-template-rows:0fr;transition:grid-template-rows var(--nw-expand) var(--nw-ease)}
 .card.open .more {grid-template-rows:1fr}
@@ -250,7 +251,7 @@ select {font:inherit;font-size:14px;padding:7px 24px 7px 9px;border:1px solid va
 /* ───────────── Carte complète proposée ───────────── */
 .fm-hero {position:relative;isolation:isolate;overflow:hidden;padding:20px 24px 24px;display:grid;grid-template-columns:minmax(0,1fr) auto;
   grid-template-areas:"head now" "main now" "tiles tiles";column-gap:24px;row-gap:12px}
-.fm-hero .sky {--k:1}
+.fm-hero .sky {--k:1;--nw-orb-x:initial}
 .fm-hero .veil {background:linear-gradient(90deg,var(--card-background-color) 0%,color-mix(in srgb,var(--card-background-color) 92%,transparent) 30%,
   color-mix(in srgb,var(--card-background-color) 45%,transparent) 55%,transparent 78%),linear-gradient(0deg,var(--card-background-color) 0%,transparent 40%)}
 .fm-hero > .fm-head {grid-area:head;cursor:default}
@@ -342,6 +343,13 @@ select {font:inherit;font-size:14px;padding:7px 24px 7px 9px;border:1px solid va
 .spec .info {padding:10px 14px 12px;font-size:12px;color:var(--secondary-text-color)} .spec .info b {display:block;color:var(--primary-text-color);font-size:13px;margin-bottom:3px}
 .spec code {font:11px/1.5 ui-monospace,monospace;color:var(--primary-text-color);background:var(--page);border-radius:4px;padding:1px 4px}
 .swatch {width:46px;height:46px;border-radius:12px;border:1px solid var(--nw-line)}
+.sky-gallery {display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:14px}
+.sky-item {background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:14px;overflow:hidden}
+.sky-item .show {position:relative;height:150px;container-type:inline-size;overflow:hidden}
+.sky-item .info {padding:9px 12px 11px;font-size:12px;color:var(--secondary-text-color);line-height:1.45}
+.sky-item .info b {display:flex;align-items:center;gap:6px;color:var(--primary-text-color);font-size:13px;margin-bottom:2px}
+.sky-item code {font:11px/1.5 ui-monospace,monospace}
+.sky-new {display:inline-block;font:600 10px/1.6 Roboto,system-ui,sans-serif;padding:0 7px;border-radius:999px;background:color-mix(in srgb,var(--nw-wind, #6aa5d8) 30%,transparent);color:var(--primary-text-color)}
 .fixes {display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-top:14px}
 .fix {background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:12px;padding:12px 14px;font-size:13px}
 .fix b {display:block;margin-bottom:4px} .fix s {color:var(--secondary-text-color)}
@@ -352,7 +360,9 @@ select {font:inherit;font-size:14px;padding:7px 24px 7px 9px;border:1px solid va
 Toutes les pièces viennent de la <b>charte</b> en bas de page, tirée du bandeau actuel.</p></header>
 
 <div class="controls">
-  <label>Météo<select id="condition"><option value="partlycloudy">Éclaircies</option><option value="sunny">Soleil</option><option value="cloudy">Ciel couvert</option><option value="rainy">Pluie</option><option value="pouring">Fortes pluies</option><option value="lightning-rainy">Orage et pluie</option><option value="snowy">Neige</option><option value="fog">Brouillard</option><option value="windy">Vent</option><option value="clear-night">Nuit claire</option></select></label>
+  <label>Temps Météo-France<select id="condition"></select></label>
+  <label>Vent<select id="wind"><option value="8,14">Calme</option><option value="30,50">Soutenu · rafales 50 km/h</option><option value="45,80">Fort · rafales 80 km/h</option><option value="70,115">Tempête · rafales 115 km/h</option></select></label>
+  <label>Saison<select id="season"><option value="spring">Printemps</option><option value="summer">Été</option><option value="autumn" selected>Automne</option><option value="winter">Hiver</option><option value="">Aucune</option></select></label>
   <label>Moment<select id="phase"><option value="day">Journée</option><option value="twilight">Crépuscule</option><option value="night">Nuit</option></select></label>
   <label>Vigilance<select id="vigilance"><option value="">Aucune</option><option>Jaune</option><option>Orange</option><option>Rouge</option></select></label>
   <label>Prévisions dépliées<select id="variant"><option value="both">C · heures et jours (retenu)</option><option value="hours">A · les heures</option><option value="days">B · les jours</option></select></label>
@@ -401,10 +411,17 @@ Toutes les pièces viennent de la <b>charte</b> en bas de page, tirée du bandea
   </aside>
 </div>
 
-<h2>3 · La charte</h2>
+<h2>3 · Les ciels animés face à Météo-France</h2>
+<p class="lead">Les 45 temps que Météo-France peut annoncer, regroupés par scène. Home Assistant n'en garde que 15 états ; la carte reçoit en plus une <b>nuance</b> (marquée <span class="sky-new">nouveau</span>) pour distinguer ce que Météo-France distingue. Le <b>vent</b> n'est jamais un temps chez Météo-France : il s'ajoute au ciel quel que soit le temps : quelques filets lents dès 25 km/h de vent moyen ou 45 km/h en rafales, des rafales franches dès 40 ou 70 km/h. Le choix « Vent » en haut de page s'applique aussi ici.</p>
+<div class="sky-gallery" id="gallery"></div>
+<h3 style="margin:22px 0 4px">Le vent selon la saison</h3>
+<p class="lead">Par vent fort, ce que la saison fait tomber s'envole : des pétales au printemps, des aigrettes de pissenlit en été (la chaleur qui ondule disparaît, le vent brasse l'air), des feuilles de platane en automne, quelques feuilles sèches en hiver. En simple brise, tout continue de tomber, un peu plus vite.</p>
+<div class="sky-gallery" id="seasons"></div>
+
+<h2>4 · La charte</h2>
 <p class="lead">Les pièces de base de toute la carte, avec leur nom. Modifier un réglage (par exemple le contour <code>--nw-line</code>) le change partout : tuile, tuile dépliée et carte complète. Les valeurs sont celles du bandeau actuel.</p>
 <div class="specimens" id="specimens"></div>
-<h2>4 · Ce que la charte unifie</h2>
+<h2>5 · Ce que la charte unifie</h2>
 <p class="lead">Écarts relevés dans le code actuel, que la refonte ramène à un seul réglage chacun.</p>
 <div class="fixes">
   <div class="fix"><b>Étiquettes en petites capitales</b><s>5 réglages différents (9 ou 10 px, espacement .5 / .6 / .8 px / .12 em)</s><br>→ une seule : <code>--nw-label</code></div>
@@ -426,6 +443,8 @@ customElements.define('ha-icon', class extends HTMLElement {
     this.shadowRoot.innerHTML = `<style>:host{fill:currentcolor}span{display:var(--ha-icon-display,inline-flex);vertical-align:middle;width:var(--mdc-icon-size,24px);height:var(--mdc-icon-size,24px)}svg{width:100%;height:100%;fill:currentColor}</style><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${icons[key] ?? ''}"></path></svg></span>`; }
 });
 customElements.define('ha-card', class extends HTMLElement { connectedCallback() { if (!this.shadowRoot) this.attachShadow({ mode: 'open' }).innerHTML = '<style>:host{display:block;border-radius:var(--ha-card-border-radius,12px);background:var(--card-background-color);border:1px solid var(--divider-color);overflow:hidden;container-type:inline-size}</style><slot></slot>'; } });
+// La carte attend le registre final de Home Assistant avant de se déclarer.
+if (!customElements.get('home-assistant')) customElements.define('home-assistant', class extends HTMLElement {});
 await import('/card.js');
 const { scenarioHass, scenarioConfig, demoForecasts, demoWeather } = await import('/demo-hass.js');
 
@@ -435,6 +454,64 @@ const DARK_SKIES = ['lightning', 'lightning-rainy', 'pouring'];
 const LABELS = { sunny: ['Ensoleillé', 'mdi:weather-sunny'], 'clear-night': ['Nuit claire', 'mdi:weather-night'], partlycloudy: ['Éclaircies', 'mdi:weather-partly-cloudy'],
   cloudy: ['Ciel couvert', 'mdi:weather-cloudy'], rainy: ['Pluie', 'mdi:weather-rainy'], pouring: ['Fortes pluies', 'mdi:weather-pouring'],
   'lightning-rainy': ['Orage et pluie', 'mdi:weather-lightning-rainy'], snowy: ['Neige', 'mdi:weather-snowy'], fog: ['Brouillard', 'mdi:weather-fog'], windy: ['Venteux', 'mdi:weather-windy'] };
+/** Les temps de Météo-France (intégration Home Assistant, const.py), par scène : état HA, nuance, libellés. */
+const MF = [
+  ['sunny', '', ['Ensoleillé']],
+  ['clear-night', '', ['Nuit claire', 'Ciel clair']],
+  ['partlycloudy', 'few', ['Peu nuageux']],
+  ['partlycloudy', '', ['Éclaircies', 'Variable']],
+  ['partlycloudy', 'veil', ['Ciel voilé', 'Ciel voilé nuit']],
+  ['cloudy', '', ['Très nuageux']],
+  ['cloudy', 'overcast', ['Couvert']],
+  ['fog', 'mist', ['Brume', 'Brume ou bancs de brouillard']],
+  ['fog', 'patches', ['Bancs de brouillard']],
+  ['fog', '', ['Brouillard']],
+  ['fog', 'dense', ['Brouillard dense']],
+  ['fog', 'freezing-fog', ['Brouillard givrant', 'Brouillard dense givrant']],
+  ['rainy', 'drizzle', ['Bruine', 'Pluie faible', 'Bruine / Pluie faible']],
+  ['rainy', 'showers-light', ['Rares averses', 'Pluies éparses', 'Averses faibles']],
+  ['rainy', 'showers', ['Averses', 'Pluie / Averses']],
+  ['rainy', '', ['Pluie', 'Pluie modérée']],
+  ['pouring', '', ['Pluie forte']],
+  ['snowy-rainy', '', ['Pluie et neige']],
+  ['snowy-rainy', 'sleet-showers', ['Averses de pluie et neige']],
+  ['snowy-rainy', 'freezing-rain', ['Pluie verglaçante']],
+  ['snowy', 'flurries', ['Quelques flocons', 'Neige faible', 'Averses de neige faible']],
+  ['snowy', 'snow-showers', ['Averses de neige']],
+  ['snowy', '', ['Neige', 'Neige / Averses de neige']],
+  ['snowy', 'heavy-snow', ['Neige forte']],
+  ['hail', '', ['Averses de grêle', 'Risque de grêle']],
+  ['lightning', 'storm-risk', ['Risque d’orages']],
+  ['lightning', '', ['Orages']],
+  ['lightning', 'storm-hail', ['Orage avec grêle']],
+  ['lightning-rainy', '', ['Pluies orageuses']],
+  ['lightning-rainy', 'storm-showers', ['Averses orageuses']],
+];
+const MF_LABELS = MF.flatMap(([condition, detail, labels]) => labels.map(label => ({ condition, detail, label })));
+const ICONS = { sunny: 'mdi:weather-sunny', 'clear-night': 'mdi:weather-night', partlycloudy: 'mdi:weather-partly-cloudy', cloudy: 'mdi:weather-cloudy', fog: 'mdi:weather-fog',
+  rainy: 'mdi:weather-rainy', pouring: 'mdi:weather-pouring', 'snowy-rainy': 'mdi:weather-snowy-rainy', snowy: 'mdi:weather-snowy', hail: 'mdi:weather-hail',
+  lightning: 'mdi:weather-lightning', 'lightning-rainy': 'mdi:weather-lightning-rainy' };
+$('condition').innerHTML = MF.map(([c, d, labels], i) => labels.map(l => `<option value="${MF_LABELS.findIndex(x => x.label === l)}"${l === 'Éclaircies' ? ' selected' : ''}>${l}</option>`).join('')).join('');
+const windOf = () => { const [wind, gust] = $('wind').value.split(',').map(Number); return { wind, gust }; };
+/** Les quatre saisons, en brise puis en vent fort, sur un ciel d'éclaircies. */
+function seasonsGrid() {
+  const SEASONS = [['spring', 'Printemps', 'mdi:flower'], ['summer', 'Été', 'mdi:white-balance-sunny'], ['autumn', 'Automne', 'mdi:leaf'], ['winter', 'Hiver', 'mdi:snowflake']];
+  const WINDS = [['Brise', 30, 50], ['Vent fort', 45, 80]];
+  const items = WINDS.flatMap(([w, wind, gust]) => SEASONS.map(([season, name, icon]) => ({ season, name, icon, w, wind, gust })));
+  $('seasons').innerHTML = items.map(x => `<div class="sky-item"><div class="show"><niak-weather-sky></niak-weather-sky></div>
+    <div class="info"><b><ha-icon icon="${x.icon}" style="--mdc-icon-size:18px"></ha-icon>${x.name} · ${x.w.toLowerCase()}</b>vent ${x.wind} km/h, rafales ${x.gust} km/h</div></div>`).join('');
+  $('seasons').querySelectorAll('niak-weather-sky').forEach((sky, i) => { const x = items[i];
+    Object.assign(sky, { condition: 'partlycloudy', detail: '', phase: 'day', animated: true, quality: 'standard', wind: x.wind, gust: x.gust, season: x.season }); });
+}
+/** Toutes les scènes, côte à côte, avec les libellés Météo-France qui y mènent. */
+function gallery() {
+  const { wind, gust } = windOf(), phase = $('phase').value;
+  $('gallery').innerHTML = MF.map(([c, d, labels]) => `<div class="sky-item"><div class="show"><niak-weather-sky></niak-weather-sky></div>
+    <div class="info"><b><ha-icon icon="${ICONS[c]}" style="--mdc-icon-size:18px"></ha-icon>${labels[0]}${d ? ' <span class="sky-new">nouveau</span>' : ''}</b>
+    ${labels.slice(1).length ? `Aussi : ${labels.slice(1).join(' · ')}<br>` : ''}<code>${c}${d ? ` · ${d}` : ''}</code></div></div>`).join('');
+  $('gallery').querySelectorAll('niak-weather-sky').forEach((sky, i) => { const [c, d] = MF[i];
+    Object.assign(sky, { condition: c, detail: d, phase: c === 'clear-night' ? 'night' : c === 'sunny' && phase === 'night' ? 'day' : phase, animated: true, quality: 'standard', wind, gust, season: '' }); });
+}
 const nf = (v, d = 1) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: d }).format(v);
 // La tuile se souvient d'être dépliée, sur cet appareil (comme le fera la carte).
 const remembered = (() => { try { return localStorage.getItem('niak-maquette-open') === '1'; } catch { return false; } })();
@@ -446,14 +523,14 @@ function story(s) {
   // Deux alertes peuvent coexister : la vigilance officielle (département) et ce que la station mesure chez soi. Aucune n'efface l'autre.
   const alerts = [];
   if (s.vigilance) alerts.push({ level: { Jaune: 1, Orange: 2, Rouge: 3 }[s.vigilance], label: `Vigilance ${s.vigilance.toLowerCase()}`, text: 'Orages', icon: 'mdi:alert-outline' });
-  if (w.condition === 'windy') alerts.push({ level: 2, label: 'Maintenant', text: `Vent très fort, rafales à ${w.gust} km/h`, icon: 'mdi:weather-windy' });
+  if (w.gust >= 70) alerts.push({ level: 2, label: 'Maintenant', text: `Vent très fort, rafales à ${w.gust} km/h`, icon: 'mdi:weather-windy' });
   if (w.condition === 'pouring') alerts.push({ level: 2, label: 'Maintenant', text: `Forte pluie : ${nf(w.rain)} mm/h`, icon: 'mdi:weather-pouring' });
   const alert = alerts[0];
   // Chaque point a un thème : il donne la couleur de son icône.
   if (w.rain && w.condition !== 'pouring') points.push({ label: 'Maintenant', text: `Il pleut : ${nf(w.rain)} mm/h`, icon: 'mdi:weather-rainy', theme: 'rain' });
   if (w.temp > 10 && !w.rain) points.push({ label: 'Maintenant', text: 'Ressenti : 5,3 °C de plus qu’au thermomètre', icon: 'mdi:thermometer', theme: 'heat' });
   if (w.temp < 3) points.push({ label: 'Maintenant', text: `Froid : ${nf(w.temp - 0.4)} °C ressentis`, icon: 'mdi:thermometer-low', theme: 'cold' });
-  if (w.condition.startsWith('windy') && !alert) points.push({ label: 'Maintenant', text: `Vent soutenu : ${w.wind} km/h`, icon: 'mdi:weather-windy', theme: 'wind' });
+  if (w.wind >= 25 && !alert) points.push({ label: 'Maintenant', text: `Vent soutenu : ${w.wind} km/h`, icon: 'mdi:weather-windy', theme: 'wind' });
   points.push({ label: 'À venir', text: 'Forte pluie demain : 18 mm', icon: 'mdi:weather-pouring', theme: 'rain' });
   // La tuile n'a qu'une place d'alerte : les suivantes passent en tête de la bulle qui défile, en gardant leur style d'alerte.
   return { w, alert, alerts, points, ticker: [...alerts.slice(1).map(a => ({ ...a, alert: true })), ...points] };
@@ -644,7 +721,7 @@ const fmSection = (id, title, sub, body) => `<section class="fm-section" data-id
   <button class="fm-fold" type="button" tabindex="-1" aria-hidden="true"><ha-icon icon="mdi:chevron-down"></ha-icon></button></header><div class="fm-body">${body}</div></section>`;
 /** Bandeau de la carte complète, avec les pièces de la charte, sur le vrai ciel animé. */
 function heroHTML(w, f) {
-  const { alerts, points } = story(scenario), [label, icon] = LABELS[w.condition] ?? LABELS.cloudy, m = moments(f.hourly);
+  const { alerts, points } = story(scenario), [label, icon] = [scenario.label, ICONS[w.condition] ?? 'mdi:weather-cloudy'], m = moments(f.hourly);
   const date = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
   const dark = DARK_SKIES.includes(w.condition);
   return `<section class="fm-hero${dark ? ' dark-sky' : ''}"><div class="sky"><niak-weather-sky></niak-weather-sky></div><div class="veil"></div>
@@ -669,12 +746,12 @@ function proposedFull(container) {
     headEl.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); set(section.classList.contains('folded')); } });
   }
   bindInfos(box);
-  Object.assign(box.querySelector('niak-weather-sky'), { condition: w.condition, phase: scenario.phase, animated: true, quality: 'standard', wind: w.wind, season: 'autumn' });
+  Object.assign(box.querySelector('niak-weather-sky'), { condition: w.condition, phase: scenario.phase, animated: true, quality: 'standard', wind: w.wind, gust: w.gust, detail: scenario.detail, season: scenario.season });
 }
 
 let scenario, ticker;
 function render() {
-  const s = scenario, { w, alerts, ticker, points: info } = story(s), f = demoForecasts(w.temp, w.rain), [label, icon] = LABELS[w.condition] ?? LABELS.cloudy;
+  const s = scenario, { w, alerts, ticker, points: info } = story(s), f = demoForecasts(w.temp, w.rain), [label, icon] = [scenario.label, ICONS[w.condition] ?? 'mdi:weather-cloudy'];
   const points = state.open ? info : ticker;
   const dark = DARK_SKIES.includes(w.condition);
   $('slot').innerHTML = `<div class="card${state.open ? ' open' : ''}${dark ? ' dark-sky' : ''}" tabindex="0" role="button" aria-expanded="${state.open}" aria-label="Météo à Gardanne : appui pour ${state.open ? 'replier' : 'déplier'}, appui long pour la carte complète">
@@ -692,7 +769,7 @@ function render() {
       <div class="foot"><span>Météo-France · station locale</span><span>Appui long : carte complète</span></div>
     </div></div></div></div>`;
   const sky = $('slot').querySelector('niak-weather-sky');
-  Object.assign(sky, { condition: w.condition, phase: s.phase, animated: true, quality: 'standard', wind: w.wind, season: 'autumn' });
+  Object.assign(sky, { condition: w.condition, phase: s.phase, animated: true, quality: 'standard', wind: w.wind, gust: w.gust, detail: scenario.detail, season: scenario.season });
   bindCard($('slot').querySelector('.card'));
 }
 
@@ -839,17 +916,17 @@ function specimens() {
 }
 
 function refresh() {
-  const condition = $('condition').value, phase = condition === 'clear-night' ? 'night' : $('phase').value;
-  scenario = { condition, phase, vigilance: $('vigilance').value || undefined, season: 'autumn', animated: true };
+  const { condition, detail, label } = MF_LABELS[$('condition').value], phase = condition === 'clear-night' ? 'night' : condition === 'sunny' && $('phase').value === 'night' ? 'day' : $('phase').value;
+  scenario = { condition, detail, label, phase, ...windOf(), vigilance: $('vigilance').value || undefined, season: $('season').value, animated: true };
   state.variant = $('variant').value; state.index = 0;
   document.documentElement.classList.toggle('dark', $('theme').value === 'dark');
   document.documentElement.classList.remove('pal-brume', 'pal-actuelle');
   if ($('palette').value !== 'aube') document.documentElement.classList.add(`pal-${$('palette').value}`);
   document.body.classList.toggle('phone', $('screen').value === 'phone');
-  render(); startTicker(); fullCard($('pageCard'));
+  render(); startTicker(); fullCard($('pageCard')); gallery(); seasonsGrid();
 
 }
-for (const id of ['condition', 'phase', 'vigilance', 'variant', 'palette', 'theme', 'screen', 'foldToday', 'foldPredictions', 'fullMode']) $(id).addEventListener('change', refresh);
+for (const id of ['condition', 'wind', 'season', 'phase', 'vigilance', 'variant', 'palette', 'theme', 'screen', 'foldToday', 'foldPredictions', 'fullMode']) $(id).addEventListener('change', refresh);
 specimens(); refresh();
 </script>
 </body></html>

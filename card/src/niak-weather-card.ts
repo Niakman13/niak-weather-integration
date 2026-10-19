@@ -183,8 +183,11 @@ export class NiakWeatherCard extends LitElement {
     if (this.problem && !this.view) return this.renderProblem(PROBLEMS[this.problem]);
     if (!this.view) return html`<ha-card><div class="nw-wait" role="status" aria-label="Chargement de la météo"></div></ha-card>`;
     const config = this.config, view = displayed(this.view, config, this.tile);
+    // Gusts for the sky: the station's last measure, else the forecast for this hour.
+    const measured = view.wind?.gust.at(-1)?.[1];
+    const gust = measured ?? view.hours[0]?.gust ?? 0;
     const sky = html`<niak-weather-sky .condition=${view.now.condition} .phase=${view.now.phase} .animated=${config.weather_animations !== false}
-      .quality=${config.weather_animation_quality ?? (this.tile && LIGHT_SKY.matches ? 'low' : 'standard')} .wind=${view.now.wind ?? 0} .season=${view.season.info.season}></niak-weather-sky>`;
+      .quality=${config.weather_animation_quality ?? (this.tile && LIGHT_SKY.matches ? 'low' : 'standard')} .wind=${view.now.wind ?? 0} .gust=${gust} .season=${view.season.info.season}></niak-weather-sky>`;
     const full = () => renderFull(view, { sky, uid: this.uid, entity: view.weatherEntity, station: view.station,
       sections: sections(config), tab: this.tab, onTab: this.setTab,
       folded: this.folded, onFold: id => { this.folded = { ...this.folded, [id]: !this.folded[id] }; } });

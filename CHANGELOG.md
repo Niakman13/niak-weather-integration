@@ -1,3 +1,11 @@
+## 2.6.0 — Stable : ciel animé plus vivant
+
+- Nouveauté : le vent se voit enfin. Météo-France n’annonce jamais « venteux » : c’est maintenant la force du vent qui compte. Une brise (dès 25 km/h, ou rafales à 45 km/h) dessine quelques filets d’air, un vent fort (dès 40 km/h, ou rafales à 70 km/h) des filets rapides qui poussent la pluie et la neige de biais.
+- Nouveauté : par vent fort, la saison s’envole : pétales au printemps, aigrettes de pissenlit en été, feuilles de platane en automne, feuilles sèches en hiver.
+- Amélioration : une pluie plus naturelle, chaque goutte avec sa longueur, son épaisseur et sa vitesse.
+- Amélioration : une neige plus douce, aux flocons de tailles variées, un peu flous de près.
+- Amélioration : le brouillard se voit mieux sur un thème clair.
+
 ## 2.5.9 — Stable : appui court au choix
 
 - Nouveauté : sur la tuile, l’appui court se choisit comme l’appui long, dans Fonctionnalités : déplier ou replier, ouvrir la météo complète en fenêtre, ouvrir une page, ou rien.
