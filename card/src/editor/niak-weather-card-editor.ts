@@ -17,7 +17,7 @@ export const labels: Partial<Record<keyof WeatherCardConfig, string>> = {
   show_atmo_details: 'Détail des polluants et des pollens', show_atmo_tomorrow: 'Air et pollens de demain',
   weather_path: 'Page à ouvrir',
   tile_blocks: 'Contenu de la tuile dépliée', forecast_tab: 'Prévisions affichées au départ', banner_blocks: 'Contenu du bandeau', today_blocks: 'Contenu d’Aujourd’hui', forecast_blocks: 'Contenu des Prévisions',
-  hold_action: 'Appui long',
+  hold_action: 'Appui long', tap_action: 'Appui',
 };
 /** One line under the settings that need it. */
 const helpers: Partial<Record<keyof WeatherCardConfig, string>> = {
@@ -31,7 +31,6 @@ const helpers: Partial<Record<keyof WeatherCardConfig, string>> = {
   today_blocks: 'Tout décocher retire la section.',
   forecast_blocks: 'Tout décocher retire la section.',
   forecast_tab: 'Un appui sur Heures ou Jours change l’affichage ; ce choix est gardé sur chaque appareil.',
-  hold_action: 'La météo complète par-dessus la page, une page de votre tableau de bord, ou rien.',
 };
 const SETTINGS = '/config/integrations/integration/niak_weather';
 
@@ -86,11 +85,14 @@ export class NiakWeatherCardEditor extends LitElement {
       { value: 'bulletin', label: 'Bulletin du jour' }, { value: 'events', label: 'Événements (la frise)' },
       { value: 'moments', label: 'Les prochains moments (soir, nuit, matin…)' }, { value: 'forecast', label: 'Prévisions (heures ou jours)' }] } } };
     const tab = { name: 'forecast_tab', selector: { select: { mode: 'dropdown', options: [{ value: 'hours', label: 'Heures' }, { value: 'days', label: 'Jours' }] } } };
-    // The long press (a tap on mini and alert): the popup, a page (then its path), or nothing.
-    const action = this.config?.hold_action ?? (this.config?.weather_path ? 'page' : 'popup');
-    const path = [{ name: 'hold_action', required: true, selector: { select: { mode: 'dropdown', options: [
-      { value: 'popup', label: 'Ouvrir la météo complète en fenêtre' }, { value: 'page', label: 'Ouvrir une page' }, { value: 'none', label: 'Rien' }] } } },
-      ...(action === 'page' ? [{ name: 'weather_path', selector: { text: {} } }] : [])];
+    // The tile's tap and long press (a tap on mini and alert, which do not fold): the popup, a page (then its path), fold or unfold, or nothing.
+    const foldable = this.config?.format === 'tile' || this.config?.format === 'intermediate';
+    const hold = this.config?.hold_action ?? (this.config?.weather_path ? 'page' : 'popup'), tap = foldable ? this.config?.tap_action ?? 'toggle' : undefined;
+    const press = (name: 'tap_action' | 'hold_action') => ({ name, required: true, selector: { select: { mode: 'dropdown', options: [
+      ...(foldable ? [{ value: 'toggle', label: 'Déplier ou replier la tuile' }] : []),
+      { value: 'popup', label: 'Ouvrir la météo complète en fenêtre' }, { value: 'page', label: 'Ouvrir une page' }, { value: 'none', label: 'Rien' }] } } });
+    const path = [...(foldable ? [press('tap_action')] : []), press('hold_action'),
+      ...(hold === 'page' || tap === 'page' ? [{ name: 'weather_path', selector: { text: {} } }] : [])];
     const place = this.entries && this.entries.length > 1
       ? [{ name: 'entry_id', selector: { select: { options: this.entries.map(e => ({ value: e.entry_id, label: e.title })) } } }] : [];
     const look = group('Visuel et performance', 'mdi:palette-outline', [...toggles('weather_animations'),
@@ -122,7 +124,8 @@ export class NiakWeatherCardEditor extends LitElement {
     const s = sections(this.config);
     const blocks = { ...(this.config.show_bulletin === false ? { tile_blocks: ['events'] } : {}),
       banner_blocks: s.banner, today_blocks: s.today, forecast_blocks: s.forecasts };
-    const data = Object.fromEntries(Object.entries({ ...defaults, ...blocks, ...this.config }).filter(([key]) => key !== 'type'));
+    const presses = { tap_action: 'toggle', hold_action: this.config.weather_path ? 'page' : 'popup' };
+    const data = Object.fromEntries(Object.entries({ ...defaults, ...presses, ...blocks, ...this.config }).filter(([key]) => key !== 'type'));
     const one = this.entries?.length === 1 ? this.entries[0] : undefined;
     return html`
       ${this.entries === null ? html`<p class="note warn">L’intégration Niak Weather ne répond pas : la carte en a besoin depuis la version 2.0.

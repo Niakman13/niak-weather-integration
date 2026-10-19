@@ -5,9 +5,10 @@ import type { TickerPoint, WeatherView } from '../view';
 import { alertBubble, alertPill, bubble, chip, label, nf } from '../ui/parts';
 import { hoursChart, week } from './forecasts';
 import { rainPanel } from './today';
+import type { PressTarget } from './tile';
 
 /** One line: the sky and the temperature now, the place, and the most serious alert. */
-export function renderMini(v: WeatherView, holdTarget: 'card' | 'page' | 'none'): TemplateResult {
+export function renderMini(v: WeatherView, holdTarget: PressTarget): TemplateResult {
   const n = v.now, alert = v.alerts.find(a => a.official) ?? v.alerts[0];
   const place = `Météo${v.location ? ` à ${v.location}` : ''}`;
   return html`<div class=${`nw-mini${holdTarget === 'none' ? ' still' : ''}`} role=${holdTarget === 'none' ? 'group' : 'button'} tabindex=${holdTarget === 'none' ? -1 : 0}

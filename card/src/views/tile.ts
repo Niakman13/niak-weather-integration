@@ -1,5 +1,5 @@
-// The tile: on the dashboard it is one band; a tap unfolds it in place (the blocks chosen: bulletin, events, moments, forecasts),
-// a long press opens the full card.
+// The tile: on the dashboard it is one band; by default a tap unfolds it in place (the blocks chosen: bulletin, events, moments, forecasts)
+// and a long press opens the full card. Each press can be set to do something else.
 import { css, html, nothing, type TemplateResult } from 'lit';
 import type { BulletinPeriod, WeatherView } from '../view';
 import type { TileBlock } from '../types';
@@ -7,10 +7,14 @@ import { alertPill, label, nf, rose, tint, unbroken, windArrow } from '../ui/par
 import '../ui/ticker';
 import '../ui/frise';
 
+/** What a press does: the full card over the page, the user's weather page, fold or unfold the tile, or nothing. */
+export type PressTarget = 'card' | 'page' | 'toggle' | 'none';
+
 export interface TileState {
   open: boolean;
-  /** What a long press opens: the full card over the page, the user's weather page, or nothing. */
-  holdTarget: 'card' | 'page' | 'none';
+  /** What a tap and a long press do. */
+  tapTarget: PressTarget;
+  holdTarget: PressTarget;
   /** What the unfolded tile shows, in this order. */
   blocks: TileBlock[];
   tab: 'hours' | 'days';
@@ -18,6 +22,11 @@ export interface TileState {
 }
 
 export const DEFAULT_BLOCKS: TileBlock[] = ['bulletin', 'events'];
+
+/** What a press leads to, in a few words. */
+function goal(target: PressTarget, open: boolean): string {
+  return target === 'page' ? 'page météo' : target === 'card' ? 'carte complète' : open ? 'replier' : 'déplier';
+}
 
 /** A moment of the day, an hour or a day: a see-through tile over the sky. */
 function glassTile(title: string, icon: string, value: string, extra: unknown = nothing, tip = ''): TemplateResult {
@@ -86,9 +95,13 @@ export function renderTile(v: WeatherView, sky: TemplateResult, s: TileState): T
   const points = [...v.alerts.filter(a => !a.official), ...more].map(a => ({ ...a, alert: true as const }));
   const ticker = [...points, ...v.points];
   const headline = v.bulletin?.summary;
-  return html`<div class=${`nw-tilecard${s.open ? ' open' : ''}${v.now.darkSky ? ' dark-sky' : ''}${ticker.length ? '' : ' quiet'}`}
-      role="button" tabindex="0" aria-expanded=${s.open}
-      aria-label=${`Météo${v.location ? ` à ${v.location}` : ''} : appui pour ${s.open ? 'replier' : 'déplier'}${s.holdTarget === 'none' ? '' : `, appui long pour ${s.holdTarget === 'page' ? 'la page météo' : 'la carte complète'}`}`}>
+  const presses = ([['Appui', s.tapTarget], ['Appui long', s.holdTarget]] as const).filter(([, target]) => target !== 'none');
+  const foldable = s.tapTarget === 'toggle' || s.holdTarget === 'toggle';
+  // Under the unfolded tile, folding on a tap goes without saying.
+  const hints = presses.filter(([name, target]) => name !== 'Appui' || target !== 'toggle');
+  return html`<div class=${`nw-tilecard${s.open ? ' open' : ''}${foldable ? '' : ' fixed'}${v.now.darkSky ? ' dark-sky' : ''}${ticker.length ? '' : ' quiet'}`}
+      role="button" tabindex="0" aria-expanded=${foldable ? s.open : nothing}
+      aria-label=${`Météo${v.location ? ` à ${v.location}` : ''}${presses.length ? ` : ${presses.map(([name, target]) => `${name.toLowerCase()} pour ${goal(target, s.open)}`).join(', ')}` : ''}`}>
     <div class="sky" aria-hidden="true">${sky}</div><div class="veil" aria-hidden="true"></div><i class="press-ring" aria-hidden="true"></i>
     <div class="top">
       <div class="meta">${v.location ? html`<span class="place">${v.location}</span>` : nothing}${first ? alertPill(first) : nothing}
@@ -101,7 +114,7 @@ export function renderTile(v: WeatherView, sky: TemplateResult, s: TileState): T
       ${s.blocks.map(block => block === 'bulletin' ? (headline ? html`<div class="bulletin">${label('Bulletin du jour')}<p class="nw-bulletin">${unbroken(headline)}</p></div>` : nothing)
         : block === 'events' ? frise(v) : block === 'moments' ? moments(v) : forecastStrip(v, s.tab, s.onTab))}
       <div class="foot"><span>${v.forecastSource}${v.now.temperatureSource !== v.forecastSource ? ` · ${v.now.temperatureSource.toLowerCase()}` : ''}</span>
-        ${s.holdTarget === 'none' ? nothing : html`<span>Appui long : ${s.holdTarget === 'page' ? 'page météo' : 'carte complète'}</span>`}</div>
+        ${hints.length ? html`<span>${hints.map(([name, target]) => `${name} : ${goal(target, true)}`).join(' · ')}</span>` : nothing}</div>
     </div></div></div>
   </div>`;
 }
@@ -174,7 +187,7 @@ export const tileStyles = css`
   .foot { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:4px 10px; font-size:var(--nw-fs-small); color:var(--nw-fg2); }
   .grabber { display:flex; justify-content:center; padding:0 0 8px; }
   .grabber i { width:34px; height:4px; border-radius:4px; background:var(--nw-line); }
-  .open .grabber { display:none; }
+  .open .grabber, .fixed .grabber { display:none; }
   /* Long press: a ring fills up under the finger. */
   .nw-tilecard.pressing { box-shadow:inset 0 0 0 3px color-mix(in srgb, var(--nw-accent) 45%, transparent); }
   .press-ring { position:absolute; width:44px; height:44px; margin:-22px 0 0 -22px; border-radius:50%; pointer-events:none; opacity:0;
