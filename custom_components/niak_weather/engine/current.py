@@ -9,6 +9,7 @@ from typing import Any, Callable, Sequence
 from .conditions import CONDITIONS
 from .forecast import Hour
 from .local import LocalWeather
+from .nuances import sky_detail
 from .settings import Settings
 from .units import Kind, finite, french, measurement
 
@@ -67,10 +68,14 @@ class CurrentWeather:
     trend: float | None = None
     """°C per hour, only when the temperature moves by 0.1 °C an hour or more."""
     dark_sky: bool = False
+    detail: str = ""
+    """Météo-France's nuance of the condition (drizzle, freezing rain, mist…), for the card's sky; empty for the plain scene."""
 
 
-def current_weather(get: Getter, settings: Settings, w: LocalWeather, temperature_trend: float | None = None) -> CurrentWeather:
-    """Current conditions only: no future forecast or alert can select the sky."""
+def current_weather(get: Getter, settings: Settings, w: LocalWeather, temperature_trend: float | None = None,
+                    original_condition: str | None = None, hour_rain: float | None = None) -> CurrentWeather:
+    """Current conditions only: no future forecast or alert can select the sky. `original_condition` is Météo-France's sensor
+    of its own description, when enabled; `hour_rain` the rain forecast for this hour, in mm."""
     weather = get(settings.weather_entity)
     condition = weather.state.replace("_", "-") if available(weather) else "unknown"
     if condition == "clear":
@@ -113,6 +118,8 @@ def current_weather(get: Getter, settings: Settings, w: LocalWeather, temperatur
     local = measurement(sensor.state, sensor.attributes.get("unit_of_measurement"), Kind.TEMPERATURE) if available(sensor) else None
     temperature = local if local is not None else (
         measurement(weather.attributes.get("temperature"), weather.attributes.get("temperature_unit"), Kind.TEMPERATURE) if available(weather) else None)
+    original = _state(get, original_condition)
+    description = str(original.state) if available(original) else None
     label, icon = CONDITIONS.get(condition, ("Météo indisponible", "mdi:weather-cloudy-alert"))
     if source == NO_RAIN_MEASURED and condition == "cloudy":
         label = "Nuageux, sans pluie mesurée"
@@ -120,7 +127,8 @@ def current_weather(get: Getter, settings: Settings, w: LocalWeather, temperatur
         condition=condition, label=label, icon=icon, phase=phase, temperature=temperature, feels=w.feel.value if w.available else None,
         temperature_entity=settings.temperature_entity if local is not None else settings.weather_entity, condition_entity=condition_entity,
         source=source, temperature_source=STATION if local is not None else weather_source_label(get, settings), wind=w.wind.speed,
-        trend=temperature_trend if temperature_trend is not None and abs(temperature_trend) >= 0.1 else None, dark_sky=condition in DARK_SKIES)
+        trend=temperature_trend if temperature_trend is not None and abs(temperature_trend) >= 0.1 else None, dark_sky=condition in DARK_SKIES,
+        detail=sky_detail(condition, description, rate if rate is not None else hour_rain, temperature))
 
 
 @dataclass(frozen=True)

@@ -37,6 +37,8 @@ Configurez [l’intégration Météo-France](https://www.home-assistant.io/integ
 
 Niak Weather lit jusqu’à 18 heures et 7 jours, selon ce que le fournisseur donne : un horizon absent n’est pas inventé. La température du bulletin sert seulement quand il n’y a pas de thermomètre local.
 
+**Pour un ciel plus fidèle**, activez le capteur « Condition d’origine » de Météo-France (désactivé par défaut : Paramètres → Appareils et services → Météo-France → entités masquées). Le ciel animé distingue alors ce que Météo-France distingue : bruine, averses, pluie verglaçante, brume, bancs de brouillard, brouillard givrant… Sans lui, Niak Weather déduit ce qu’il peut des chiffres (bruine, verglas, quelques flocons, neige forte).
+
 **La station passe devant le bulletin** pour le temps du moment quand elle constate autre chose : pluie mesurée (dès 0,3 mm/h), brouillard probable, soleil fort sous un ciel annoncé couvert. Elle ne prétend jamais constater la foudre : les orages restent des prévisions. Cela change la présentation du temps actuel, pas les prévisions.
 
 ## Station météo

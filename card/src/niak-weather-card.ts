@@ -187,7 +187,7 @@ export class NiakWeatherCard extends LitElement {
     const measured = view.wind?.gust.at(-1)?.[1];
     const gust = measured ?? view.hours[0]?.gust ?? 0;
     const sky = html`<niak-weather-sky .condition=${view.now.condition} .phase=${view.now.phase} .animated=${config.weather_animations !== false}
-      .quality=${config.weather_animation_quality ?? (this.tile && LIGHT_SKY.matches ? 'low' : 'standard')} .wind=${view.now.wind ?? 0} .gust=${gust} .season=${view.season.info.season}></niak-weather-sky>`;
+      .quality=${config.weather_animation_quality ?? (this.tile && LIGHT_SKY.matches ? 'low' : 'standard')} .wind=${view.now.wind ?? 0} .gust=${gust} .detail=${view.now.detail ?? ''} .season=${view.season.info.season}></niak-weather-sky>`;
     const full = () => renderFull(view, { sky, uid: this.uid, entity: view.weatherEntity, station: view.station,
       sections: sections(config), tab: this.tab, onTab: this.setTab,
       folded: this.folded, onFold: id => { this.folded = { ...this.folded, [id]: !this.folded[id] }; } });

@@ -19,6 +19,8 @@ export interface CurrentWeather {
   /** °C per hour, only when the temperature moves by 0.1 °C an hour or more. */
   trend?: number;
   darkSky: boolean;
+  /** Météo-France's nuance of the condition (drizzle, freezing rain, mist…), for the sky (integration 2.6.0 and later). */
+  detail?: string;
 }
 
 export type SeasonName = 'spring' | 'summer' | 'autumn' | 'winter';

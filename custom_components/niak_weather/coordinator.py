@@ -48,6 +48,20 @@ FORECAST_KINDS = (("daily", 1), ("hourly", 2))
 """Forecast types and their bit in the weather entity's supported features."""
 
 
+def original_condition(registry: er.EntityRegistry, weather_entity: str) -> str | None:
+    """Météo-France's sensor of its own description (« Bruine », « Brouillard givrant »…), beside the weather entity.
+    Home Assistant creates it disabled: it counts only once the user has enabled it. The daily one is left aside."""
+    weather = registry.async_get(weather_entity)
+    if weather is None or weather.platform != "meteo_france" or not weather.config_entry_id:
+        return None
+    for entry in er.async_entries_for_config_entry(registry, weather.config_entry_id):
+        unique_id = str(entry.unique_id)
+        if (entry.domain == "sensor" and not entry.disabled_by and unique_id.endswith("_original_condition")
+                and not unique_id.endswith("_daily_original_condition")):
+            return entry.entity_id
+    return None
+
+
 @dataclass(frozen=True)
 class Snapshot:
     """Everything known at one moment: the typed results for the sensors, and the view the cards draw."""
@@ -181,7 +195,8 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         # WAQI's station today and Open-Meteo tomorrow stand where Atmo France's air sensors would be.
         settings, get = waqi.overlay(self.settings, hass.states.get, self.air_forecast, now, zone)
         result = compute(get, settings, self.hours, self.days, self.history, self.rain_history, self.statistics, self.statistics_unit,
-                         now, zone, hass.config.latitude, hass.config.elevation or 0, self.platforms)
+                         now, zone, hass.config.latitude, hass.config.elevation or 0, self.platforms,
+                         original_condition(er.async_get(hass), settings.weather_entity))
         events = self.watch.update(result.catalogue, now)
         if events:
             self._store.async_delay_save(self.watch.as_dict, 10)
