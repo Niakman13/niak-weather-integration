@@ -4,7 +4,7 @@ import { define } from './ui/define';
 import { cleanConfig, sections } from './config';
 import { displayed } from './display';
 import { bubbles, pieces, tokens } from './ui/charter';
-import { DEFAULT_BLOCKS, renderTile, tileStyles } from './views/tile';
+import { DEFAULT_BLOCKS, renderTile, tileStyles, type PressTarget } from './views/tile';
 import { alertItems, compactStyles, renderAlert, renderForecastCard, renderMini, renderRain } from './views/compact';
 import { fullStyles, renderFull, type SectionId } from './views/full';
 import { heroStyles } from './views/hero';
@@ -14,7 +14,7 @@ import { airStyles } from './views/air';
 import './ui/weather-sky';
 import './editor/niak-weather-card-editor';
 import { VIEW_VERSION, type ViewMessage, type WeatherView } from './view';
-import type { HomeAssistant, WeatherCardConfig } from './types';
+import type { HomeAssistant, PressAction, WeatherCardConfig } from './types';
 
 const HOLD_MS = 500;
 /** Phones and tablets: unless set otherwise, the tile's sky is lightened (fewer drops, clouds and leaves); its drawing is scaled down there anyway. */
@@ -82,7 +82,7 @@ export class NiakWeatherCard extends LitElement {
     if (this.config.format === 'mini') return 1;
     if (this.config.format === 'alert') return this.view && this.hasAlert(this.view) ? 2 : 0;
     if (this.config.format === 'forecast' || this.config.format === 'rain') return 5;
-    if (this.tile) return this.open ? 7 : 2;
+    if (this.tile) return this.unfolded ? 7 : 2;
     return Math.max(1, (this.config.show_synthesis === false ? 0 : 4) + (this.config.show_today === false ? 0 : 5) + (this.config.show_predictions === false ? 0 : 4));
   }
   public getGridOptions() {
@@ -91,6 +91,10 @@ export class NiakWeatherCard extends LitElement {
     return this.tile || format === 'alert' || format === 'forecast' || format === 'rain' ? { columns: 12, rows: 'auto', min_columns: 6 } : { columns: 'full', rows: 'auto' };
   }
 
+  /** A tile that no press folds stays as its format starts, whatever was remembered. */
+  private get unfolded(): boolean {
+    return this.tapTarget === 'toggle' || this.holdTarget === 'toggle' ? this.open : this.config?.format === 'intermediate';
+  }
   /** Tile and intermediate formats: one band that unfolds. */
   private get tile(): boolean { return this.config?.format === 'tile' || this.config?.format === 'intermediate'; }
   /** Everything but the full card: what a long press (a tap on mini and alert) opens. */
@@ -205,7 +209,7 @@ export class NiakWeatherCard extends LitElement {
     return html`<ha-card>
       <div @pointerdown=${this.down} @pointermove=${this.move} @pointerup=${this.up} @pointercancel=${this.cancelPress} @pointerleave=${this.cancelPress}
         @contextmenu=${this.noMenu} @keydown=${this.tileKey}>
-        ${renderTile(view, sky, { open: this.open, holdTarget, blocks, tab: this.tab, onTab: this.setTab })}</div>
+        ${renderTile(view, sky, { open: this.unfolded, tapTarget: this.tapTarget, holdTarget, blocks, tab: this.tab, onTab: this.setTab })}</div>
       ${dialog()}
     </ha-card>`;
   }
@@ -226,19 +230,22 @@ export class NiakWeatherCard extends LitElement {
     window.dispatchEvent(new CustomEvent('location-changed', { bubbles: true, composed: true }));
   }
 
-  /** The user's weather page, when one is set: a long press goes there instead of opening the full card. */
-  /** What a long press on the tile (a tap on mini and alert) opens: the full card, the user's weather page, or nothing. */
-  private get holdTarget(): 'card' | 'page' | 'none' {
-    const action = this.config?.hold_action ?? (this.weatherPath ? 'page' : 'popup');
-    // A page without a valid path falls back to the full card rather than doing nothing.
-    return action === 'none' ? 'none' : action === 'page' && this.weatherPath ? 'page' : 'card';
+  /** What a long press on the tile (a tap on mini and alert) does: the full card, the user's weather page, fold or unfold, or nothing. */
+  private get holdTarget(): PressTarget { return this.target(this.config?.hold_action ?? (this.weatherPath ? 'page' : 'popup')); }
+  /** What a tap on the tile does; unfolding unless chosen otherwise. */
+  private get tapTarget(): PressTarget { return this.target(this.config?.tap_action ?? 'toggle'); }
+  private target(action: PressAction): PressTarget {
+    if (action === 'none') return 'none';
+    // Only the tile folds; a page without a valid path falls back to the full card rather than doing nothing.
+    if (action === 'toggle') return this.tile ? 'toggle' : 'card';
+    return action === 'page' && this.weatherPath ? 'page' : 'card';
   }
   private get weatherPath(): string | undefined {
     const path = this.config?.weather_path;
     return path?.startsWith('/') && !path.startsWith('//') ? path : undefined;
   }
   private tileCard() { return this.renderRoot.querySelector<HTMLElement>('.nw-tilecard'); }
-  /** Tap: unfold or fold. Long press (½ s): the full card. Sliding cancels both. */
+  /** Tap and long press (½ s): what each is set to do. Sliding cancels both. */
   private down = (e: PointerEvent) => {
     const card = this.tileCard();
     if (e.button !== 0 || !card) return;
@@ -253,10 +260,10 @@ export class NiakWeatherCard extends LitElement {
     // Without a long press to give, a press is only a tap: no ring fills up.
     const holdable = this.holdTarget !== 'none';
     this.press = { x: e.clientX, y: e.clientY, long: false, frame: holdable ? requestAnimationFrame(tick) : 0,
-      timer: setTimeout(() => { if (!this.press || !holdable) return; this.press.long = true; this.stopRing(); this.hold(); }, HOLD_MS) };
+      timer: setTimeout(() => { if (!this.press || !holdable) return; this.press.long = true; this.stopRing(); this.act(this.holdTarget); }, HOLD_MS) };
   };
   private move = (e: PointerEvent) => { if (this.press && Math.hypot(e.clientX - this.press.x, e.clientY - this.press.y) > 10) this.cancelPress(); };
-  private up = () => { const press = this.press; this.cancelPress(); if (press && !press.long) this.toggle(); };
+  private up = () => { const press = this.press; this.cancelPress(); if (press && !press.long) this.act(this.tapTarget); };
   private stopRing() {
     if (!this.press) return;
     clearTimeout(this.press.timer); cancelAnimationFrame(this.press.frame);
@@ -268,22 +275,23 @@ export class NiakWeatherCard extends LitElement {
   private tileKey = (e: KeyboardEvent) => {
     if (e.target !== this.tileCard() || !['Enter', ' '].includes(e.key)) return;
     e.preventDefault();
-    if (e.shiftKey && this.holdTarget !== 'none') this.hold(); else this.toggle();
+    this.act(e.shiftKey ? this.holdTarget : this.tapTarget);
   };
   /** Mini and alert: a tap opens the full card (or the weather page). */
-  private tap = (e: Event) => { if (!(e.target as HTMLElement).closest('dialog') && this.holdTarget !== 'none') this.hold(); };
+  private tap = (e: Event) => { if (!(e.target as HTMLElement).closest('dialog')) this.act(this.holdTarget); };
   private tapKey = (e: KeyboardEvent) => {
     if (!['Enter', ' '].includes(e.key) || (e.target as HTMLElement).closest('dialog') || this.holdTarget === 'none') return;
-    e.preventDefault(); this.hold();
+    e.preventDefault(); this.act(this.holdTarget);
   };
   private toggle() {
     this.open = !this.open;
     try { localStorage.setItem(this.key(), this.open ? '1' : '0'); } catch { /* private browsing */ }
   }
-  private hold() {
+  private act(target: PressTarget) {
     const path = this.weatherPath;
-    if (this.holdTarget === 'page' && path) { this.go(path); return; }
-    this.dialogOpen = true;
+    if (target === 'toggle') this.toggle();
+    else if (target === 'page' && path) this.go(path);
+    else if (target === 'card') this.dialogOpen = true;
   }
   private closeDialog = () => { this.renderRoot.querySelector('dialog')?.close(); };
   /** A value of the full card opens its sensor's details, like the rest of Home Assistant. */

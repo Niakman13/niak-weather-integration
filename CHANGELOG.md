@@ -1,3 +1,8 @@
+## 2.5.9 — Stable : appui court au choix
+
+- Nouveauté : sur la tuile, l’appui court se choisit comme l’appui long, dans Fonctionnalités : déplier ou replier, ouvrir la météo complète en fenêtre, ouvrir une page, ou rien.
+- Par défaut, rien ne change : l’appui déplie la tuile, l’appui long ouvre la météo complète (ou la page choisie).
+
 ## 2.5.8 — Stable : mini et maxi du jour
 
 - Nouveauté : sous la température actuelle, la tuile et la carte complète montrent le mini et le maxi prévus aujourd’hui (↓ 16° ↑ 25°), jusqu’à minuit.

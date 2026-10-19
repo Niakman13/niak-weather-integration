@@ -27,6 +27,9 @@ export type TodayBlock = 'comfort' | 'rain' | 'wind' | 'pressure' | 'extras' | '
 export type ForecastBlock = 'hours' | 'days' | 'air';
 
 /** The card's own settings: what it shows and how. Its sources (weather, station, air) are set in the Niak Weather integration. */
+/** What a press does: the full weather over the page, the weather page, fold or unfold the tile, or nothing. */
+export type PressAction = 'popup' | 'page' | 'toggle' | 'none';
+
 export interface WeatherCardConfig {
   type: 'custom:niak-weather-card';
   /** The integration's place to show; may be left out when there is only one. */
@@ -46,8 +49,10 @@ export interface WeatherCardConfig {
   /** « Prévisions »: hours (the 18-hour curve), days (the 7-day table), air (tomorrow's air and pollens). */
   forecast_blocks?: ForecastBlock[];
   /** What a long press on the tile (a tap on mini and alert) does: popup, the full weather over the page; page, opens weather_path;
-   *  none, nothing (the tile then only folds and unfolds). Default: page when weather_path is set, popup otherwise. */
-  hold_action?: 'popup' | 'page' | 'none';
+   *  toggle, folds or unfolds the tile (tile formats only); none, nothing. Default: page when weather_path is set, popup otherwise. */
+  hold_action?: PressAction;
+  /** What a tap on the tile does, with the same choices. Default: toggle. */
+  tap_action?: PressAction;
   /** The forecasts open on the hours or on the days (the tile's « Prévisions » block and the forecast card). */
   forecast_tab?: 'hours' | 'days';
   /** Full card: start with « Aujourd'hui » or « Prévisions » folded. */
