@@ -51,3 +51,17 @@ class OriginalConditionTests(unittest.TestCase):
 
     def test_only_for_meteo_france(self):
         self.assertIsNone(find(entry("weather.gardanne", "x", platform="met"), NOW))
+
+
+class RadarRainTests(unittest.TestCase):
+    def radar(self, *entries: SimpleNamespace, weather: str = "weather.gardanne") -> str | None:
+        registry = Registry(*entries)
+        with patch.object(coordinator.er, "async_entries_for_config_entry", lambda r, _: list(r.entries.values())):
+            return coordinator.radar_rain(registry, weather)  # type: ignore[arg-type]
+
+    def test_finds_the_rain_within_the_hour_beside_the_weather_entity(self):
+        rain = entry("sensor.gardanne_next_rain", "43.45,5.47_next_rain")
+        self.assertEqual(self.radar(WEATHER, NOW, rain), "sensor.gardanne_next_rain")
+
+    def test_none_without_meteo_france(self):
+        self.assertIsNone(self.radar(entry("weather.gardanne", "x", platform="met"), entry("sensor.gardanne_next_rain", "x_next_rain")))
