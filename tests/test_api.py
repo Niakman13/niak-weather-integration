@@ -89,3 +89,14 @@ def test_air_follows_the_chosen_source_on_atmo_scale():
     atmo = entry("e2", "Gardanne", Settings(weather_entity="weather.home", atmo={"atmo_air_entity": "sensor.atmo_qualite_globale"}))
     assert NiakWeatherApi(hass_with(atmo)).air()["entity_id"] == "sensor.atmo_qualite_globale"
     assert NiakWeatherApi(hass_with(entry("e3", "Gardanne", Settings(weather_entity="weather.home")))).air() is None
+
+
+def test_rain_ahead_is_published_once_computed():
+    e = entry("e1", "Gardanne", Settings(weather_entity="weather.home"))
+    api = NiakWeatherApi(hass_with(e))
+    assert api.rain() is None
+    at = datetime(2026, 10, 20, 11, 51, tzinfo=timezone.utc)
+    e.runtime_data.data = SimpleNamespace(rain_ahead={"minutes": 29, "precision": "minute", "source": "radar", "amount": None, "dry_until": None},
+                                          computed=at)
+    assert api.rain("e1") == {"entry_id": "e1", "minutes": 29, "precision": "minute", "source": "radar", "amount": None,
+                              "dry_until": None, "at": "2026-10-20T11:51:00+00:00"}

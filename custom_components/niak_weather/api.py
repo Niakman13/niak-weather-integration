@@ -81,6 +81,16 @@ class NiakWeatherApi:
                 "entity_id": entity_id, "index": index, "label": item.extra.get("libelle") if index is not None else None,
                 "at": data.computed.isoformat() if data is not None else None}
 
+    def rain(self, entry_id: str | None = None) -> dict[str, Any] | None:
+        """When the next rain starts. `minutes` (0: due now) with `precision` « minute » when Météo-France's radar
+        forecast says it, « hour » when only the hourly forecast does (the rain falls somewhere in that hour);
+        `dry_until`: the end of the hour the radar sees dry. None without a place or before the first calculation."""
+        entry = self._entry(entry_id)
+        data = getattr(entry.runtime_data, "data", None) if entry is not None else None
+        if data is None:
+            return None
+        return {"entry_id": entry.entry_id, **data.rain_ahead, "at": data.computed.isoformat()}
+
     def add_listener(self, entry_id: str | None, update: Callable[[], None], brick: str | None = None) -> Callable[[], None]:
         """Calls `update` whenever this place is recomputed (new measures or forecasts).
 

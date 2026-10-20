@@ -34,6 +34,7 @@ from .engine.catalogue import Item
 from .engine.compute import compute
 from .engine.forecast import Day, Hour, Units, engine_rows, parse_days, parse_hours
 from .engine.local import LocalWeather
+from .engine.nowcast import rain_ahead
 from .engine.settings import Settings
 from .engine.series import weather_history
 from .engine.station import Derived, Statistic, midnight
@@ -62,6 +63,15 @@ def original_condition(registry: er.EntityRegistry, weather_entity: str) -> str 
     return None
 
 
+def radar_rain(registry: er.EntityRegistry, weather_entity: str) -> str | None:
+    """Météo-France's « rain within the hour » sensor (radar, five minutes at a time), beside the weather entity."""
+    weather = registry.async_get(weather_entity)
+    if weather is None or weather.platform != "meteo_france" or not weather.config_entry_id:
+        return None
+    return next((entry.entity_id for entry in er.async_entries_for_config_entry(registry, weather.config_entry_id)
+                 if entry.domain == "sensor" and not entry.disabled_by and str(entry.unique_id).endswith("_next_rain")), None)
+
+
 @dataclass(frozen=True)
 class Snapshot:
     """Everything known at one moment: the typed results for the sensors, and the view the cards draw."""
@@ -74,6 +84,8 @@ class Snapshot:
     alerts: dict[str, AlertState]
     """The alerts in progress, held a little after they stop being observed."""
     computed: datetime = field(compare=False)
+    rain_ahead: dict[str, Any] = field(default_factory=dict)
+    """When the next rain starts, to the minute from Météo-France's radar when it is there."""
 
 
 type NiakWeatherConfigEntry = ConfigEntry[NiakWeatherCoordinator]
@@ -203,7 +215,9 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         for event in events:
             hass.bus.async_fire(ALERT_EVENT, {"lieu": self.config_entry.title, "entry_id": self.config_entry.entry_id, "type": event.type,
                                               "etat": event.phase, "niveau": event.level, "source": event.source, "texte": event.text})
-        return Snapshot(result.local, result.brief, result.derived, to_json(result.view), result.catalogue, self.watch.states(), now)
+        radar = hass.states.get(radar_rain(er.async_get(hass), settings.weather_entity) or "")
+        ahead = rain_ahead(radar.attributes if radar else None, self.hours, now)
+        return Snapshot(result.local, result.brief, result.derived, to_json(result.view), result.catalogue, self.watch.states(), now, ahead)
 
     # ---- Sources ----
 

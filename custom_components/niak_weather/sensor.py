@@ -54,6 +54,18 @@ def _max_gust(s: Snapshot) -> float | None:
     return s.derived.gust_max.value if s.derived and s.derived.gust_max else None
 
 
+def _next_rain_hours(s: Snapshot) -> float | None:
+    # Hours to the tenth: to the minute from Météo-France's radar, from the hour's start in the hourly forecast.
+    minutes = s.rain_ahead.get("minutes")
+    return round(minutes / 60, 1) if minutes is not None else None
+
+
+def _next_rain_attributes(s: Snapshot) -> dict[str, Any]:
+    ahead = s.rain_ahead
+    return {"amount": ahead.get("amount"), "minutes": ahead.get("minutes"), "precision": ahead.get("precision"),
+            "source": ahead.get("source"), "dry_until": ahead.get("dry_until")}
+
+
 def _temperature_trend(s: Snapshot) -> float | None:
     if s.local.temperature_trend is not None:
         return s.local.temperature_trend
@@ -98,7 +110,7 @@ SENSORS: tuple[NiakSensorDescription, ...] = (
                               "periods": [{"label": p.get("label"), "text": p.get("text")} for p in _bulletin(s).get("periods", ())]}),
     NiakSensorDescription(
         key="next_rain", translation_key="next_rain", device_class=SensorDeviceClass.DURATION, native_unit_of_measurement=UnitOfTime.HOURS,
-        value=lambda s: s.local.rain.next_hours, attributes=lambda s: {"amount": s.local.rain.next_amount}),
+        value=_next_rain_hours, attributes=_next_rain_attributes),
     NiakSensorDescription(
         key="pressure_trend", translation_key="pressure_trend", device_class=SensorDeviceClass.PRESSURE, state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPressure.HPA, suggested_display_precision=1, value=lambda s: s.local.pressure_trend.change,

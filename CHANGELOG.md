@@ -1,3 +1,15 @@
+## 2.6.1 — Stable : la pluie à la minute
+
+**En bref**
+- **« Pluie dans » donne enfin le temps qui reste**, à la minute près grâce à la pluie dans l’heure de Météo-France.
+
+### Améliorations
+- Le capteur « Pluie dans » donnait le numéro du créneau horaire (0 voulait dire « quelque part dans ce créneau »). Il donne maintenant le temps qui reste, en heures avec une décimale ; ses attributs disent aussi les minutes et d’où vient l’information (radar ou prévision).
+- Quand la pluie dans l’heure de Météo-France ne voit rien tomber, la pluie de la prévision horaire est repoussée après cette heure sèche.
+
+### Nouveautés
+- Les autres briques Niak (Niak Confort) reçoivent l’heure de la prochaine pluie.
+
 ## 2.6.0 — Stable : ciel animé plus vivant
 
 - Nouveauté : le vent se voit enfin. Météo-France n’annonce jamais « venteux » : c’est maintenant la force du vent qui compte. Une brise (dès 25 km/h, ou rafales à 45 km/h) dessine quelques filets d’air, un vent fort (dès 40 km/h, ou rafales à 70 km/h) des filets rapides qui poussent la pluie et la neige de biais.
