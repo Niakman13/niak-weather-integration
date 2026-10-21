@@ -4,7 +4,7 @@ import {LitElement,html,unsafeCSS,nothing,type TemplateResult,type PropertyValue
 import {customElement,property,state} from 'lit/decorators.js';
 import styles from './styles.css';
 import {frame,hubStyles,modernStyles,hubIcon,helpTip} from './socle/ui';
-import {NONE,stages,intros,enabledKeys,provenance,sameSet,entityLine,grouped,capital,type Change,type Choice,type DraftReply,type Field,type Hass,type Line,type Place,type Places,type Sources,type View,type Extension} from './model';
+import {NONE,stages,intros,extensionGroups,enabledKeys,provenance,sameSet,entityLine,grouped,capital,type Change,type Choice,type DraftReply,type Field,type Hass,type Line,type Place,type Places,type Sources,type View,type Extension} from './model';
 
 const categories=['sources','station','air','pollens','entites','recapitulatif','extensions'];
 
@@ -223,7 +223,9 @@ export class WeatherSetup extends LitElement {
      <div class="actions">${e.url?html`<a href=${e.url} target="_blank" rel="noreferrer">Voir l’intégration ${e.name}</a>`:nothing}<a href="/config/integrations" target="_blank" rel="noreferrer">Appareils et services</a></div>`:nothing}
     ${e.field?this.view?.prevision.fields.filter(f=>f.key===e.field).map(f=>this.field(f)):e.installed?html`<button class="link" @click=${()=>this.go(e.stage)}>Choisir les données de ${e.name} →</button>`:nothing}
    </div>`:nothing}</section>`;
-  return html`${items.slice(0,3).map(row)}${items.length>3?html`<details class="other-extensions" ?open=${items.slice(3).some(e=>e.id===this.extensionId)}><summary>Autres sources d’air et de pollens</summary>${items.slice(3).map(row)}</details>`:nothing}`;
+  return html`${extensionGroups(items).map(group=>html`<details class="extension-category" ?open=${group.items.some(e=>e.id===this.extensionId)}>
+   <summary><span>${group.label}</span><span class="category-count">${group.items.filter(e=>e.configured).length} configurée${group.items.filter(e=>e.configured).length>1?'s':''} · ${group.items.length} disponible${group.items.length>1?'s':''}</span></summary>
+   ${group.items.map(row)}</details>`)}`;
  }
  private extensions(v:View){return html`${frame('Extensions météo',html`<p class="muted">Installez une intégration dans Home Assistant, puis choisissez les données que Niak Weather utilisera pour ce lieu.</p>
   ${this.extensionRows(v.extensions??[])}
@@ -254,7 +256,7 @@ export class WeatherSetup extends LitElement {
     ${frame('Votre lieu',html`<p class="muted">Niak Weather propose ce qu’il trouve dans Home Assistant ; vous vérifiez chaque étape avant de créer le lieu.</p>
      ${p.can_add?html`<button class="primary" ?disabled=${this.busy} @click=${()=>void this.open(null)}>Configurer mon lieu</button>`
       :html`<p class="warn">Aucun service météo dans Home Assistant : installez Météo-France (Paramètres → Appareils et services), puis revenez ici.</p>`}`,{className:''})}`}
-   ${!p.places.length?frame('Extensions disponibles',html`<p class="muted">Créez votre lieu pour choisir les données des extensions.</p>${(p.extensions??[]).slice(0,3).map(e=>html`<div class="extension-row"><div><h3>${e.name}</h3><p>${e.description}</p><span class="extension-badge ${e.installed?'ok':'none'}">${e.installed?'Installée':'Pas installée'}</span></div>${e.url?html`<a href=${e.url} target="_blank" rel="noreferrer">Installation</a>`:nothing}</div>`)}`):nothing}
+   ${!p.places.length?frame('Extensions disponibles',html`<p class="muted">Créez votre lieu pour choisir les données des extensions.</p>${extensionGroups(p.extensions??[]).map(g=>html`<details class="extension-category"><summary>${g.label}</summary>${g.items.map(e=>html`<div class="extension-row"><div><h3>${e.name}</h3><p>${e.description}</p><span class="extension-badge ${e.installed?'ok':'none'}">${e.installed?'Installée':'Pas installée'}</span></div>${e.url?html`<a href=${e.url} target="_blank" rel="noreferrer">Installation</a>`:nothing}</div>`)}</details>`)}`):nothing}
    <div class="footer">${p.places.length&&p.can_add?html`<button class="link" ?disabled=${this.busy} @click=${()=>void this.open(null)}>Ajouter un lieu</button>`:nothing}
     <span class="hint">Les sources et entités se règlent dans Réglages généraux.</span></div></main>`;
  }

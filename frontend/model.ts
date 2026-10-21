@@ -8,7 +8,7 @@ export type Level='ok'|'bad'|'tip'|'none';
 export interface Line {level:Level;text:string;why:string;stage:number|null}
 export interface Health {title:string;level:'ok'|'action';summary:string;tips_summary:string;todo:Line[];tips:Line[];
  sources:{label:string;level:Level;text:string}[];sensors:{label:string;name:string;level:Level;text:string}[];entities:Line[];versions:Line[]}
-export interface Extension {id:string;name:string;description:string;installed:boolean;configured:boolean;stage:number;field:string;url:string;integration:string;install:string}
+export interface Extension {id:string;name:string;description:string;installed:boolean;configured:boolean;air_configured?:boolean;pollen_configured?:boolean;stage:number;field:string;url:string;integration:string;install:string}
 export interface Place {entry_id:string;title:string;loaded:boolean;failed:boolean;health:Health;extensions?:Extension[]}
 export interface Places {places:Place[];can_add:boolean;extensions?:Extension[]}
 export interface Species extends Entity {label:string;chosen:boolean}
@@ -72,3 +72,18 @@ export function grouped(f:Pick<Field,'options'|'recognized'>):{label:string;opti
  return first.length&&rest.length?[{label:'Reconnus',options:first},{label:'Autres capteurs',options:rest}]:[{label:'',options:f.options}];
 }
 export function capital(text:string){return text.charAt(0).toUpperCase()+text.slice(1);}
+
+export interface ExtensionGroup {key:string;label:string;items:Extension[]}
+// Atmo can serve both subjects: each occurrence opens the matching settings and reports its own saved selection.
+export function extensionGroups(items:Extension[]):ExtensionGroup[]{
+ const atmo=items.find(e=>e.id==='atmo');
+ const subject=(key:'air'|'pollen',stage:number)=>atmo?[{...atmo,id:'atmo-'+key,stage,
+  configured:(key==='air'?atmo.air_configured:atmo.pollen_configured)??atmo.configured,
+  description:key==='air'?'Qualité de l’air de votre commune.':'Pollens de votre commune, aujourd’hui et demain.'}]:[];
+ return [
+  {key:'air',label:'Qualité de l’air',items:[...subject('air',2),...items.filter(e=>e.id==='waqi')]},
+  {key:'pollen',label:'Pollens',items:[...subject('pollen',3),...items.filter(e=>['polleninformation','irm_kmi','swiss_pollen','kleenex_pollenradar'].includes(e.id))]},
+  {key:'water',label:'Eau et jardin',items:items.filter(e=>e.id==='vigieau')},
+  {key:'storm',label:'Orages et éclairs',items:items.filter(e=>e.id==='blitzortung')},
+ ].filter(g=>g.items.length);
+}

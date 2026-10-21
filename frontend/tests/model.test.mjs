@@ -7,7 +7,7 @@ import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 const temp=await mkdtemp(join(tmpdir(),'niak-weather-'));
 await build({entryPoints:['model.ts'],bundle:true,platform:'node',format:'esm',outfile:join(temp,'model.mjs')});
-const {provenance,grouped,enabledKeys,entityLine,sameSet}=await import(pathToFileURL(join(temp,'model.mjs')));
+const {provenance,grouped,enabledKeys,entityLine,sameSet,extensionGroups}=await import(pathToFileURL(join(temp,'model.mjs')));
 after(()=>rm(temp,{recursive:true,force:true}));
 const sensor=(id,state='1')=>({id,name:id,state,available:true,missing:false});
 
@@ -34,3 +34,14 @@ test('the entities switched on, and a sensor line that says when it is gone',()=
  assert.ok(sameSet(['a','b'],['b','a'])&&!sameSet(['a'],['a','b']));
 });
 
+
+test('extensions group by use and Atmo keeps separate air and pollen configuration and destinations',()=>{
+ const shared={installed:true,configured:true,stage:2,field:'',description:'',name:'Atmo France'};
+ const groups=extensionGroups([{...shared,id:'atmo',air_configured:true,pollen_configured:false},{...shared,id:'waqi'},
+  {...shared,id:'polleninformation',stage:3},{...shared,id:'vigieau',stage:6},{...shared,id:'blitzortung',stage:6}]);
+ assert.deepEqual(groups.map(g=>g.label),['Qualité de l’air','Pollens','Eau et jardin','Orages et éclairs']);
+ assert.equal(groups[0].items[0].configured,true);
+ assert.equal(groups[1].items[0].configured,false);
+ assert.equal(groups[1].items[0].stage,3);
+ assert.notEqual(groups[0].items[0].id,groups[1].items[0].id);
+});

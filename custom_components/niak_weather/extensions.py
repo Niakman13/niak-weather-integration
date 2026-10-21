@@ -48,7 +48,10 @@ def inventory(hass: HomeAssistant, options: Mapping[str, Any]) -> list[dict[str,
             except (AttributeError, KeyError):
                 pass  # HACS's internals are optional: config entries and registry still work.
         result.append({"id": key, "name": name, "description": benefit, "installed": domain in installed or downloaded,
-                       "configured": chosen, "stage": stage, "field": field,
+                       "configured": chosen,
+                       "air_configured": options.get("air_source") not in ("none", "waqi") and bool(options.get("atmo_air_entity")) if key == "atmo" else False,
+                       "pollen_configured": options.get("pollen_source") not in ("none", "legacy") and bool(options.get("atmo_pollen_entity")) if key == "atmo" else False,
+                       "stage": stage, "field": field,
                        "url": f"https://github.com/{repository}" if repository else "https://www.home-assistant.io/integrations/waqi/" if key == "waqi" else "",
                        "integration": domain,
                        "install": ("Dans HACS, cherchez « Blitzortung.org Lightning Detector » et téléchargez-le. Redémarrez Home Assistant, "

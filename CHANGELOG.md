@@ -1,3 +1,9 @@
+## 2.8.0b2 — Bêta : extensions rangées par usage
+
+- Les extensions sont regroupées dans quatre catégories repliables : **Qualité de l’air**, **Pollens**, **Eau et jardin**, **Orages et éclairs**.
+- L’accueil et les réglages présentent les mêmes catégories, avec le nombre d’extensions configurées visible sans les ouvrir.
+- Atmo France apparaît dans Air et dans Pollens ; chaque entrée indique son propre état et ouvre le bon réglage.
+
 ## 2.8.0b1 — Bêta : les extensions météo à portée de main
 
 - L’accueil Météo présente les extensions : installées, configurées pour le lieu, ou pas encore installées.
