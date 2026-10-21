@@ -32,7 +32,7 @@ Tout est calculé une fois, dans Home Assistant : la carte affiche, vos automati
 
 - Home Assistant **2025.1** ou plus récent.
 - Une entité météo `weather.*`. **Météo-France** est conseillée.
-- En plus, si vous en avez : une station météo, les vigilances de Météo-France ou de MeteoSwiss, Atmo France (air et pollens), Polleninformation, IRM KMI, Swiss Pollen ou Kleenex / Scottex.
+- En plus, si vous en avez : une station météo, les vigilances de Météo-France ou de MeteoSwiss, Atmo France (air et pollens), Polleninformation, IRM KMI, Swiss Pollen ou Kleenex / Scottex, Vigieau (restrictions d’eau), Blitzortung (éclairs).
 
 ## Installation
 
@@ -102,7 +102,7 @@ Chaque entité dit **pourquoi** (attribut `raison`) et **d’où vient** sa vale
 | [Le ressenti](docs/ressenti.md) | Humidex, effets du vent, du soleil, de la pluie et de la nuit, mots et nuances, alerte de la station |
 | [La synthèse et les alertes](docs/synthese.md) | Les points retenus, leurs seuils, les niveaux, la vigilance officielle |
 | [Le bulletin du jour](docs/bulletin.md) | Comment il est rédigé |
-| [Sources et réglages](docs/sources.md) | Météo-France, station, soleil, Atmo France, historique, toutes les clés |
+| [Sources et réglages](docs/sources.md) | Météo-France, station, soleil, Atmo France, Vigieau, Blitzortung, historique, toutes les clés |
 | [Pluie, vent, pression](docs/mesures.md) | Cumuls, courbes, tendances, ce qui est calculé depuis l’historique |
 | [Fonctionnement technique](docs/technique.md) | Moteur, coordinateur, capteurs, API, tests ; le code de la carte est dans `card/` |
 

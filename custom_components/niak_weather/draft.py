@@ -25,12 +25,15 @@ from .engine.settings import Settings
 AIR_SOURCES = ("atmo", "waqi", NONE)
 POLLEN_SOURCES = ("atmo", *polleninfo.PROVIDERS, NONE)
 SIMPLE = frozenset({"weather_entity", "location", "vigilance_entity", "season_entity", "sun_entity", "sun_elevation_entity",
+                    "water_restriction_entity", "lightning_entity",
                     "forecast_source", "station_history", "pollen_risk_entity", *detection.STATION_FIELDS})
 RECOMMENDED = frozenset({"temperature_entity", "humidity_entity", "rain_rate_entity", "wind_gust_entity", "wind_bearing_entity"})
 HELP = {
     "weather_entity": "Les prévisions heure par heure et jour par jour, par exemple Météo-France ou MétéoSuisse. Une station facultative ajoute les mesures chez vous.",
     "vigilance_entity": "Les alertes officielles de Météo-France ou de MétéoSuisse s’ajoutent à celles que calcule Niak.",
     "season_entity": "Sans capteur, la saison suit la date.",
+    "water_restriction_entity": "Les restrictions d’eau de votre commune, avec l’intégration Vigieau (HACS). Choisissez la zone de l’eau du robinet (AEP).",
+    "lightning_entity": "Les éclairs détectés autour de chez vous, avec l’intégration Blitzortung (HACS). À moins de 30 km, le capteur Orage s’allume.",
     "temperature_entity": "La température dehors, à l’ombre.",
     "rain_rate_entity": "Dit s’il pleut maintenant (mm/h). Un cumul de la journée ne le dit pas.",
     "wind_gust_entity": "Les pointes de vent : elles déclenchent l’alerte de vent fort.",
@@ -278,6 +281,8 @@ class Draft(_SourceSteps):
                             warning="" if vigilance or s.get("vigilance_entity") else
                             "Aucun capteur de vigilance trouvé : installez Météo-France ou MeteoSwiss pour votre région, puis « Rechercher à nouveau »."),
                 self._field("season_entity", "Saison", detection.season_candidates(states, registry)),
+                self._field("water_restriction_entity", "Restrictions d’eau (Vigieau)", detection.water_candidates(states, registry)),
+                self._field("lightning_entity", "Éclairs (Blitzortung)", detection.lightning_candidates(states, registry)),
             ],
             "location": s.get("location") or "", "location_placeholder": self._title(),
             "advanced": [

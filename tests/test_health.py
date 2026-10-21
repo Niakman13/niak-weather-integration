@@ -109,3 +109,10 @@ def test_a_silent_air_or_pollen_source_is_to_fix_once_per_provider():
     r = report(place(pollen="Polleninformation · 3 espèces", pollen_ok=False))
     assert [t["text"] for t in r["todo"]] == ["Polleninformation ne répond pas : pollens"]
     assert report(place(air_ok=False, restarting=True))["todo"] == []  # Home Assistant starting: sources come back by themselves
+
+
+def test_vigieau_and_blitzortung_show_once_chosen():
+    assert not any(s["label"] in ("Restrictions d’eau", "Éclairs") for s in report(place())["sources"])
+    sources = {s["label"]: s for s in report(place(water="Gardanne Alert level", lightning="Blitzortung distance", lightning_ok=False))["sources"]}
+    assert sources["Restrictions d’eau"]["level"] == "ok" and sources["Éclairs"] == {"label": "Éclairs", "level": "bad",
+                                                                                      "text": "Blitzortung distance · ne répond pas"}

@@ -26,13 +26,17 @@
           "weather_entity": "Weather forecast",
           "location": "Place name",
           "vigilance_entity": "Official weather warnings",
-          "season_entity": "Season"
+          "season_entity": "Season",
+          "water_restriction_entity": "Water restrictions (Vigieau)",
+          "lightning_entity": "Lightning (Blitzortung)"
         },
         "data_description": {
           "weather_entity": "Météo-France, MeteoSwiss or another provider.",
           "location": "Shown at the top of the card.",
           "vigilance_entity": "Optional: Météo-France or MeteoSwiss (aggregate warnings sensor).",
-          "season_entity": "Optional. Without a sensor, the season follows the date."
+          "season_entity": "Optional. Without a sensor, the season follows the date.",
+          "water_restriction_entity": "Optional: the alert level of the Vigieau integration, drinking water zone (AEP).",
+          "lightning_entity": "Optional: the distance sensor of the Blitzortung integration. Within 30 km, the Storm sensor turns on."
         },
         "sections": {
           "advanced": {
@@ -182,13 +186,17 @@
           "weather_entity": "Weather forecast",
           "location": "Place name",
           "vigilance_entity": "Official weather warnings",
-          "season_entity": "Season"
+          "season_entity": "Season",
+          "water_restriction_entity": "Water restrictions (Vigieau)",
+          "lightning_entity": "Lightning (Blitzortung)"
         },
         "data_description": {
           "weather_entity": "Météo-France, MeteoSwiss or another provider.",
           "location": "Shown at the top of the card.",
           "vigilance_entity": "Optional: Météo-France or MeteoSwiss (aggregate warnings sensor).",
-          "season_entity": "Optional. Without a sensor, the season follows the date."
+          "season_entity": "Optional. Without a sensor, the season follows the date.",
+          "water_restriction_entity": "Optional: the alert level of the Vigieau integration, drinking water zone (AEP).",
+          "lightning_entity": "Optional: the distance sensor of the Blitzortung integration. Within 30 km, the Storm sensor turns on."
         },
         "sections": {
           "advanced": {
@@ -362,7 +370,7 @@
         "maintenant": "Now — feels like, observed weather, rain now",
         "alertes": "Alerts — vigilance, storm, wind, frost, heat",
         "prochaines_heures": "Next hours — rain, low, high",
-        "jardin": "Garden — rain over 7 days",
+        "jardin": "Garden — rain over 7 days, water restrictions",
         "batiment": "Building — heating and cooling degree days",
         "energie": "Energy — tomorrow’s sunshine",
         "vie_pratique": "Everyday — laundry, frost, air, pollen",
@@ -400,6 +408,7 @@
         "maximale_demain": "Tomorrow’s high",
         "rafales_6h": "Strongest gusts over 6 h",
         "pluie_7j": "Rain over the last 7 days — for watering",
+        "restrictions_eau": "Water restrictions — your commune's drought order, through Vigieau",
         "degres_jours_chauffe": "Heating degree days",
         "degres_jours_clim": "Cooling degree days",
         "ensoleillement_demain": "Tomorrow’s sunshine — %",
@@ -534,6 +543,16 @@
       },
       "pollens": {
         "name": "Pollen"
+      },
+      "restrictions_eau": {
+        "name": "Water restrictions",
+        "state": {
+          "aucune": "No restriction",
+          "vigilance": "Vigilance",
+          "alerte": "Alert",
+          "alerte_renforcee": "Reinforced alert",
+          "crise": "Crisis"
+        }
       }
     },
     "binary_sensor": {

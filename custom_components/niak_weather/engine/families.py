@@ -9,7 +9,7 @@ FAMILIES: tuple[tuple[str, tuple[str, ...]], ...] = (
                     "temperature_trend", "rain_24h", "max_gust_today")),
     ("alertes", ("vigilance", "alert", "brief", "orage", "vent_fort", "pluie_forte", "gel", "canicule", "uv_fort")),
     ("prochaines_heures", ("bulletin", "next_rain", "pluie_heure", "pluie_6h", "pluie_24h_prevue", "minimale_nuit", "maximale_demain", "rafales_6h")),
-    ("jardin", ("pluie_7j",)),
+    ("jardin", ("pluie_7j", "restrictions_eau")),
     ("batiment", ("degres_jours_chauffe", "degres_jours_clim")),
     ("energie", ("ensoleillement_demain",)),
     ("vie_pratique", ("sechage_linge", "givre_pare_brise", "qualite_air", "pollens")),
@@ -33,6 +33,7 @@ def needs(settings: Settings) -> dict[str, str]:
     atmo_pollen = settings.pollen_source != "none" and bool(settings.atmo.get("atmo_pollen_entity"))
     missing = {
         "vigilance": not settings.vigilance_entity and "la vigilance officielle",
+        "restrictions_eau": not settings.water_restriction_entity and "l’intégration Vigieau",
         "uv_fort": not settings.uv_index_entity and "un capteur UV",
         "pluie_7j": not (rain_gauge and settings.station_history) and "un pluviomètre et l’historique de la station",
         "rain_24h": not rain_gauge and "un pluviomètre",

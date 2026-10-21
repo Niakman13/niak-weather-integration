@@ -110,6 +110,45 @@ class NiakWeatherApi:
             return None
         return {"entry_id": entry.entry_id, **data.rain_ahead, "at": data.computed.isoformat()}
 
+    def lightning(self, entry_id: str | None = None) -> dict[str, Any] | None:
+        """The storm Blitzortung sees, from its strikes of the last 20 minutes. `near`: a strike within 30 km (the Orage sensor is on);
+        `overhead`: within 10 km in the last 10 minutes; `nearest_km` the closest strike; `direction` in words (« au sud-ouest »);
+        `trend` « approche », « eloigne » or None; `count` the strikes; `last` the time of the last one. `available` is False while
+        the Blitzortung sensor does not answer: no strike then says nothing. None without a place or without Blitzortung."""
+        entry = self._entry(entry_id)
+        data = getattr(entry.runtime_data, "data", None) if entry is not None else None
+        if data is None or not entry.runtime_data.settings.lightning_entity:
+            return None
+        from datetime import datetime, timezone
+        try:
+            from .engine import lightning
+        except ImportError:  # loaded on its own, as by the tests
+            from engine import lightning
+        entity_id = entry.runtime_data.settings.lightning_entity
+        state = self.hass.states.get(entity_id)
+        seen = lightning.read(entry.runtime_data.strikes, data.computed.timestamp(), state is not None and state.state != "unavailable")
+        extra = seen.extra()
+        return {"entry_id": entry.entry_id, "entity_id": entity_id, "available": seen.available, "near": seen.near, "overhead": seen.overhead,
+                "level": seen.level, "nearest_km": extra["eclair_le_plus_proche_km"], "direction": extra["direction"], "azimuth": extra["azimut"],
+                "trend": seen.trend, "count": seen.count, "near_count": seen.near_count, "text": seen.text or None,
+                "last": datetime.fromtimestamp(seen.last, timezone.utc).isoformat() if seen.last else None, "at": data.computed.isoformat()}
+
+    def water(self, entry_id: str | None = None) -> dict[str, Any] | None:
+        """The drought restrictions of the day from Vigieau: `level` 0 (none) to 4 (crisis), `state` « aucune » to « crise »,
+        `restricted` True from « Alerte » on, `watering_restricted` when watering is among the restricted uses, `usages` their names,
+        `order` the prefect's order. `level` is None while Vigieau does not answer. None without a place or without Vigieau."""
+        entry = self._entry(entry_id)
+        data = getattr(entry.runtime_data, "data", None) if entry is not None else None
+        if data is None or not entry.runtime_data.settings.water_restriction_entity:
+            return None
+        item = data.catalogue.get("restrictions_eau")
+        extra = item.extra if item is not None and item.value is not None else {}
+        level = extra.get("niveau")
+        return {"entry_id": entry.entry_id, "entity_id": entry.runtime_data.settings.water_restriction_entity, "level": level,
+                "state": item.value if extra else None, "label": extra.get("libelle"), "restricted": level is not None and level >= 2,
+                "watering_restricted": bool(extra.get("arrosage_restreint")), "usages": list(extra.get("usages") or []),
+                "order": extra.get("arrete"), "at": data.computed.isoformat()}
+
     def add_listener(self, entry_id: str | None, update: Callable[[], None], brick: str | None = None) -> Callable[[], None]:
         """Calls `update` whenever this place is recomputed (new measures or forecasts).
 

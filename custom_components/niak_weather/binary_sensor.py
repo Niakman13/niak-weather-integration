@@ -35,6 +35,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: NiakWeatherConfigEntry, 
 
 class NiakWeatherBinarySensor(CoordinatorEntity[NiakWeatherCoordinator], BinarySensorEntity):
     _attr_has_entity_name = True
+    # Blitzortung's strikes change these at every strike: worth reading, not worth the Recorder's space.
+    _unrecorded_attributes = frozenset({"eclair_le_plus_proche_km", "direction", "azimut", "tendance", "eclairs_20_min", "eclairs_proches_20_min"})
 
     def __init__(self, coordinator: NiakWeatherCoordinator, description: BinarySensorEntityDescription, prefix: str, device: str) -> None:
         super().__init__(coordinator)

@@ -18,6 +18,7 @@ from .bulletin import Bulletin, build_bulletin
 from .conditions import condition_icon, condition_label
 from .current import STATION, CurrentWeather, available, current_metrics, current_weather, meaningful_comfort, weather_source_label
 from .forecast import Day, Hour, daily_wind, day_offset, local_day
+from .lightning import Lightning
 from .local import LocalWeather
 from .season import MONTHS, Season, current_season
 from .series import ColumnStatus, Point, column_status, pressure_chart_series, rain_days, wind_chart_series, weather_history_key
@@ -237,7 +238,7 @@ def signed(value: float, digits: int = 1) -> str:
 def build_view(get: Getter, settings: Settings, w: LocalWeather, brief: Brief | None, hours: Sequence[Hour], days: Sequence[Day],
                history: Mapping[str, Sequence[Change]], rain_history: Mapping[str, Sequence[Change]], derived: Derived | None,
                now: datetime, zone: ZoneInfo, latitude: float | None = None, elevation: float = 0,
-               original_condition: str | None = None) -> WeatherView:
+               original_condition: str | None = None, lightning: Lightning | None = None) -> WeatherView:
     """`hours` and `days` are the whole parsed forecasts; `history` covers six hours (and today for gusts), `rain_history` eight days."""
     weather = get(settings.weather_entity)
     attributes: Mapping[str, Any] = weather.attributes if weather else {}
@@ -255,7 +256,7 @@ def build_view(get: Getter, settings: Settings, w: LocalWeather, brief: Brief | 
         date_label=date_label[0].upper() + date_label[1:], provider=weather_source_label(get, settings),
         forecast_source=settings.forecast_source or ("Météo-France" if re.search("france", str(attributes.get("attribution")), re.IGNORECASE) else "Prévisions météo"),
         weather_entity=settings.weather_entity, station=bool(settings.temperature_entity),
-        now=current_weather(get, settings, w, trend, original_condition, this_hour.precipitation if this_hour else None), season=SeasonView(season, season.news, season.tip),
+        now=current_weather(get, settings, w, trend, original_condition, this_hour.precipitation if this_hour else None, lightning), season=SeasonView(season, season.news, season.tip),
         alerts=tuple(shown), points=tuple(p for p in alerts.ticker_points(brief) if p.text not in {a.source for a in shown}),
         timeline=tuple(alerts.timeline_points(brief)), brief=brief,
         bulletin=build_bulletin(hours, now, zone), comfort=_comfort(get, settings, w), rain=rain, wind=wind, pressure=pressure,

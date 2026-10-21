@@ -54,6 +54,10 @@ class Settings:
     sun_entity: str | None = None
     sun_elevation_entity: str | None = None
     season_entity: str | None = None
+    water_restriction_entity: str | None = None
+    """Vigieau's alert level sensor: the drought restrictions of the commune."""
+    lightning_entity: str | None = None
+    """Blitzortung's distance sensor: each of its changes is a strike."""
     # Station
     station_model: str | None = None
     station_device_id: str | None = None

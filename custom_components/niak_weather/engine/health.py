@@ -51,6 +51,13 @@ class Facts:
     vigilance_found: str = ""
     """A Météo-France vigilance sensor Home Assistant has, when none is chosen."""
     season: str = ""
+    water: str = ""
+    """Vigieau's sensor, by name; "" when not chosen."""
+    water_ok: bool = True
+    lightning: str = ""
+    """Blitzortung's distance sensor, by name; "" when not chosen."""
+    lightning_ok: bool = True
+    """It answers: « unknown » is its quiet state, not a failure."""
     station: str = ""
     """The station's model (« GW2000A »), "" without a station."""
     sensors: Sequence[Sensor] = ()
@@ -196,6 +203,10 @@ def report(f: Facts) -> dict:
         sources.append({"label": label, "level": "none" if not value else "ok" if good else "bad",
                         "text": "aucune source" if not value else value + ("" if good else " · ne répond pas")})
     sources.append({"label": "Saison", "level": "ok" if f.season else "none", "text": f.season or "pas de capteur : suit la date"})
+    # Optional extras: shown once chosen, never as a grey line for every home that has no use for them.
+    for label, value, good in (("Restrictions d’eau", f.water, f.water_ok), ("Éclairs", f.lightning, f.lightning_ok)):
+        if value:
+            sources.append({"label": label, "level": "ok" if good else "bad", "text": value + ("" if good else " · ne répond pas")})
 
     # ---- The station's sensors, those that do not answer first ----
     sensors = []

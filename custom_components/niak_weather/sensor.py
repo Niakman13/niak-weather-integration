@@ -16,7 +16,7 @@ from homeassistant.util import slugify
 
 from .const import DOMAIN
 from .coordinator import NiakWeatherConfigEntry, NiakWeatherCoordinator, Snapshot
-from .engine import families
+from .engine import families, water
 from .engine.catalogue import CONDITIONS, DRYING, VIGILANCE, Item
 from .engine.feel import Alert
 from .engine.moisture import humidex
@@ -164,6 +164,8 @@ CATALOGUE_SENSORS: tuple[CatalogueSensorDescription, ...] = (
     CatalogueSensorDescription(key="rafales_6h", translation_key="rafales_6h", device_class=SensorDeviceClass.WIND_SPEED, state_class=SensorStateClass.MEASUREMENT,
                                native_unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR, suggested_display_precision=0, entity_registry_enabled_default=False),
     CatalogueSensorDescription(key="pluie_7j", translation_key="pluie_7j", **_MM, entity_registry_enabled_default=False),
+    CatalogueSensorDescription(key="restrictions_eau", translation_key="restrictions_eau", device_class=SensorDeviceClass.ENUM,
+                               options=list(water.LEVELS), entity_registry_enabled_default=False),
     CatalogueSensorDescription(key="degres_jours_chauffe", translation_key="degres_jours_chauffe", **_DEGREE_DAYS, entity_registry_enabled_default=False),
     CatalogueSensorDescription(key="degres_jours_clim", translation_key="degres_jours_clim", **_DEGREE_DAYS, entity_registry_enabled_default=False),
     CatalogueSensorDescription(key="ensoleillement_demain", translation_key="ensoleillement_demain", native_unit_of_measurement=PERCENTAGE,
@@ -249,7 +251,7 @@ class NiakWeatherSensor(CoordinatorEntity[NiakWeatherCoordinator], SensorEntity)
 class CatalogueSensor(CoordinatorEntity[NiakWeatherCoordinator], SensorEntity):
     _attr_has_entity_name = True
     # The reason is for notifications and dashboards; its history is not worth the Recorder's space.
-    _unrecorded_attributes = frozenset({"raison"})
+    _unrecorded_attributes = frozenset({"raison", "usages", "arrete"})
     entity_description: CatalogueSensorDescription
 
     def __init__(self, coordinator: NiakWeatherCoordinator, description: CatalogueSensorDescription, prefix: str, device: str) -> None:

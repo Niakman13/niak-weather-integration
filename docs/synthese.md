@@ -9,7 +9,7 @@ La synthèse transforme les mesures et les prévisions en quelques points clairs
 | Famille | Ce qu’elle lit |
 | --- | --- |
 | **Vigilance officielle** | La vigilance Météo-France de votre département, si vous l’avez choisie. |
-| **Maintenant** | Ce que mesure votre station : vent, pluie, brouillard probable, UV, chaleur ou froid ressentis, grand écart entre ressenti et thermomètre, pression qui monte ou baisse. |
+| **Maintenant** | Ce que mesure votre station : vent, pluie, brouillard probable, UV, chaleur ou froid ressentis, grand écart entre ressenti et thermomètre, pression qui monte ou baisse. Avec Blitzortung, les éclairs autour de chez vous ; avec Vigieau, les restrictions d’eau dès l’alerte. |
 | **À venir** | Les 6 prochaines heures de prévisions : première pluie et son cumul, orage ou grêle, gel. Puis la nuit : gelée, brouillard au petit matin. Et demain : forte pluie annoncée. |
 | **Air et pollens** | Le plus mauvais des indices Atmo France, aujourd’hui et demain. |
 
@@ -30,6 +30,8 @@ Ce sont des **règles de lecture** de Niak Weather, pas des seuils départementa
 | UV | ≥ 6 | ≥ 8 |
 | Pluie prévue dans les 6 h | Cumul ≥ 5 mm (cité dès 1 mm) | ≥ 5 mm en une heure ou cumul ≥ 20 mm |
 | Orage ou grêle prévus dans les 6 h | — | Toujours |
+| Éclairs (Blitzortung, 20 dernières minutes) | À moins de 30 km (plus loin : pour information) | À moins de 15 km, ou à moins de 20 km en se rapprochant |
+| Restrictions d’eau (Vigieau) | Alerte, alerte renforcée | Crise |
 | Gel prévu dans les 6 h, gelée cette nuit | Toujours | — |
 | Air extérieur Atmo | Indice 3 sur 6 | Indice 4 et plus |
 | Pollens Atmo | Indice 4 sur 6 | Indice 5 et plus |

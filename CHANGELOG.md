@@ -1,3 +1,23 @@
+## 2.7.0 — Stable : les éclairs et les restrictions d’eau
+
+**En bref**
+
+- **L’orage vu, pas seulement prévu.** Avec l’intégration Blitzortung, Niak Weather voit les éclairs autour de chez vous : à moins de 30 km, le capteur Orage s’allume et dit où est l’orage et s’il se rapproche.
+- **Les restrictions d’eau de votre commune.** Avec l’intégration Vigieau, un nouveau capteur « Restrictions d’eau » (famille Jardin) donne le niveau de l’arrêté sécheresse.
+
+### Nouveautés
+
+- Éclairs à moins de 30 km : le capteur Orage s’allume, même sans orage prévu. « Orage à 12 km au sud-ouest, il se rapproche ». Distance, direction et tendance en attributs.
+- Éclairs à moins de 10 km : le temps du moment et le ciel animé passent à « Orage ».
+- Un orage plus lointain est signalé pour information, sans alerte.
+- Capteur « Restrictions d’eau » : pas de restriction, vigilance, alerte, alerte renforcée ou crise ; usages restreints et lien de l’arrêté en attributs.
+- Dès le niveau « Alerte », la carte et la synthèse le disent, en précisant si l’arrosage est restreint.
+- Les autres briques Niak reçoivent les éclairs et les restrictions d’eau.
+
+### Améliorations
+
+- Vigieau et Blitzortung se choisissent dans l’étape Sources météo ; Niak les trouve seul quand il n’y a qu’un choix (pour Vigieau, la zone de l’eau du robinet).
+
 ## 2.6.3 — Stable : la couverture nuageuse partagée
 
 **En bref**

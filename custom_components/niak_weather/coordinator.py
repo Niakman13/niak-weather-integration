@@ -28,7 +28,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .const import AIR_INTERVAL, DEBOUNCE_SECONDS, DOMAIN, FORECAST_INTERVAL, FORECAST_RETRY, HISTORY_INTERVAL, LOGGER, RAIN_INTERVAL, TICK
-from .engine import open_meteo, waqi
+from .engine import lightning, open_meteo, waqi
 from .engine.brief import Brief
 from .engine.catalogue import Item
 from .engine.compute import compute
@@ -120,6 +120,8 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         self.air_forecast: open_meteo.Data | None = None
         """Tomorrow's air from Open-Meteo, only when WAQI gives the air: WAQI has no forecast."""
         self._air_tried: datetime | None = None
+        self.strikes: list[lightning.Strike] = []
+        """Blitzortung's strikes of the last hour: its sensor only keeps the last one."""
         self._cancel_retry: Callable[[], None] | None = None
         self._stop_listeners: set[Callable[[], None]] = set()
         self._retries = 0
@@ -134,7 +136,7 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         self.watch = AlertWatch(await self._store.async_load())
         # Listen first: a weather service that starts while the first fetches run is caught at once.
         entry.async_on_unload(async_track_state_change_event(self.hass, sorted(ids), self._on_state_change))
-        await asyncio.gather(self._load_forecasts(), self._load_history(), self._load_rain(), self._load_air_forecast())
+        await asyncio.gather(self._load_forecasts(), self._load_history(), self._load_rain(), self._load_air_forecast(), self._load_strikes())
         for interval, load in ((FORECAST_INTERVAL, self._load_forecasts), (HISTORY_INTERVAL, self._load_history), (RAIN_INTERVAL, self._load_rain),
                                (AIR_INTERVAL, self._load_air_forecast)):
             entry.async_on_unload(async_track_time_interval(self.hass, self._in_background(load), interval))
@@ -174,6 +176,12 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
     @callback
     def _on_state_change(self, event: Event[EventStateChangedData]) -> None:
         data = event.data
+        if data["entity_id"] == self.settings.lightning_entity and data["new_state"] is not None:
+            # Each new distance is a strike; « unknown » after a quiet spell is not one.
+            new = data["new_state"]
+            strike = lightning.strike_of(new, new.last_updated.timestamp(), self.hass.config.latitude, self.hass.config.longitude)
+            if strike is not None:
+                self.strikes = lightning.keep([*self.strikes, strike], dt_util.utcnow().timestamp())
         if data["entity_id"] == self.settings.weather_entity and _ready(data["new_state"]) and not _ready(data["old_state"]):
             # The weather service has just started (or is back): its forecast is fetched now, not at the next retry.
             self._cancel_forecast_retry()
@@ -206,9 +214,14 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         zone = ZoneInfo(hass.config.time_zone)
         # WAQI's station today and Open-Meteo tomorrow stand where Atmo France's air sensors would be.
         settings, get = waqi.overlay(self.settings, hass.states.get, self.air_forecast, now, zone)
+        strikes = None
+        if settings.lightning_entity:
+            sensor = hass.states.get(settings.lightning_entity)
+            self.strikes = lightning.keep(self.strikes, now.timestamp())
+            strikes = lightning.read(self.strikes, now.timestamp(), sensor is not None and sensor.state != STATE_UNAVAILABLE)
         result = compute(get, settings, self.hours, self.days, self.history, self.rain_history, self.statistics, self.statistics_unit,
                          now, zone, hass.config.latitude, hass.config.elevation or 0, self.platforms,
-                         original_condition(er.async_get(hass), settings.weather_entity))
+                         original_condition(er.async_get(hass), settings.weather_entity), strikes)
         events = self.watch.update(result.catalogue, now)
         if events:
             self._store.async_delay_save(self.watch.as_dict, 10)
@@ -327,6 +340,19 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         if derived and not s.max_daily_gust_entity and s.wind_gust_entity:
             start = min(start, dt_util.start_of_local_day())
         self.history = await self._states_during(start, ids)
+
+    async def _load_strikes(self) -> None:
+        """The last hour of strikes from the Recorder, after a restart: their distance only, the Recorder keeps no position."""
+        entity_id = self.settings.lightning_entity
+        if not entity_id:
+            return
+        now = dt_util.utcnow()
+        changes = await self._states_during(now - timedelta(seconds=lightning.KEEP), [entity_id])
+        state = self.hass.states.get(entity_id)
+        unit = state.attributes.get("unit_of_measurement") if state is not None else "km"
+        # The state already there at the start is the last strike before the hour, or « unknown »: only changes count.
+        recorded = [c for c in changes.get(entity_id, []) if c.time >= (now - timedelta(seconds=lightning.KEEP)).timestamp()]
+        self.strikes = lightning.keep([*lightning.from_history(recorded, unit), *self.strikes], now.timestamp())
 
     async def _load_rain(self) -> None:
         """Eight days of the daily rain counter and the total counter; long-term statistics of the total for weeks, months and the year."""

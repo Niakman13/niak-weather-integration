@@ -10,10 +10,11 @@ from datetime import date, datetime, timedelta
 from typing import Any, Callable, Mapping, Sequence
 from zoneinfo import ZoneInfo
 
-from . import atmo, polleninfo
+from . import atmo, polleninfo, water
 from .brief import COLOR_NAMES, Brief, number, read_vigilance
 from .feel import STORMY, normalise_condition
 from .forecast import Day, Hour
+from .lightning import NEAR_KM, Lightning
 from .local import CONDITION_TITLES, LocalWeather
 from .settings import Settings
 from .station import Derived
@@ -40,7 +41,7 @@ class Item:
     """A number, a word, True/False for a yes/no, or None when unknown."""
     reason: str = ""
     source: str | None = None
-    """« station », « bulletin », « prevision », « vigilance », « atmo » or « waqi »."""
+    """« station », « bulletin », « prevision », « vigilance », « atmo », « waqi », « blitzortung » or « vigieau »."""
     start: datetime | None = None
     end: datetime | None = None
     partial: bool = False
@@ -125,8 +126,8 @@ def _day_mean(hours: Sequence[Hour], days: Sequence[Day], day: date, zone: ZoneI
 
 def build_catalogue(w: LocalWeather, brief: Brief, derived: Derived | None, settings: Settings, get: Callable[[str], Any],
                     hours: Sequence[Hour], days: Sequence[Day], now: datetime, zone: ZoneInfo,
-                    platforms: Mapping[str, str] | None = None) -> dict[str, Item]:
-    """Every entry of the catalogue at this moment. `hours` and `days` are the whole forecasts."""
+                    platforms: Mapping[str, str] | None = None, lightning: Lightning | None = None) -> dict[str, Item]:
+    """Every entry of the catalogue at this moment. `hours` and `days` are the whole forecasts; `lightning` Blitzortung's strikes."""
     upcoming = sorted((h for h in hours if h.time is not None and h.time + HOUR > now), key=lambda h: h.time or now)
     forecast = bool(upcoming)
     weather = get(settings.weather_entity)
@@ -154,6 +155,11 @@ def build_catalogue(w: LocalWeather, brief: Brief, derived: Derived | None, sett
         items["temps_observe"] = Item(condition, why, "station")
     else:
         items["temps_observe"] = Item(condition, f"Bulletin : {CONDITION_TITLES.get(condition, condition).lower()}", "bulletin")
+    if (condition is not None and lightning is not None and lightning.overhead
+            and condition not in ("lightning", "lightning-rainy", "hail", "snowy", "snowy-rainy")):
+        # Strikes within 10 km: the storm is here, whatever the sky the bulletin or the station gave.
+        sky = "lightning-rainy" if condition in ("rainy", "pouring") else "lightning"
+        items["temps_observe"] = Item(sky, f"Éclairs à {number(max(1.0, lightning.recent_nearest or 0), 0)} km : orage sur place", "blitzortung")
 
     if settings.rain_rate_entity:
         rate = w.rain.rate
@@ -188,6 +194,7 @@ def build_catalogue(w: LocalWeather, brief: Brief, derived: Derived | None, sett
                                    extra=official.extra))
 
     six = within(timedelta(hours=6))
+    strikes = lightning.extra() if lightning is not None and lightning.available else {}
     storm_index = next((i for i, h in enumerate(upcoming) if h in six and normalise_condition(h.condition) in STORMY), None)
     storm_now = bulletin_state in STORMY
     if storm_index is not None or storm_now:
@@ -201,13 +208,20 @@ def build_catalogue(w: LocalWeather, brief: Brief, derived: Derived | None, sett
         end = last.time + HOUR if last and last.time else None
         started = storm_now or (first is not None and first.time is not None and first.time <= now)
         words = "Orage en cours" if started else f"Orage prévu vers {hour_text(first.time, zone)}" if first and first.time else "Orage"
-        items["orage"] = Item(True, words + (f", jusqu’à {hour_text(end, zone)}" if end else ""), "prevision" if first else "bulletin",
-                              start=None if started or not first else first.time, end=end, level=2)
+        # Blitzortung sees no strike near the storm the bulletin says is here: it is told, never hidden (it may be forming).
+        calm = f", aucun éclair à moins de {NEAR_KM} km pour l’instant" if started and strikes and not lightning.near else ""
+        items["orage"] = Item(True, words + (f", jusqu’à {hour_text(end, zone)}" if end else "") + calm, "prevision" if first else "bulletin",
+                              start=None if started or not first else first.time, end=end, level=2, extra=strikes)
     elif forecast:
         # Without the next hours, a calm sky now says nothing about the storm of 17 h.
-        items["orage"] = Item(False, "Aucun orage dans les 6 h", "prevision")
+        items["orage"] = Item(False, "Aucun orage dans les 6 h", "prevision", extra=strikes)
     else:
-        items["orage"] = Item(None, "Prévisions indisponibles", "prevision")
+        items["orage"] = Item(None, "Prévisions indisponibles", "prevision", extra=strikes)
+    if lightning is not None and lightning.near:
+        # Strikes within 30 km: the storm is here, forecast or not. Its end, when the forecast gives one, is kept.
+        before = items["orage"]
+        items["orage"] = Item(True, lightning.text, "blitzortung", end=before.end if before.value else None,
+                              level=max(lightning.level, 1), extra=strikes)
 
     if settings.wind_speed_entity or settings.wind_gust_entity:
         speed, gust, wind_source = w.wind.speed, w.wind.gust, "station"
@@ -346,6 +360,12 @@ def build_catalogue(w: LocalWeather, brief: Brief, derived: Derived | None, sett
                                  partial=len(week) < 7 or any(d.partial for d in week))
     else:
         items["pluie_7j"] = Item(None, "Pas de pluie mesurée : pluviomètre absent ou historique désactivé", "station")
+
+    restriction = water.read(get, settings)
+    if restriction is not None:
+        items["restrictions_eau"] = Item(restriction.value, restriction.text, "vigieau", level=restriction.level, extra=restriction.extra())
+    else:
+        items["restrictions_eau"] = Item(None, "Vigieau non choisi" if not settings.water_restriction_entity else "Vigieau indisponible", "vigieau")
 
     # ---- Bâtiment ----
     today = now.astimezone(zone).date()

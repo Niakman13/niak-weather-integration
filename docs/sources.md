@@ -12,6 +12,8 @@ Niak Weather assemble des données **déjà présentes** dans Home Assistant. Il
 | Vigilance officielle | Facultative | Les alertes de Météo-France ou de MeteoSwiss pour votre région. |
 | Saison | Facultative | La saison de l’intégration Saison ; sinon, calculée d’après la date et l’hémisphère. |
 | Atmo France | Facultative | Air extérieur et pollens, aujourd’hui et demain. |
+| Vigieau | Facultative | Les restrictions d’eau (sécheresse) de votre commune. |
+| Blitzortung | Facultative | Les éclairs détectés autour de chez vous : l’orage vu, pas seulement prévu. |
 | Historique (Recorder) | Facultatif, actif par défaut dans Home Assistant | Courbes et tendances, cumuls de pluie et rafale du jour calculés quand la station ne les donne pas. |
 
 ## Configurer
@@ -21,7 +23,7 @@ Niak Weather assemble des données **déjà présentes** dans Home Assistant. Il
 Un guide en quatre étapes, chacune préremplie avec ce que Home Assistant connaît :
 
 0. **Bienvenue** : ce que fait Niak Weather et ce qu’il faut. Si vous aviez déjà la carte, **Reprendre les réglages d’une carte** : ils sont affichés à chaque étape, pour vérification.
-1. **Météo** : l’entité météo, le nom du lieu, la vigilance, la saison.
+1. **Météo** : l’entité météo, le nom du lieu, la vigilance, la saison, les restrictions d’eau (Vigieau) et les éclairs (Blitzortung).
 2. **Station météo** : le modèle reconnu, puis chaque capteur. Laissez vide ce que la station ne mesure pas.
 3. **Qualité de l’air**, puis **Pollens** : la commune Atmo France pour l’air (ou aucune), puis la source des pollens : Atmo France, Polleninformation, IRM KMI (Belgique), Swiss Pollen (Suisse), Kleenex / Scottex (France et autres pays couverts) ou aucune. Avec Swiss Pollen, choisissez une station commune aux espèces suivies ; avec les autres fournisseurs par espèce, choisissez leurs capteurs.
 4. **Capteurs et automatisations** : les familles d’entités à activer (Maintenant, Alertes, Prochaines heures, Jardin…).
@@ -39,7 +41,7 @@ Niak Weather lit jusqu’à 18 heures et 7 jours, selon ce que le fournisseur do
 
 **Pour un ciel plus fidèle**, activez le capteur « Condition d’origine » de Météo-France (désactivé par défaut : Paramètres → Appareils et services → Météo-France → entités masquées). Le ciel animé distingue alors ce que Météo-France distingue : bruine, averses, pluie verglaçante, brume, bancs de brouillard, brouillard givrant… Sans lui, Niak Weather déduit ce qu’il peut des chiffres (bruine, verglas, quelques flocons, neige forte).
 
-**La station passe devant le bulletin** pour le temps du moment quand elle constate autre chose : pluie mesurée (dès 0,3 mm/h), brouillard probable, soleil fort sous un ciel annoncé couvert. Elle ne prétend jamais constater la foudre : les orages restent des prévisions. Cela change la présentation du temps actuel, pas les prévisions.
+**La station passe devant le bulletin** pour le temps du moment quand elle constate autre chose : pluie mesurée (dès 0,3 mm/h), brouillard probable, soleil fort sous un ciel annoncé couvert. Elle ne prétend jamais constater la foudre : sans [Blitzortung](#blitzortung--éclairs), les orages restent des prévisions. Cela change la présentation du temps actuel, pas les prévisions.
 
 ## Station météo
 
@@ -134,6 +136,24 @@ Niak conserve les phénomènes, leurs degrés suisses de **1 à 5**, leurs consi
 
 Le capteur Vigilance conserve son état compatible avec les automatisations existantes (`vert`, `jaune`, `orange`, `rouge`). Les degrés 2, 3 et 4–5 correspondent respectivement aux présentations jaune, orange et rouge. Le **degré 5 reste explicitement visible** dans le texte et les attributs `degre`, `echelle`, `degres_phenomenes` et `alertes` ; une transition de 4 à 5 déclenche aussi un événement de changement d’alerte. Les attributs `alertes` donnent les dates et les consignes ; le capteur source donne accès aux liens officiels.
 
+## Vigieau — restrictions d’eau
+
+Installez [Vigieau](https://github.com/kamaradclimber/vigieau) dans HACS, pour votre commune. Choisissez son capteur **niveau d’alerte** (pas sa version chiffrée). Vigieau crée une zone par type d’eau : avec plusieurs zones, Niak propose celle de l’**eau du robinet (AEP)** ; changez-la si vous arrosez avec un puits (eau souterraine, SOU) ou une rivière (eau de surface, SUP).
+
+Le capteur **Restrictions d’eau** (famille Jardin) reprend le niveau : pas de restriction, vigilance, alerte, alerte renforcée ou crise. La vigilance demande d’économiser l’eau sans rien interdire : la carte et la synthèse n’en parlent qu’**à partir de l’alerte**, en disant si l’arrosage fait partie des usages restreints. Le détail des usages et le lien de l’arrêté préfectoral sont en attributs. Une Vigieau qui ne répond pas laisse le capteur inconnu, jamais « pas de restriction ».
+
+## Blitzortung — éclairs
+
+Installez [Blitzortung](https://github.com/mrk-its/homeassistant-blitzortung) dans HACS, centré sur votre maison (c’est le réglage par défaut). Choisissez son capteur **distance** : chaque éclair le met à jour.
+
+Ce capteur ne garde que le dernier éclair ; Niak Weather retient lui-même ceux de la dernière heure et lit ceux des **20 dernières minutes** :
+
+- **à moins de 30 km**, le capteur Orage s’allume, même sans orage prévu. Il dit la distance, la direction et si l’orage se rapproche ou s’éloigne : « Orage à 12 km au sud-ouest, il se rapproche ». Il reste allumé environ 35 minutes après le dernier éclair proche : 20 minutes d’éclairs lus, puis les 15 minutes de tenue de toutes les alertes ;
+- **à moins de 10 km** dans les 10 dernières minutes, le temps du moment devient « Orage », quel que soit le bulletin ;
+- **plus loin**, la synthèse le signale pour information (« Orage au loin : 45 km au nord »), sans alerte.
+
+Les éclairs ne font jamais tomber une vigilance ni un orage prévu : quand le bulletin annonce un orage en cours sans éclair à moins de 30 km, le capteur Orage reste allumé et le dit. Après un redémarrage, les éclairs de la dernière heure reviennent de l’historique, sans leur direction. Les données viennent d’un réseau bénévole de détecteurs : très fiables en France, mais ce n’est pas un service officiel.
+
 ## Historique (Recorder)
 
 Les capteurs de vent, de pression et de pluie doivent être enregistrés par l’historique de Home Assistant (c’est le cas par défaut). Il sert aux courbes, aux tendances et aux bilans calculés : voir [Pluie, vent, pression](mesures.md). Sans historique, les valeurs du moment restent affichées et rien n’est inventé.
@@ -148,6 +168,8 @@ Les clés sont les mêmes que dans le YAML de la carte avant la 2.0 : les régla
 | `location`, `forecast_source` | Nom du lieu et du fournisseur, si vous voulez les changer |
 | `vigilance_entity` | Vigilance Météo-France ou capteur agrégé des alertes MeteoSwiss |
 | `season_entity` | Capteur de l’intégration Saison |
+| `water_restriction_entity` | Capteur niveau d’alerte de Vigieau |
+| `lightning_entity` | Capteur distance de Blitzortung |
 | `sun_entity`, `sun_elevation_entity` | Soleil, si ce n’est pas `sun.sun` |
 | `station_model` | `gw2000a`, `ws90`, `netatmo` ou `manual` |
 | `station_history` | Calculer les cumuls de pluie et la rafale du jour depuis l’historique quand la station ne les donne pas (activé) |
