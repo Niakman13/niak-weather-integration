@@ -67,6 +67,13 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
         proposed = {x["id"]: x for x in Draft.start(self.hass, entry).view()["extensions"]}
         self.assertFalse(proposed["blitzortung"]["configured"])
 
+    async def test_atmo_reports_air_and_pollen_selection_independently(self):
+        from custom_components.niak_weather.extensions import inventory
+        extensions = inventory(self.hass, {"air_source": "atmo", "atmo_air_entity": "sensor.air", "pollen_source": "none"})
+        atmo = next(x for x in extensions if x["id"] == "atmo")
+        self.assertTrue(atmo["air_configured"])
+        self.assertFalse(atmo["pollen_configured"])
+
     async def test_hacs_download_counts_as_installed_before_an_integration_is_added(self):
         from types import SimpleNamespace
         from custom_components.niak_weather.extensions import inventory

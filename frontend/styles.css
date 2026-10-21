@@ -70,6 +70,10 @@ ul{padding-left:22px}
 .extension-badge{display:inline-block;font-size:13px;padding:3px 8px;border-radius:6px;background:color-mix(in srgb,var(--lv,var(--nw-off)) 12%,var(--nw-surface));color:var(--lv,var(--nw-off))}
 .extension-detail{grid-column:1/-1;padding:18px;background:var(--nw-surface);border-left:3px solid var(--nw-accent);border-radius:8px;min-width:0}
 .extension-detail .actions{flex-wrap:wrap;gap:18px}.extension-detail a{overflow-wrap:anywhere}
-.other-extensions{margin:14px 0}.other-extensions summary{min-height:44px;align-content:center;cursor:pointer;color:var(--nw-muted)}
+.extension-category{border-top:1px solid var(--nw-border);margin-top:14px}
+.extension-category>summary{min-height:54px;align-content:center;cursor:pointer;color:var(--primary-text-color);font-weight:600;padding:10px 0}
+.category-count{font-size:13px;font-weight:400;color:var(--nw-muted);margin-left:12px;display:inline-block}
+.extension-category .extension-row{margin-left:18px}
+@media(max-width:600px){.category-count{display:block;margin-left:18px}.extension-category .extension-row{margin-left:8px}}
 .config-tabs{border-bottom:1px solid var(--nw-border);padding-bottom:12px}
 @media(max-width:600px){.extension-row{grid-template-columns:minmax(0,1fr)}.extension-row>button{justify-self:start}.extension-detail{padding:14px}.config-tabs button{flex:1 1 140px}}
