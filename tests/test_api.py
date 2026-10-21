@@ -47,10 +47,10 @@ def test_several_places_need_an_explicit_choice_and_unloaded_ones_are_ignored():
 
 def test_hourly_forecast_carries_wind_direction_and_skips_undated_hours():
     t = datetime(2026, 10, 14, 21, tzinfo=timezone.utc)
-    hours = [Hour(time=t, temperature=18.2, humidity=70, precipitation=0, wind_speed=12, wind_gust=25, wind_bearing=270, condition="clear-night"), Hour()]
+    hours = [Hour(time=t, temperature=18.2, humidity=70, precipitation=0, wind_speed=12, wind_gust=25, wind_bearing=270, condition="clear-night", cloud_coverage=12), Hour()]
     api = NiakWeatherApi(hass_with(entry("e1", "Gardanne", Settings(weather_entity="weather.home"), hours)))
     assert api.hourly() == [{"time": "2026-10-14T21:00:00+00:00", "temperature": 18.2, "humidity": 70, "precipitation": 0,
-                             "wind_speed": 12, "wind_gust": 25, "wind_bearing": 270, "condition": "clear-night"}]
+                             "wind_speed": 12, "wind_gust": 25, "wind_bearing": 270, "condition": "clear-night", "cloud_coverage": 12}]
 
 
 def test_listeners_follow_the_place_and_can_be_removed():
