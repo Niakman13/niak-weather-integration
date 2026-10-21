@@ -1,9 +1,9 @@
-// Niak shared panel (socle v1.7): header, tabs and the home page listing every Niak brick.
+// Niak shared panel (socle v1.8): header, tabs and the home page listing every Niak brick.
 // Copied unchanged into each brick from niak-ecosysteme/socle/ (see ECOSYSTEME.md § 8).
 import {LitElement,html,css,nothing,type PropertyValues} from 'lit';
 import {frame,hubStyles,modernStyles,hubIcon} from './ui';
 
-export const ELEMENT='niak-socle-1-7';
+export const ELEMENT='niak-socle-1-8';
 type Level='ok'|'action'|'unknown';
 export interface BrickStatus {level:Level;summary:string;details:string[];links:string[]}
 export interface Brick {domain:string;name:string;slug:string;version:string;icon:string;module_url:string;element:string;status:BrickStatus;tab?:string|null;navigation?:number|null}
@@ -117,7 +117,7 @@ export class NiakShell extends LitElement {
    ${this.menuOpen?html`<button class="backdrop" aria-label="Fermer la navigation Niak" @click=${()=>this.menuOpen=false}></button>`:nothing}
    <aside class=${this.menuOpen?'open':''} aria-label="Navigation Niak" @keydown=${(e:KeyboardEvent)=>{if(e.key==='Escape'){this.menuOpen=false;this.updateComplete.then(()=>this.renderRoot.querySelector<HTMLButtonElement>('.mobile-bar button')?.focus());}}}><div class="brand"><button class="icon" aria-label="Ouvrir le menu Home Assistant" @click=${()=>this.menu()}>${hubIcon('home')}</button><strong>Niak</strong></div>
     ${this.navGroup('Accueil Niak',[['','Vue d’ensemble','home'],['reglages','Réglages','settings']])}
-    ${[...(o?.bricks??[])].sort((a,b)=>(a.slug==='meteo'?-1:b.slug==='meteo'?1:0)).map(b=>this.navGroup(shortName(b.name),b.navigation===1&&b.slug==='confort'?[[b.slug,'Vue d’ensemble','home'],[b.slug+'/reglages','Réglages généraux','settings']]:b.navigation===1&&b.slug==='meteo'?[[b.slug,'Vue d’ensemble','home'],[b.slug+'/sources','Sources météo','weather'],[b.slug+'/station','Station météo · capteurs locaux','temperature'],[b.slug+'/air','Qualité de l’air','air'],[b.slug+'/pollens','Pollens','pollen'],[b.slug+'/entites','Entités','entities']]:[[b.slug,'Vue d’ensemble','home']]))}
+    ${[...(o?.bricks??[])].sort((a,b)=>(a.slug==='meteo'?-1:b.slug==='meteo'?1:0)).map(b=>this.navGroup(shortName(b.name),((b.navigation??0)>=1&&b.slug==='confort'||(b.navigation??0)>=2&&b.slug==='meteo')?[[b.slug,'Vue d’ensemble','home'],[b.slug+'/reglages','Réglages généraux','settings']]:b.navigation===1&&b.slug==='meteo'?[[b.slug,'Vue d’ensemble','home'],[b.slug+'/sources','Sources météo','weather'],[b.slug+'/station','Station météo · capteurs locaux','temperature'],[b.slug+'/air','Qualité de l’air','air'],[b.slug+'/pollens','Pollens','pollen'],[b.slug+'/entites','Entités','entities']]:[[b.slug,'Vue d’ensemble','home']]))}
    </aside>
    <div class="content" ?inert=${this.menuOpen}>${this.error?html`<main><p class="notice" role="alert">${this.error}</p><button @click=${()=>{this.error='';void this.load();}}>Réessayer</button></main>`
     :!o?html`<main><p class="muted" role="status">Chargement…</p></main>`
