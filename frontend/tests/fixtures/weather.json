@@ -1,0 +1,637 @@
+{
+  "draft": {
+    "weather_entity": "weather.maison",
+    "temperature_entity": "sensor.gw2000a_outdoor_temperature",
+    "humidity_entity": "sensor.outdoor_humidity",
+    "wind_speed_entity": "sensor.gw2000a_wind_speed",
+    "wind_gust_entity": "sensor.gw2000a_wind_gust",
+    "wind_bearing_entity": "sensor.gw2000a_wind_direction",
+    "rain_rate_entity": "sensor.gw2000a_rain_rate",
+    "air_source": "none",
+    "pollen_source": "none",
+    "families": [
+      "maintenant",
+      "alertes",
+      "prochaines_heures"
+    ]
+  },
+  "view": {
+    "title": "Maison",
+    "prevision": {
+      "fields": [
+        {
+          "key": "weather_entity",
+          "label": "Service météo",
+          "help": "Les prévisions heure par heure et jour par jour, par exemple Météo-France ou MétéoSuisse. Une station facultative ajoute les mesures chez vous.",
+          "value": "weather.maison",
+          "entity": {
+            "id": "weather.maison",
+            "name": "Maison",
+            "state": "sunny",
+            "available": true,
+            "missing": false
+          },
+          "need": "Obligatoire",
+          "options": [
+            {
+              "id": "weather.maison",
+              "name": "Maison",
+              "state": "sunny",
+              "available": true,
+              "missing": false
+            }
+          ],
+          "warning": "",
+          "recognized": [],
+          "better": null
+        },
+        {
+          "key": "vigilance_entity",
+          "label": "Vigilance officielle",
+          "help": "Les alertes officielles de Météo-France ou de MétéoSuisse s’ajoutent à celles que calcule Niak.",
+          "value": "",
+          "entity": null,
+          "need": "Facultatif",
+          "options": [],
+          "warning": "Aucun capteur de vigilance trouvé : installez Météo-France ou MeteoSwiss pour votre région, puis « Rechercher à nouveau ».",
+          "recognized": [],
+          "better": null
+        },
+        {
+          "key": "season_entity",
+          "label": "Saison",
+          "help": "Sans capteur, la saison suit la date.",
+          "value": "",
+          "entity": null,
+          "need": "Facultatif",
+          "options": [],
+          "warning": "",
+          "recognized": [],
+          "better": null
+        }
+      ],
+      "location": "",
+      "location_placeholder": "Maison",
+      "advanced": [
+        {
+          "key": "sun_entity",
+          "label": "Soleil",
+          "help": "",
+          "value": "",
+          "entity": null,
+          "need": "Facultatif",
+          "options": [],
+          "warning": "",
+          "recognized": [],
+          "better": null
+        },
+        {
+          "key": "sun_elevation_entity",
+          "label": "Hauteur du soleil",
+          "help": "",
+          "value": "",
+          "entity": null,
+          "need": "Facultatif",
+          "options": [
+            {
+              "id": "sensor.gw2000a_wind_direction",
+              "name": "sensor.gw2000a_wind_direction",
+              "state": "270 °",
+              "available": true,
+              "missing": false
+            }
+          ],
+          "warning": "",
+          "recognized": [],
+          "better": null
+        }
+      ],
+      "forecast_source": ""
+    },
+    "station": {
+      "model": "gw2000a",
+      "models": [
+        {
+          "value": "gw2000a",
+          "label": "Ecowitt GW2000A",
+          "hint": "Passerelle Ecowitt et ses capteurs"
+        },
+        {
+          "value": "ws90",
+          "label": "Ecowitt WS90",
+          "hint": "Capteur tout-en-un, souvent via Zigbee2MQTT"
+        },
+        {
+          "value": "netatmo",
+          "label": "Netatmo",
+          "hint": "Station Netatmo et ses modules : extérieur, pluviomètre, anémomètre"
+        },
+        {
+          "value": "manual",
+          "label": "Une autre station",
+          "hint": "Vous choisissez chaque capteur"
+        },
+        {
+          "value": "none",
+          "label": "Pas de station",
+          "hint": "Niak Weather s’appuie sur le service météo seul"
+        }
+      ],
+      "device": "none",
+      "devices": [
+        {
+          "value": "none",
+          "label": "Aucun appareil — capteurs séparés"
+        }
+      ],
+      "profile": "Ecowitt GW2000A",
+      "history": true,
+      "history_help": "Cumuls de pluie, tendance de la température et rafale du jour, quand la station ne les donne pas.",
+      "groups": [
+        {
+          "name": "station_temperature",
+          "title": "Température et humidité",
+          "fields": [
+            {
+              "key": "temperature_entity",
+              "label": "Température extérieure",
+              "help": "La température dehors, à l’ombre.",
+              "value": "sensor.gw2000a_outdoor_temperature",
+              "entity": {
+                "id": "sensor.gw2000a_outdoor_temperature",
+                "name": "sensor.gw2000a_outdoor_temperature",
+                "state": "14.2 °C",
+                "available": true,
+                "missing": false
+              },
+              "need": "Conseillé",
+              "options": [
+                {
+                  "id": "sensor.gw2000a_outdoor_temperature",
+                  "name": "sensor.gw2000a_outdoor_temperature",
+                  "state": "14.2 °C",
+                  "available": true,
+                  "missing": false
+                }
+              ],
+              "warning": "",
+              "recognized": [
+                "sensor.gw2000a_outdoor_temperature"
+              ],
+              "better": null
+            },
+            {
+              "key": "humidity_entity",
+              "label": "Humidité extérieure",
+              "help": "",
+              "value": "sensor.outdoor_humidity",
+              "entity": {
+                "id": "sensor.outdoor_humidity",
+                "name": "sensor.outdoor_humidity",
+                "state": "78 %",
+                "available": true,
+                "missing": false
+              },
+              "need": "Conseillé",
+              "options": [
+                {
+                  "id": "sensor.outdoor_humidity",
+                  "name": "sensor.outdoor_humidity",
+                  "state": "78 %",
+                  "available": true,
+                  "missing": false
+                }
+              ],
+              "warning": "",
+              "recognized": [
+                "sensor.outdoor_humidity"
+              ],
+              "better": null
+            }
+          ]
+        },
+        {
+          "name": "station_rain",
+          "title": "Pluie",
+          "fields": [
+            {
+              "key": "rain_rate_entity",
+              "label": "Intensité de la pluie",
+              "help": "Dit s’il pleut maintenant (mm/h). Un cumul de la journée ne le dit pas.",
+              "value": "sensor.gw2000a_rain_rate",
+              "entity": {
+                "id": "sensor.gw2000a_rain_rate",
+                "name": "sensor.gw2000a_rain_rate",
+                "state": "0 mm/h",
+                "available": true,
+                "missing": false
+              },
+              "need": "Conseillé",
+              "options": [
+                {
+                  "id": "sensor.gw2000a_rain_rate",
+                  "name": "sensor.gw2000a_rain_rate",
+                  "state": "0 mm/h",
+                  "available": true,
+                  "missing": false
+                }
+              ],
+              "warning": "",
+              "recognized": [
+                "sensor.gw2000a_rain_rate"
+              ],
+              "better": null
+            },
+            {
+              "key": "daily_rain_entity",
+              "label": "Pluie depuis minuit",
+              "help": "",
+              "value": "",
+              "entity": null,
+              "need": "Facultatif",
+              "options": [],
+              "warning": "",
+              "recognized": [],
+              "better": null
+            },
+            {
+              "key": "rain_24h_entity",
+              "label": "Pluie sur 24 h",
+              "help": "",
+              "value": "",
+              "entity": null,
+              "need": "Facultatif",
+              "options": [],
+              "warning": "",
+              "recognized": [],
+              "better": null
+            },
+            {
+              "key": "weekly_rain_entity",
+              "label": "Pluie de la semaine",
+              "help": "",
+              "value": "",
+              "entity": null,
+              "need": "Facultatif",
+              "options": [],
+              "warning": "",
+              "recognized": [],
+              "better": null
+            },
+            {
+              "key": "monthly_rain_entity",
+              "label": "Pluie du mois",
+              "help": "",
+              "value": "",
+              "entity": null,
+              "need": "Facultatif",
+              "options": [],
+              "warning": "",
+              "recognized": [],
+              "better": null
+            },
+            {
+              "key": "yearly_rain_entity",
+              "label": "Pluie de l’année",
+              "help": "",
+              "value": "",
+              "entity": null,
+              "need": "Facultatif",
+              "options": [],
+              "warning": "",
+              "recognized": [],
+              "better": null
+            },
+            {
+              "key": "event_rain_entity",
+              "label": "Pluie de l’épisode",
+              "help": "",
+              "value": "",
+              "entity": null,
+              "need": "Facultatif",
+              "options": [],
+              "warning": "",
+              "recognized": [],
+              "better": null
+            }
+          ]
+        },
+        {
+          "name": "station_wind",
+          "title": "Vent",
+          "fields": [
+            {
+              "key": "wind_speed_entity",
+              "label": "Vent moyen",
+              "help": "",
+              "value": "sensor.gw2000a_wind_speed",
+              "entity": {
+                "id": "sensor.gw2000a_wind_speed",
+                "name": "sensor.gw2000a_wind_speed",
+                "state": "12 km/h",
+                "available": true,
+                "missing": false
+              },
+              "need": "Facultatif",
+              "options": [
+                {
+                  "id": "sensor.gw2000a_wind_speed",
+                  "name": "sensor.gw2000a_wind_speed",
+                  "state": "12 km/h",
+                  "available": true,
+                  "missing": false
+                }
+              ],
+              "warning": "",
+              "recognized": [
+                "sensor.gw2000a_wind_speed"
+              ],
+              "better": null
+            },
+            {
+              "key": "wind_gust_entity",
+              "label": "Rafales",
+              "help": "Les pointes de vent : elles déclenchent l’alerte de vent fort.",
+              "value": "sensor.gw2000a_wind_gust",
+              "entity": {
+                "id": "sensor.gw2000a_wind_gust",
+                "name": "sensor.gw2000a_wind_gust",
+                "state": "20 km/h",
+                "available": true,
+                "missing": false
+              },
+              "need": "Conseillé",
+              "options": [
+                {
+                  "id": "sensor.gw2000a_wind_gust",
+                  "name": "sensor.gw2000a_wind_gust",
+                  "state": "20 km/h",
+                  "available": true,
+                  "missing": false
+                }
+              ],
+              "warning": "",
+              "recognized": [
+                "sensor.gw2000a_wind_gust"
+              ],
+              "better": null
+            },
+            {
+              "key": "wind_bearing_entity",
+              "label": "Direction du vent",
+              "help": "D’où vient le vent, en degrés.",
+              "value": "sensor.gw2000a_wind_direction",
+              "entity": {
+                "id": "sensor.gw2000a_wind_direction",
+                "name": "sensor.gw2000a_wind_direction",
+                "state": "270 °",
+                "available": true,
+                "missing": false
+              },
+              "need": "Conseillé",
+              "options": [
+                {
+                  "id": "sensor.gw2000a_wind_direction",
+                  "name": "sensor.gw2000a_wind_direction",
+                  "state": "270 °",
+                  "available": true,
+                  "missing": false
+                }
+              ],
+              "warning": "",
+              "recognized": [
+                "sensor.gw2000a_wind_direction"
+              ],
+              "better": null
+            },
+            {
+              "key": "max_daily_gust_entity",
+              "label": "Rafale maximale du jour",
+              "help": "",
+              "value": "",
+              "entity": null,
+              "need": "Facultatif",
+              "options": [],
+              "warning": "",
+              "recognized": [],
+              "better": null
+            }
+          ]
+        },
+        {
+          "name": "station_sun",
+          "title": "Soleil",
+          "fields": [
+            {
+              "key": "illuminance_entity",
+              "label": "Luminosité",
+              "help": "",
+              "value": "",
+              "entity": null,
+              "need": "Facultatif",
+              "options": [],
+              "warning": "",
+              "recognized": [],
+              "better": null
+            },
+            {
+              "key": "uv_index_entity",
+              "label": "Indice UV",
+              "help": "",
+              "value": "",
+              "entity": null,
+              "need": "Facultatif",
+              "options": [],
+              "warning": "",
+              "recognized": [],
+              "better": null
+            },
+            {
+              "key": "solar_radiation_entity",
+              "label": "Rayonnement solaire",
+              "help": "",
+              "value": "",
+              "entity": null,
+              "need": "Facultatif",
+              "options": [],
+              "warning": "",
+              "recognized": [],
+              "better": null
+            }
+          ]
+        },
+        {
+          "name": "station_specific",
+          "title": "Spécifiques",
+          "fields": [
+            {
+              "key": "pressure_entity",
+              "label": "Pression",
+              "help": "",
+              "value": "",
+              "entity": null,
+              "need": "Facultatif",
+              "options": [],
+              "warning": "",
+              "recognized": [],
+              "better": null
+            },
+            {
+              "key": "dew_point_entity",
+              "label": "Point de rosée",
+              "help": "",
+              "value": "",
+              "entity": null,
+              "need": "Facultatif",
+              "options": [],
+              "warning": "",
+              "recognized": [],
+              "better": null
+            },
+            {
+              "key": "temperature_trend_entity",
+              "label": "Tendance de la température",
+              "help": "",
+              "value": "",
+              "entity": null,
+              "need": "Facultatif",
+              "options": [],
+              "warning": "",
+              "recognized": [],
+              "better": null
+            }
+          ]
+        }
+      ]
+    },
+    "air": {
+      "value": "none",
+      "sources": [
+        {
+          "value": "atmo",
+          "label": "Atmo France",
+          "hint": "L’indice ATMO de 1 à 6 et ses polluants, pour une zone Atmo France",
+          "available": false
+        },
+        {
+          "value": "none",
+          "label": "Pas de qualité de l’air",
+          "hint": "",
+          "available": true
+        }
+      ],
+      "area": "",
+      "areas": []
+    },
+    "pollen": {
+      "value": "none",
+      "sources": [
+        {
+          "value": "atmo",
+          "label": "Atmo France (France)",
+          "hint": "Un indice de 1 à 6 par espèce, pour une zone Atmo France",
+          "available": false
+        },
+        {
+          "value": "polleninformation",
+          "label": "Polleninformation (Europe, selon les zones)",
+          "hint": "Un capteur par espèce, niveaux de 0 à 4",
+          "available": false
+        },
+        {
+          "value": "irm_kmi",
+          "label": "IRM KMI (Belgique)",
+          "hint": "Un capteur par espèce, niveaux de 0 à 4",
+          "available": false
+        },
+        {
+          "value": "swiss_pollen",
+          "label": "Swiss Pollen (Suisse)",
+          "hint": "Un capteur par espèce, niveaux de 0 à 4",
+          "available": false
+        },
+        {
+          "value": "kleenex_pollenradar",
+          "label": "Kleenex / Scottex (France, Italie, Pays-Bas, Royaume-Uni, Irlande, États-Unis)",
+          "hint": "Groupes et espèces, niveaux de 1 à 4 ; aujourd’hui et demain",
+          "available": false
+        },
+        {
+          "value": "none",
+          "label": "Pas de pollens",
+          "hint": "",
+          "available": true
+        }
+      ],
+      "area": "",
+      "areas": [],
+      "species": [],
+      "risk": null,
+      "station": "",
+      "stations": []
+    },
+    "entities": {
+      "new": true,
+      "families": [
+        {
+          "key": "maintenant",
+          "name": "Maintenant",
+          "hint": "ressenti, temps observé, pluie en cours",
+          "chosen": true
+        },
+        {
+          "key": "alertes",
+          "name": "Alertes",
+          "hint": "vigilance, orage, vent fort, gel, canicule",
+          "chosen": true
+        },
+        {
+          "key": "prochaines_heures",
+          "name": "Prochaines heures",
+          "hint": "pluie à venir, minimale, maximale",
+          "chosen": true
+        },
+        {
+          "key": "jardin",
+          "name": "Jardin",
+          "hint": "pluie des 7 jours",
+          "chosen": false
+        },
+        {
+          "key": "batiment",
+          "name": "Bâtiment",
+          "hint": "degrés-jours de chauffe et de climatisation",
+          "chosen": false
+        },
+        {
+          "key": "energie",
+          "name": "Énergie",
+          "hint": "ensoleillement de demain",
+          "chosen": false
+        },
+        {
+          "key": "vie_pratique",
+          "name": "Vie pratique",
+          "hint": "séchage du linge, givre, air, pollens",
+          "chosen": false
+        },
+        {
+          "key": "meteo",
+          "name": "Entité météo",
+          "hint": "pour les cartes météo et l’assistant vocal",
+          "chosen": false
+        }
+      ]
+    },
+    "summary": {
+      "weather": "Maison",
+      "station": "6 capteurs",
+      "air": "aucune",
+      "pollen": "aucune source"
+    },
+    "needs": [
+      "Vigilance officielle : il faut la vigilance officielle"
+    ]
+  },
+  "error": ""
+}

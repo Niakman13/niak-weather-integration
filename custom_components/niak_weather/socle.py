@@ -17,7 +17,7 @@ from homeassistant.components.panel_custom import async_register_panel
 from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.storage import Store
 
-SOCLE_VERSION = (1, 7)
+SOCLE_VERSION = (1, 8)
 # 1.1: an optional `tab`, the tab's own name when it is not the brick's (« Météo » for Niak Weather).
 # 1.2: async_register_card, the brick's card on every dashboard, also as a dashboard resource.
 # 1.3: the home page says « À découvrir » and « Voir » for the bricks not installed (same contract as 1.2).
@@ -25,8 +25,9 @@ SOCLE_VERSION = (1, 7)
 # 1.5: the sidebar entry can be hidden (`niak/set_sidebar`, kept in .storage/niak_socle); the panel itself stays reachable at /niak.
 # 1.6: grouped navigation and optional brick `navigation=1` capability; older bricks keep their overview link.
 # 1.7: full-height shell and a persisted HA/Niak theme preference.
+# 1.8: Weather navigation=2 groups its configuration under general settings, like Comfort.
 # The shell's custom element carries its version: two copies never fight over one name.
-ELEMENT = "niak-socle-1-7"
+ELEMENT = "niak-socle-1-8"
 KEY = "niak_socle"
 STORE_VERSION = 1
 PANEL = "niak"

@@ -49,6 +49,34 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
         await self.hass.async_stop()
         self.directory.cleanup()
 
+    async def test_extensions_distinguish_saved_selection_from_detection(self):
+        from types import SimpleNamespace
+        from custom_components.niak_weather.extensions import inventory
+        registry = er.async_get(self.hass)
+        e = registry.async_get_or_create("sensor", "blitzortung", "home-distance", translation_key="distance")
+        self.hass.states.async_set(e.entity_id, "unknown", {"unit_of_measurement": "km"})
+        before = {x["id"]: x for x in inventory(self.hass, {})}
+        self.assertTrue(before["blitzortung"]["installed"])
+        self.assertFalse(before["blitzortung"]["configured"])
+        self.assertFalse(before["vigieau"]["installed"])
+        saved = {"weather_entity": "weather.maison", "lightning_entity": e.entity_id}
+        after = {x["id"]: x for x in inventory(self.hass, saved)}
+        self.assertTrue(after["blitzortung"]["configured"])
+        # Draft.start proposes the detected sensor, but the extension badge still describes the saved configuration.
+        entry = SimpleNamespace(entry_id="extension-test", options={"weather_entity": "weather.maison"})
+        proposed = {x["id"]: x for x in Draft.start(self.hass, entry).view()["extensions"]}
+        self.assertFalse(proposed["blitzortung"]["configured"])
+
+    async def test_hacs_download_counts_as_installed_before_an_integration_is_added(self):
+        from types import SimpleNamespace
+        from custom_components.niak_weather.extensions import inventory
+        self.hass.data["hacs"] = SimpleNamespace(repositories=SimpleNamespace(get_by_full_name=lambda repo:
+            SimpleNamespace(data=SimpleNamespace(installed=True)) if repo == "kamaradclimber/vigieau" else None))
+        extensions = {x["id"]: x for x in inventory(self.hass, {})}
+        self.assertTrue(extensions["vigieau"]["installed"])
+        self.assertFalse(extensions["vigieau"]["configured"])
+        self.assertIn("Blitzortung.org Lightning Detector", extensions["blitzortung"]["install"])
+
     async def test_the_labels_are_read_outside_the_event_loop(self):
         # Home Assistant warns of a blocking call when fr.json is read in the event loop (« Detected blocking call to read_text »).
         draft_module._translations.cache_clear()
@@ -305,7 +333,7 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
                   entities=tuple((k, k, 'Maintenant', True, False) for k in STATION_DEPENDENT),
                   needs={k: 'un capteur facultatif' for k in STATION_DEPENDENT})
         with patch('custom_components.niak_weather.panel.facts', return_value=f):
-            info, overview = place(self.hass, SimpleNamespace(entry_id='test', title='Gardanne', state=ConfigEntryState.LOADED))
+            info, overview = place(self.hass, SimpleNamespace(entry_id='test', title='Gardanne', state=ConfigEntryState.LOADED, options={}))
         self.assertEqual(info['health']['level'], 'ok')
         self.assertEqual(status([overview])['level'], 'ok')
         self.assertEqual(overview.needs, [])

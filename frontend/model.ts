@@ -8,13 +8,15 @@ export type Level='ok'|'bad'|'tip'|'none';
 export interface Line {level:Level;text:string;why:string;stage:number|null}
 export interface Health {title:string;level:'ok'|'action';summary:string;tips_summary:string;todo:Line[];tips:Line[];
  sources:{label:string;level:Level;text:string}[];sensors:{label:string;name:string;level:Level;text:string}[];entities:Line[];versions:Line[]}
-export interface Place {entry_id:string;title:string;loaded:boolean;failed:boolean;health:Health}
-export interface Places {places:Place[];can_add:boolean}
+export interface Extension {id:string;name:string;description:string;installed:boolean;configured:boolean;stage:number;field:string;url:string;integration:string;install:string}
+export interface Place {entry_id:string;title:string;loaded:boolean;failed:boolean;health:Health;extensions?:Extension[]}
+export interface Places {places:Place[];can_add:boolean;extensions?:Extension[]}
 export interface Species extends Entity {label:string;chosen:boolean}
 export interface EntityItem {key:string;name:string;hint:string;enabled:boolean;need:string;optional?:boolean}
 export interface Family {key:string;name:string;hint?:string;chosen?:boolean;entities?:EntityItem[]}
 export interface View {
  title:string;
+ extensions?:Extension[];
  prevision:{fields:Field[];location:string;location_placeholder:string;advanced:Field[];forecast_source:string};
  station:{model:string;models:Choice[];device:string;devices:Choice[];profile:string;history:boolean;history_help:string;groups:{name:string;title:string;fields:Field[]}[]};
  air:{value:string;sources:Choice[];area:string;areas:Choice[];station:string;stations:Choice[]};
@@ -28,7 +30,7 @@ export interface DraftReply {draft:Sources;view:View;error:string}
 export type Change={op:string;key?:string;value?:unknown;area?:string};
 
 export const NONE='none';
-export const stages=['Sources météo','Station météo / Capteurs locaux','Qualité de l’air','Pollens','Entités','Récapitulatif'];
+export const stages=['Sources météo','Station météo · capteurs locaux','Qualité de l’air','Pollens','Entités','Récapitulatif','Extensions'];
 // What each step is for, shown on top of it in a frame that folds: one idea per line.
 export const intros:string[][]=[
  ['Les prévisions du lieu viennent d’un service météo installé dans Home Assistant, Météo-France par exemple.',
@@ -46,6 +48,7 @@ export const intros:string[][]=[
   'Elles servent à vos automatisations et tableaux de bord ; la carte n’en a pas besoin.'],
  ['Tout ce que vous avez choisi, onglet par onglet.',
   'Rien ne change tant que vous n’avez pas enregistré ; un oubli, revenez à l’onglet voulu.'],
+ ['Les extensions sont des intégrations de Home Assistant qui enrichissent la météo.', 'Installez-les dans Home Assistant, puis choisissez leurs données ici.', 'Rien ne change tant que vous n’avez pas enregistré.'],
 ];
 
 // The entities switched on, by key, as the « Entités » step shows them.

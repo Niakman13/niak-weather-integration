@@ -1,3 +1,11 @@
+## 2.8.0b1 — Bêta : les extensions météo à portée de main
+
+- L’accueil Météo présente les extensions : installées, configurées pour le lieu, ou pas encore installées.
+- Blitzortung et Vigieau sont visibles avec un accès à leur configuration et des indications d’installation.
+- Le menu Météo rejoint la logique de Confort : **Vue d’ensemble** et **Réglages généraux**.
+- Les rubriques Sources météo, Station météo · capteurs locaux, Qualité de l’air, Pollens et Entités sont regroupées dans les réglages, avec les Extensions.
+- Les anciens liens de configuration restent utilisables. Les changements restent en brouillon jusqu’à l’enregistrement.
+
 ## 2.7.0 — Stable : les éclairs et les restrictions d’eau
 
 **En bref**

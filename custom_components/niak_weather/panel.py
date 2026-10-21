@@ -24,6 +24,7 @@ from .const import DOMAIN, LOGGER
 from .draft import Draft, ecosystem_of, entity_keys, entity_label, family_label, field_label, linked, needs_text
 from .engine import atmo, detection, families, health, home, polleninfo
 from .engine.settings import Settings
+from .extensions import inventory
 from .websocket import VERSION_KEY
 from .socle import async_register_brick, async_register_card, is_card_resource
 
@@ -47,7 +48,7 @@ async def async_setup_panel(hass: HomeAssistant, version: str) -> None:
         hass.data[f"{DOMAIN}_panel"] = True
     await async_register_brick(hass, {
         "domain": DOMAIN, "name": "Niak Weather", "slug": "meteo", "tab": "Météo", "version": version, "icon": "mdi:weather-partly-cloudy",
-        "navigation": 1, "module_url": f"{ASSETS}/panel.js?v={version}", "element": "niak-weather-setup", "status": weather_status, "legacy_path": "",
+        "navigation": 2, "module_url": f"{ASSETS}/panel.js?v={version}", "element": "niak-weather-setup", "status": weather_status, "legacy_path": "",
     }, f"{ASSETS}/niak-socle.js?v={version}")
 
 
@@ -167,7 +168,7 @@ def place(hass: HomeAssistant, entry: Any, card_twice: bool = False) -> tuple[di
     f = facts(hass, entry, card_twice)
     enabled = {key for key, _, _, on, _ in f.entities if on}
     info = {"entry_id": entry.entry_id, "title": entry.title, "loaded": entry.state is ConfigEntryState.LOADED,
-            "failed": f.failed, "health": health.report(f)}
+            "failed": f.failed, "health": health.report(f), "extensions": inventory(hass, entry.options)}
     status = home.Place(title=entry.title, loaded=not f.failed, station=len(f.sensors),
                         silent=[s.label for s in f.sensors if s.status != "ok"],
                         forecast=f.restarting or f.failed or f.forecast_age is not None,
@@ -214,7 +215,7 @@ def _has_weather(hass: HomeAssistant) -> bool:
 @websocket_api.async_response
 async def ws_places(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
     twice = await card_twice(hass)
-    connection.send_result(msg["id"], {"places": [place(hass, e, twice)[0] for e in _entries(hass)], "can_add": _has_weather(hass)})
+    connection.send_result(msg["id"], {"places": [place(hass, e, twice)[0] for e in _entries(hass)], "can_add": _has_weather(hass), "extensions": inventory(hass, {})})
 
 
 def _send_draft(connection: websocket_api.ActiveConnection, msg: dict[str, Any], draft: Draft, error: str = "", **extra: Any) -> None:
