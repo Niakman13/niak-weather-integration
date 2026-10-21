@@ -1,3 +1,13 @@
+## 2.6.2 — Stable : la saison partagée
+
+**En bref**
+
+- **La saison est partagée avec les autres briques Niak.** Niak Confort s’en sert pour adapter ses conseils à l’été, à l’hiver et aux entre-saisons.
+
+### Nouveautés
+
+- Les autres briques Niak reçoivent la saison affichée par Niak Weather : celle de votre capteur Saison s’il est choisi, sinon celle du calendrier, avec la durée du jour.
+
 ## 2.6.1 — Stable : la pluie à la minute
 
 **En bref**

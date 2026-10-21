@@ -100,3 +100,17 @@ def test_rain_ahead_is_published_once_computed():
                                           computed=at)
     assert api.rain("e1") == {"entry_id": "e1", "minutes": 29, "precision": "minute", "source": "radar", "amount": None,
                               "dry_until": None, "at": "2026-10-20T11:51:00+00:00"}
+
+
+def test_season_is_shared_with_the_other_bricks():
+    """Niak Confort asks it, to propose an airing at hours that suit the season (21 October 2026)."""
+    e = entry("e1", "Gardanne", Settings(weather_entity="weather.home", season_entity="sensor.season"))
+    states = {"sensor.season": SimpleNamespace(state="autumn")}
+    hass = SimpleNamespace(config_entries=SimpleNamespace(async_entries=lambda domain: [e]), states=SimpleNamespace(get=states.get),
+                           config=SimpleNamespace(latitude=43.45, elevation=100, time_zone="Europe/Paris"))
+    found = NiakWeatherApi(hass).season()
+    assert (found["entry_id"], found["season"], found["label"], found["from_sensor"]) == ("e1", "autumn", "Automne", True)
+    assert found["day_length"] > 0
+    states.clear()  # no sensor: the date decides
+    assert NiakWeatherApi(hass).season()["from_sensor"] is False
+    assert NiakWeatherApi(hass_with()).season() is None
