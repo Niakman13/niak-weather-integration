@@ -116,3 +116,24 @@ def test_vigieau_and_blitzortung_show_once_chosen():
     sources = {s["label"]: s for s in report(place(water="Gardanne Alert level", lightning="Blitzortung distance", lightning_ok=False))["sources"]}
     assert sources["Restrictions d’eau"]["level"] == "ok" and sources["Éclairs"] == {"label": "Éclairs", "level": "bad",
                                                                                       "text": "Blitzortung distance · ne répond pas"}
+
+
+def test_technical_overview_counts_only_selected_station_sensors_and_active_entities():
+    r = report(place(sensors=[Sensor('Température', 'T', 'ok', 0), Sensor('Rafales', 'G', 'silent', 20)],
+                     entities=(('a', 'A', 'Maintenant', True, True), ('b', 'B', 'Jardin', True, False),
+                               ('c', 'C', 'Énergie', False, True)), forecast_hours=24, forecast_days=6,
+                     computation_age=0.2, history_sources=2))
+    assert r['technical']['station'] == {'name': 'GW2000A', 'responding': 1, 'configured': 2, 'history': True, 'history_sources': 2}
+    assert r['technical']['entities'] == {'active': 2, 'with_value': 1, 'total': 3}
+    assert r['technical']['forecast'] == {'hours': 24, 'days': 6, 'received': 'il y a 12 min'}
+    assert r['technical']['computation'] == 'à l’instant'
+    assert r['technical']['links'] == ['Niak Confort']
+
+
+def test_technical_overview_keeps_absent_forecasts_and_history_unknown():
+    r = report(Facts(title='Chalet', restarting=True, forecast_age=None))
+    assert r['technical']['forecast'] == {'hours': None, 'days': None, 'received': None}
+    assert r['technical']['computation'] is None
+    assert r['technical']['station']['history_sources'] is None
+    assert r['technical']['station']['configured'] == 0
+    assert r['technical']['entities'] == {'active': 0, 'with_value': 0, 'total': 0}

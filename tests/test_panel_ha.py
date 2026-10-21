@@ -49,6 +49,28 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
         await self.hass.async_stop()
         self.directory.cleanup()
 
+    async def test_overview_technical_counts_come_from_received_data(self):
+        from types import SimpleNamespace
+        from datetime import timedelta
+        from homeassistant.config_entries import ConfigEntryState
+        from homeassistant.util import dt as dt_util
+        from custom_components.niak_weather.panel import facts, place
+        now = dt_util.utcnow()
+        coordinator = SimpleNamespace(forecast_at=now-timedelta(minutes=4), hours=[1, 2, 3], days=[1, 2],
+                                      data=SimpleNamespace(computed=now), history={"sensor.t": [1]},
+                                      rain_history={"sensor.t": [1], "sensor.rain": [1]})
+        entry = SimpleNamespace(entry_id="technical-test", title="Maison", state=ConfigEntryState.LOADED,
+                                options={"weather_entity": "weather.maison"}, runtime_data=coordinator)
+        f = facts(self.hass, entry)
+        self.assertEqual((f.forecast_hours, f.forecast_days, f.history_sources), (3, 2, 2))
+        overview, _ = place(self.hass, entry)
+        self.assertEqual(len(overview["extensions"]), 8)
+        self.assertFalse(any(e["configured"] for e in overview["extensions"]))  # saved choices only
+        self.assertEqual(overview["health"]["technical"]["forecast"]["received"], "il y a 4 min")
+        coordinator.forecast_at = None
+        pending = facts(self.hass, entry)
+        self.assertIsNone(pending.forecast_hours)  # retained arrays are not a received forecast after startup
+
     async def test_extensions_distinguish_saved_selection_from_detection(self):
         from types import SimpleNamespace
         from custom_components.niak_weather.extensions import inventory

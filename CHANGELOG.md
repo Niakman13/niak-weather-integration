@@ -1,3 +1,10 @@
+## 2.8.0b3 — Bêta : tableau de bord technique et thèmes Home Assistant
+
+- La vue d’ensemble Météo devient un accueil technique : état des sources, prévisions reçues, dernier calcul, capteurs de la station, historique, entités et liaisons avec les autres briques.
+- Les indicateurs distinguent les capteurs qui répondent, les entités avec une valeur et les points à régler. Les données pas encore reçues restent inconnues.
+- L’accueil affiche une synthèse des extensions par catégorie, avec leur état installé/configuré, les accès directs aux réglages, les versions et les liens utiles. La sélection des données et l’aide à l’installation restent dans les réglages.
+- En suivant le thème Home Assistant, les cadres restent visibles même si le thème donne aux séparateurs la couleur du fond, comme Nordic Perso. Les couleurs et la typographie du thème sont conservées.
+
 ## 2.8.0b2 — Bêta : extensions rangées par usage
 
 - Les extensions sont regroupées dans quatre catégories repliables : **Qualité de l’air**, **Pollens**, **Eau et jardin**, **Orages et éclairs**.
