@@ -12,7 +12,7 @@ from .families import STATION_DEPENDENT
 STALE_FORECAST = 90
 """Minutes after which a forecast that should come every 15 minutes is old."""
 # Where an entity's missing source is set (an assistant step); the others are station sensors.
-NEED_STAGE = {"vigilance": 0, "qualite_air": 2, "pollens": 3}
+NEED_STAGE = {"vigilance": 0, "qualite_air": 2, "pollens": 3, "restrictions_eau": 6}
 # What a station sensor brings, when the station has one that is not chosen.
 GAINS = {
     "temperature_entity": "la température mesurée chez vous, au lieu de celle du service météo",
@@ -46,6 +46,11 @@ class Facts:
     weather: str = ""
     weather_ok: bool = True
     forecast_age: float | None = None
+    forecast_hours: int | None = None
+    forecast_days: int | None = None
+    computation_age: float | None = None
+    history_sources: int | None = None
+    interface_version: int = 1
     vigilance: str = ""
     vigilance_ok: bool = True
     vigilance_found: str = ""
@@ -243,4 +248,11 @@ def report(f: Facts) -> dict:
     return {"title": f.title, "level": "action" if todo else "ok",
             "summary": _plural(len(todo), "point") + " à régler" if todo else "Tout est suivi",
             "tips_summary": _plural(len(tips), "réglage") + " à améliorer" if tips else "",
-            "todo": todo, "tips": tips, "sources": sources, "sensors": sensors, "entities": entities, "versions": versions}
+            "todo": todo, "tips": tips, "sources": sources, "sensors": sensors, "entities": entities, "versions": versions,
+            "technical": {"station": {"name": f.station, "responding": len(f.sensors) - len(broken), "configured": len(f.sensors),
+                                       "history": f.history, "history_sources": f.history_sources},
+                          "forecast": {"hours": f.forecast_hours, "days": f.forecast_days,
+                                       "received": ago(f.forecast_age) or None},
+                          "computation": ago(f.computation_age) or None,
+                          "entities": {"active": len(active), "with_value": len(active) - len(empty), "total": len(f.entities)},
+                          "integration": f.integration, "links": list(f.links), "interface_version": f.interface_version}}

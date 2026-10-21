@@ -25,7 +25,6 @@ export class WeatherSetup extends LitElement {
  @state() private error='';
  @state() private saved='';
  @state() private confirmLeave=false;
- @state() private allSensors='';
  @state() private placeTitle='';
  @state() private extensionId='';
  private routeHandled:string|undefined;
@@ -213,12 +212,12 @@ export class WeatherSetup extends LitElement {
       <span>${i.name}${i.hint?html`<span class="hint">${i.hint}</span>`:nothing}${i.need?html`<span class=${i.optional?'hint':'warn'}>${i.need}</span>`:nothing}</span></label>`)}`,{count:`${on} sur ${items.length}`,className:'nk-field-section nk-plain'});})}
    ${this.bottom()}`;
  }
- private extensionRows(items:Extension[],entryId?:string):TemplateResult{
+ private extensionRows(items:Extension[]):TemplateResult{
   const row=(e:Extension)=>html`<section class="extension-row" aria-label=${e.name}><div><h3>${e.name}</h3><p>${e.description}</p><div class="extension-status">
    <span class="extension-badge ${e.installed?'ok':'none'}">${e.installed?'Installée':'Pas installée'}</span>
    ${e.configured?html`<span class="extension-badge ok">Configurée</span>`:e.installed?html`<span class="extension-badge bad">À configurer</span>`:nothing}</div></div>
-   <button ?disabled=${this.busy} @click=${()=>{this.extensionId=e.id;if(entryId)void this.open(entryId,6);else if(e.installed&&!e.field)this.go(e.stage);}}>${e.configured?'Modifier':e.installed?'Configurer':'Comment l’installer'}</button>
-   ${!entryId&&this.extensionId===e.id?html`<div class="extension-detail"><h3>${e.installed?'Configurer':'Installer'} ${e.name}</h3>
+   <button ?disabled=${this.busy} @click=${()=>{this.extensionId=e.id;if(e.installed&&!e.field)this.go(e.stage);}}>${e.configured?'Modifier':e.installed?'Configurer':'Comment l’installer'}</button>
+   ${this.extensionId===e.id?html`<div class="extension-detail"><h3>${e.installed?'Configurer':'Installer'} ${e.name}</h3>
     ${!e.installed||e.field&&!this.view?.prevision.fields.find(f=>f.key===e.field)?.options.length?html`<p>${e.install}</p><p class="hint">Après l’ajout dans Home Assistant, revenez ici puis actualisez la détection.</p>
      <div class="actions">${e.url?html`<a href=${e.url} target="_blank" rel="noreferrer">Voir l’intégration ${e.name}</a>`:nothing}<a href="/config/integrations" target="_blank" rel="noreferrer">Appareils et services</a></div>`:nothing}
     ${e.field?this.view?.prevision.fields.filter(f=>f.key===e.field).map(f=>this.field(f)):e.installed?html`<button class="link" @click=${()=>this.go(e.stage)}>Choisir les données de ${e.name} →</button>`:nothing}
@@ -249,16 +248,15 @@ export class WeatherSetup extends LitElement {
 
  // ---- Pages ----
  private home(){
-  const p=this.places!;
-  return html`<main><h1>${(this.route?.path??'').startsWith('/reglages')?'Réglages généraux':'Vue d’ensemble'}</h1><p class="muted">${categories.includes((this.route?.path??'').split('/').filter(Boolean)[0])?'Choisissez le lieu à configurer : '+stages[categories.indexOf((this.route?.path??'').split('/').filter(Boolean)[0])]+'.':'Vos sources météo et les compléments disponibles pour votre maison.'}</p>
+  const p=this.places!,parts=(this.route?.path??'').split('/').filter(Boolean);
+  const choosing=parts[0]==='reglages'||categories.includes(parts[0]),stage=categories.indexOf(parts[0]==='reglages'?(parts[1]??'extensions'):parts[0]);
+  return html`<main><div class="technical-top"><div><h1>${choosing?'Réglages généraux':'Météo'}</h1><p class="muted">${choosing?'Choisissez le lieu à configurer.':'État de Weather, extensions et configuration de vos lieux.'}</p></div>
+   ${!choosing&&p.places.length?html`<button class="link" ?disabled=${this.busy} @click=${()=>void this.load()}>Actualiser le bilan</button>`:nothing}</div>
    ${this.saved?html`<p class="notice" role="status">${this.saved}</p>`:nothing}
-   ${p.places.length?p.places.map(place=>this.place(place)):html`<h1>Ma météo</h1>
-    ${frame('Votre lieu',html`<p class="muted">Niak Weather propose ce qu’il trouve dans Home Assistant ; vous vérifiez chaque étape avant de créer le lieu.</p>
-     ${p.can_add?html`<button class="primary" ?disabled=${this.busy} @click=${()=>void this.open(null)}>Configurer mon lieu</button>`
-      :html`<p class="warn">Aucun service météo dans Home Assistant : installez Météo-France (Paramètres → Appareils et services), puis revenez ici.</p>`}`,{className:''})}`}
-   ${!p.places.length?frame('Extensions disponibles',html`<p class="muted">Créez votre lieu pour choisir les données des extensions.</p>${extensionGroups(p.extensions??[]).map(g=>html`<details class="extension-category"><summary>${g.label}</summary>${g.items.map(e=>html`<div class="extension-row"><div><h3>${e.name}</h3><p>${e.description}</p><span class="extension-badge ${e.installed?'ok':'none'}">${e.installed?'Installée':'Pas installée'}</span></div>${e.url?html`<a href=${e.url} target="_blank" rel="noreferrer">Installation</a>`:nothing}</div>`)}</details>`)}`):nothing}
-   <div class="footer">${p.places.length&&p.can_add?html`<button class="link" ?disabled=${this.busy} @click=${()=>void this.open(null)}>Ajouter un lieu</button>`:nothing}
-    <span class="hint">Les sources et entités se règlent dans Réglages généraux.</span></div></main>`;
+   ${p.places.length?p.places.map(place=>choosing?frame(place.title,html`<p class="muted">${place.health.summary}</p><button ?disabled=${this.busy} @click=${()=>void this.open(place.entry_id,stage>=0?stage:6)}>Configurer le lieu</button>`):this.place(place)):frame('Votre lieu météo',html`
+    <p class="muted">Configurez votre lieu pour suivre ici les sources, les capteurs et les données disponibles.</p>
+    ${p.can_add?html`<button class="primary" ?disabled=${this.busy} @click=${()=>void this.open(null)}>Configurer mon lieu</button>`:html`<p class="warn">Aucun service météo dans Home Assistant : installez Météo-France dans Appareils et services, puis revenez ici.</p>`}`)}
+   ${p.places.length&&p.can_add?html`<div class="footer"><button class="link" ?disabled=${this.busy} @click=${()=>void this.open(null)}>Ajouter un lieu</button></div>`:nothing}</main>`;
  }
  // One line of a frame: its state, what it means, and the step of the assistant that changes it.
  private line(entryId:string,l:Line){
@@ -266,26 +264,50 @@ export class WeatherSetup extends LitElement {
    ${l.stage!==null&&l.stage!==undefined?html`<button class="link go" ?disabled=${this.busy} @click=${()=>void this.open(entryId,l.stage!)}>${stages[l.stage]}</button>`:nothing}</li>`;
  }
  private place(p:Place){
-  const category=categories.indexOf((this.route?.path??'').split('/').filter(Boolean)[0]);
-  const h=p.health,all=this.allSensors===p.entry_id,sensors=all?h.sensors:h.sensors.slice(0,8);
-  return html`<section class="place room-place" aria-labelledby=${'p-'+p.entry_id}>
-   <div class="head"><div><h2 id=${'p-'+p.entry_id}>${p.title}</h2>
-    <p class="state ${h.level==='ok'?'ok':'bad'}"><span class="dot"></span>${h.summary}${h.tips_summary?html`<span class="muted"> · ${h.tips_summary}</span>`:nothing}</p></div>
-    <button class="primary" ?disabled=${this.busy} @click=${()=>void this.open(p.entry_id,category>=0?category:6)}>Configurer le lieu</button></div>
-   ${!p.loaded&&!p.failed?html`<p class="notice" role="status">Le lieu redémarre…</p>`:nothing}
-    ${h.todo.length?html`${frame('À régler',html`<ul class="lines">${h.todo.map(l=>this.line(p.entry_id,l))}</ul>`,{className:'wide todo'})}`:nothing}
-    ${h.tips.length?html`${frame('À améliorer',html`<ul class="lines">${h.tips.map(l=>this.line(p.entry_id,l))}</ul>`,{className:'wide'})}`:nothing}
-   ${frame('Extensions',html`<p class="muted">Ce qui est installé dans Home Assistant et configuré pour ce lieu.</p>${this.extensionRows(p.extensions??[],p.entry_id)}`,{className:'extensions-frame'})}
-   <div class="actions"><button class="link" ?disabled=${this.busy} @click=${()=>void this.open(p.entry_id,4)}>Choisir les entités pour mes automatisations</button></div>
-   <details class="health-details"><summary>Sources, conseils et état du lieu</summary><p class="legend"><span class="ok"><span class="dot"></span>fonctionne</span><span class="bad"><span class="dot"></span>à régler</span><span class="tip"><span class="dot"></span>à améliorer</span><span class="none"><span class="dot"></span>non utilisé</span></p>
-   <div class="grid">
-    ${frame('Sources',html`<ul class="lines">${h.sources.map(s=>html`<li class=${s.level}><span class="dot"></span><div><strong>${s.label}</strong><span class="why">${s.text}</span></div></li>`)}</ul>`,{className:''})}
-    ${h.sensors.length?html`${frame('Capteurs de la station',html`
-     <ul class="sensors">${sensors.map(s=>html`<li class=${s.level} title=${s.name}><span class="dot"></span><span>${s.label}</span><span class="v">${s.text}</span></li>`)}</ul>
-     ${h.sensors.length>8?html`<button class="link" aria-expanded=${all?'true':'false'} @click=${()=>{this.allSensors=all?'':p.entry_id;}}>${all?'Masquer':`Voir les ${h.sensors.length} capteurs`}</button>`:nothing}`,{count:h.sensors.length,collapsible:true})}`:nothing}
-    ${frame('Entités Niak Weather',html`<ul class="lines">${h.entities.map(l=>this.line(p.entry_id,{...l,stage:null}))}</ul>`,{className:''})}
-    ${frame('Versions et liens',html`<ul class="lines">${h.versions.map(l=>this.line(p.entry_id,{...l,stage:null}))}</ul>`,{collapsible:true,open:false})}
-   </div></details></section>`;
+  const h=p.health,t=h.technical,station=t?.station,entities=t?.entities,extensions=p.extensions;
+  const row=(label:string,text:string,level='none')=>html`<div class="technical-row"><strong>${label}</strong><span class=${level}>${text}</span></div>`;
+  const config=(stage:number)=>html`<button ?disabled=${this.busy} @click=${()=>void this.open(p.entry_id,stage)}>${stages[stage]}</button>`;
+  const badge=(e:Extension)=>html`<span class="extension-badge ${e.configured&&!e.installed?'bad':e.configured?'ok':'none'}">${e.configured?(e.installed?'Configurée':'Configurée · absente'):e.installed?'Installée · non utilisée':'Pas installée'}</span>`;
+  const version=t?.integration||h.versions.find(v=>v.text.startsWith('Intégration '))?.text.replace(/^Intégration /,'');
+  const card=h.versions.find(v=>v.text.startsWith('Carte '));
+  const level=p.failed?'bad':!p.loaded?'none':h.level==='ok'?'ok':'bad';
+  return html`<section class="technical-place" aria-labelledby=${'p-'+p.entry_id}>
+   <div class="head"><div><h2 id=${'p-'+p.entry_id}>${p.title}</h2><p class="state ${level}"><span class="dot"></span>${p.failed?'Démarrage en échec':!p.loaded?'Redémarrage en cours':h.todo.length?'Fonctionnement à vérifier':'En fonctionnement'}${p.loaded?html`<span class="muted"> · ${h.todo.length?`${h.todo.length} point${h.todo.length>1?'s':''} à régler`:'aucun problème détecté'}</span>`:nothing}</p></div>
+    <button ?disabled=${this.busy} @click=${()=>void this.open(p.entry_id,6)}>Réglages généraux</button></div>
+   ${h.todo.length?frame('À corriger',html`<ul class="lines">${h.todo.map(l=>this.line(p.entry_id,l))}</ul>`,{className:'todo'}):nothing}
+   <div class="dashboard-main">
+    ${frame('État de Weather',html`${row('Lieu',p.loaded?'Chargé':p.failed?'En échec':'En cours de chargement',p.loaded?'ok':p.failed?'bad':'none')}
+     ${h.sources.filter(x=>['Prévisions','Vigilance'].includes(x.label)).map(x=>row(x.label,x.text,x.level))}
+     ${row('Dernier calcul',t?.computation??'Non disponible',t?.computation?'ok':'none')}
+     ${row('Station',station?.name||'Non configurée')}
+     ${row('Historique',!station?.name?'Sans station':!station.history?'Désactivé':station.history_sources==null?'Non disponible':`${station.history_sources} source${station.history_sources>1?'s':''} avec des données`)}`)}
+    ${frame('Statistiques',html`<dl class="dashboard-stats">
+     <div><dt>Capteurs de station qui répondent</dt><dd>${station?.configured?`${station.responding} / ${station.configured}`:'—'}</dd></div>
+     <div><dt>Entités activées</dt><dd>${entities?`${entities.active} / ${entities.total}`:'—'}</dd></div>
+     <div><dt>Entités actives avec une valeur</dt><dd>${entities?`${entities.with_value} / ${entities.active}`:'—'}</dd></div>
+     <div><dt>Créneaux horaires reçus</dt><dd>${t?.forecast.hours??'—'}</dd></div>
+     <div><dt>Prévisions quotidiennes reçues</dt><dd>${t?.forecast.days==null?'—':`${t.forecast.days} jour${t.forecast.days>1?'s':''}`}</dd></div>
+    </dl>`)}
+   </div>
+   ${frame('Extensions',html`${extensions?html`<p class="hint extension-summary">${extensions.filter(e=>e.installed).length} / ${extensions.length} installées dans Home Assistant · ${extensions.filter(e=>e.configured).length} configurée${extensions.filter(e=>e.configured).length>1?'s':''} pour ce lieu</p>
+    <div class="extension-overview">${extensionGroups(extensions).map(group=>html`<div class="extension-overview-group"><h3>${group.label}</h3><ul>${group.items.map(e=>html`<li><span>${e.name}</span>${badge(e)}</li>`)}</ul></div>`)}</div>`:html`<p class="muted">État des extensions non reçu. Actualisez le bilan.</p>`}
+    <button class="link" ?disabled=${this.busy} @click=${()=>void this.open(p.entry_id,6)}>Gérer les extensions →</button>`,{className:'overview-extensions'})}
+   ${frame('Configuration',html`<nav class="dashboard-config" aria-label=${'Configuration de '+p.title}>${[0,1,2,3,4].map(config)}</nav>`)}
+   ${frame('Versions et liens',html`<div class="dashboard-main dashboard-meta"><div>
+     ${row('Intégration',version||'Version non reçue')}
+     ${card?row('Carte',card.text.replace(/^Carte /,'')+' · '+card.why,card.level):nothing}
+     ${row('API',t?`niak_weather_api v${t.interface_version}`:'Version non reçue')}
+     ${row('Liaisons',t?.links.length?t.links.join(' · '):'Aucune brique reliée')}
+    </div><nav class="dashboard-links" aria-label="Liens utiles">
+     <a href="/config/integrations/integration/niak_weather">Intégration Home Assistant</a>
+     <a href="/config/logs">Journaux Home Assistant</a>
+     <a href="https://github.com/Niakman13/niak-weather-integration#readme" target="_blank" rel="noreferrer">Documentation</a>
+     <a href="https://github.com/Niakman13/niak-weather-integration/releases" target="_blank" rel="noreferrer">Versions publiées</a>
+     <a href="https://github.com/Niakman13/niak-weather-integration/issues" target="_blank" rel="noreferrer">Signaler un problème</a>
+    </nav></div>`)}
+   ${h.sensors.length?frame('Détail des capteurs',html`<ul class="sensors">${h.sensors.map(x=>html`<li class=${x.level}><span class="dot"></span><span title=${x.name}>${x.label}</span><span class="v">${x.text}</span></li>`)}</ul>`,{collapsible:true,open:false,count:h.sensors.length}):nothing}
+   ${h.tips.length?frame('Possibilités d’amélioration',html`<ul class="lines">${h.tips.map(l=>this.line(p.entry_id,l))}</ul>`,{count:h.tips.length,collapsible:true,open:false}):nothing}
+   </section>`;
  }
  private editor(){
   const v=this.view!;

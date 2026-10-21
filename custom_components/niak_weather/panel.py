@@ -19,6 +19,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
+from .api import API_VERSION
 from .config_flow import NONE, _context
 from .const import DOMAIN, LOGGER
 from .draft import Draft, ecosystem_of, entity_keys, entity_label, family_label, field_label, linked, needs_text
@@ -143,6 +144,11 @@ def facts(hass: HomeAssistant, entry: Any, card_twice: bool = False) -> health.F
         weather=_name(weather, sources.get("weather_entity") or "") if weather else (sources.get("weather_entity") or ""),
         weather_ok=weather is not None and weather.state not in GONE,
         forecast_age=_minutes(now, getattr(coordinator, "forecast_at", None)),
+        forecast_hours=len(getattr(coordinator, "hours", ())) if getattr(coordinator, "forecast_at", None) is not None else None,
+        forecast_days=len(getattr(coordinator, "days", ())) if getattr(coordinator, "forecast_at", None) is not None else None,
+        computation_age=_minutes(now, getattr(getattr(coordinator, "data", None), "computed", None)),
+        history_sources=(len({key for history in (getattr(coordinator, "history", {}), getattr(coordinator, "rain_history", {})) for key, rows in history.items() if rows})
+                         if coordinator is not None else None), interface_version=API_VERSION,
         vigilance=_name(vigilance, sources.get("vigilance_entity") or "") if sources.get("vigilance_entity") else "",
         vigilance_ok=vigilance is not None and vigilance.state not in GONE,
         vigilance_found=_name(get(found[0]), found[0]) if found and not sources.get("vigilance_entity") else "",
@@ -215,7 +221,7 @@ def _has_weather(hass: HomeAssistant) -> bool:
 @websocket_api.async_response
 async def ws_places(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
     twice = await card_twice(hass)
-    connection.send_result(msg["id"], {"places": [place(hass, e, twice)[0] for e in _entries(hass)], "can_add": _has_weather(hass), "extensions": inventory(hass, {})})
+    connection.send_result(msg["id"], {"places": [place(hass, e, twice)[0] for e in _entries(hass)], "can_add": _has_weather(hass)})
 
 
 def _send_draft(connection: websocket_api.ActiveConnection, msg: dict[str, Any], draft: Draft, error: str = "", **extra: Any) -> None:

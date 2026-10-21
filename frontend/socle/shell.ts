@@ -1,9 +1,9 @@
-// Niak shared panel (socle v1.8): header, tabs and the home page listing every Niak brick.
+// Niak shared panel (socle v1.9): header, tabs and the home page listing every Niak brick.
 // Copied unchanged into each brick from niak-ecosysteme/socle/ (see ECOSYSTEME.md § 8).
 import {LitElement,html,css,nothing,type PropertyValues} from 'lit';
 import {frame,hubStyles,modernStyles,hubIcon} from './ui';
 
-export const ELEMENT='niak-socle-1-8';
+export const ELEMENT='niak-socle-1-9';
 type Level='ok'|'action'|'unknown';
 export interface BrickStatus {level:Level;summary:string;details:string[];links:string[]}
 export interface Brick {domain:string;name:string;slug:string;version:string;icon:string;module_url:string;element:string;status:BrickStatus;tab?:string|null;navigation?:number|null}

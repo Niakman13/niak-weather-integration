@@ -7,7 +7,13 @@ export interface Choice {value:string;label:string;hint?:string;available?:boole
 export type Level='ok'|'bad'|'tip'|'none';
 export interface Line {level:Level;text:string;why:string;stage:number|null}
 export interface Health {title:string;level:'ok'|'action';summary:string;tips_summary:string;todo:Line[];tips:Line[];
+ technical?:Technical;
  sources:{label:string;level:Level;text:string}[];sensors:{label:string;name:string;level:Level;text:string}[];entities:Line[];versions:Line[]}
+export interface Technical {
+ station:{name:string;responding:number;configured:number;history:boolean;history_sources:number|null};
+ forecast:{hours:number|null;days:number|null;received:string|null};computation:string|null;
+ entities:{active:number;with_value:number;total:number};integration:string;links:string[];interface_version:number;
+}
 export interface Extension {id:string;name:string;description:string;installed:boolean;configured:boolean;air_configured?:boolean;pollen_configured?:boolean;stage:number;field:string;url:string;integration:string;install:string}
 export interface Place {entry_id:string;title:string;loaded:boolean;failed:boolean;health:Health;extensions?:Extension[]}
 export interface Places {places:Place[];can_add:boolean;extensions?:Extension[]}

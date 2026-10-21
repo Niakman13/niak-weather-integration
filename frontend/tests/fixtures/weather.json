@@ -521,7 +521,9 @@
         }
       ],
       "area": "",
-      "areas": []
+      "areas": [],
+      "stations": [],
+      "station": ""
     },
     "pollen": {
       "value": "none",

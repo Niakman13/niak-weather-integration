@@ -18,9 +18,9 @@ Niak Weather assemble des données **déjà présentes** dans Home Assistant. Il
 
 ## Configurer
 
-Dans le panneau Niak, **Météo → Vue d’ensemble** présente les lieux et leurs extensions. **Réglages généraux** regroupe les onglets Extensions, Sources météo, Station météo · capteurs locaux, Qualité de l’air, Pollens et Entités, puis le récapitulatif.
+Dans le panneau Niak, **Météo → Vue d’ensemble** présente le bilan technique de chaque lieu : fraîcheur des prévisions et du calcul, capteurs de la station qui répondent, historique disponible, entités actives et liaisons avec les autres briques. Les extensions sont résumées par catégorie avec leur état d’installation et leur sélection enregistrée ; les possibilités d’amélioration restent repliées. Le bouton **Actualiser le bilan** relit les données sans modifier les réglages. **Réglages généraux** regroupe les onglets Extensions, Sources météo, Station météo · capteurs locaux, Qualité de l’air, Pollens et Entités, puis le récapitulatif.
 
-Les extensions sont rangées dans quatre catégories repliables : **Qualité de l’air**, **Pollens**, **Eau et jardin** et **Orages et éclairs**. Atmo France est proposé dans les deux premières catégories, chacune avec son propre état de configuration.
+L’accueil présente une synthèse compacte des extensions, sans formulaire ni aide à l’installation. Leur configuration détaillée se trouve dans **Réglages généraux → Extensions**. Les extensions sont rangées dans quatre catégories repliables : **Qualité de l’air**, **Pollens**, **Eau et jardin** et **Orages et éclairs**. Atmo France est proposé dans les deux premières catégories, chacune avec son propre état de configuration.
 
 **Installée** signifie que l’intégration est ajoutée dans Home Assistant, détectée par ses entités, ou téléchargée dans HACS. **Configurée** indique que ses données ont été choisies et enregistrées pour ce lieu. Un capteur simplement proposé dans un brouillon ne suffit pas. **À configurer** invite à choisir les données ; **Pas installée** donne accès aux indications d’installation. L’état de fonctionnement des sources reste dans le détail technique du lieu.
 
