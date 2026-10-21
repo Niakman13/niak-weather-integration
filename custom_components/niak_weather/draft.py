@@ -280,7 +280,7 @@ class Draft(_SourceSteps):
                             required=True, warning="" if s.get("weather_entity") else "Choisissez le service qui donne les prévisions."),
                 self._field("vigilance_entity", "Vigilance officielle", vigilance,
                             warning="" if vigilance or s.get("vigilance_entity") else
-                            "Aucun capteur de vigilance trouvé : installez Météo-France ou MeteoSwiss pour votre région, puis « Rechercher à nouveau »."),
+                            "Aucun capteur de vigilance trouvé : installez Météo-France ou MeteoSwiss pour votre région, puis « Actualiser la détection »."),
                 self._field("season_entity", "Saison", detection.season_candidates(states, registry)),
                 self._field("water_restriction_entity", "Restrictions d’eau (Vigieau)", detection.water_candidates(states, registry)),
                 self._field("lightning_entity", "Éclairs (Blitzortung)", detection.lightning_candidates(states, registry)),

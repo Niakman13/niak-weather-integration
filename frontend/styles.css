@@ -63,20 +63,8 @@ ul{padding-left:22px}
 .room-place{border:1px solid var(--nk-border);border-radius:25px;padding:24px;margin:20px 0}.room-place+.room-place{margin-top:20px;padding-top:24px}.room-place .head{margin:0}.place-context{display:flex;gap:14px;align-items:center;justify-content:space-between;padding-bottom:18px;margin-bottom:24px;border-bottom:1px solid var(--nk-border);font-size:13px;color:var(--nk-muted)}.place-context strong{color:var(--primary-text-color)}@media(max-width:480px){.room-place{padding:18px}.place-context{flex-wrap:wrap;gap:4px}}
 
 /* Extension installation is global; its saved selection belongs to the current place. */
-.extensions-frame{margin-top:24px}.extensions-frame p{max-width:none}
-.extension-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:18px 0;border-top:1px solid var(--nw-border)}
-.extension-row h3{font-size:17px}.extension-row p{font-size:14px;margin:4px 0;color:var(--nw-muted)}
-.extension-status{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-.extension-badge{display:inline-block;font-size:13px;padding:3px 8px;border-radius:6px;background:color-mix(in srgb,var(--lv,var(--nw-off)) 12%,var(--nw-surface));color:var(--lv,var(--nw-off))}
-.extension-detail{grid-column:1/-1;padding:18px;background:var(--nw-surface);border-left:3px solid var(--nw-accent);border-radius:8px;min-width:0}
-.extension-detail .actions{flex-wrap:wrap;gap:18px}.extension-detail a{overflow-wrap:anywhere}
-.extension-category{border-top:1px solid var(--nw-border);margin-top:14px}
-.extension-category>summary{min-height:54px;align-content:center;cursor:pointer;color:var(--primary-text-color);font-weight:600;padding:10px 0}
-.category-count{font-size:13px;font-weight:400;color:var(--nw-muted);margin-left:12px;display:inline-block}
-.extension-category .extension-row{margin-left:18px}
-@media(max-width:600px){.category-count{display:block;margin-left:18px}.extension-category .extension-row{margin-left:8px}}
-.config-tabs{border-bottom:1px solid var(--nw-border);padding-bottom:12px}
-@media(max-width:600px){.extension-row{grid-template-columns:minmax(0,1fr)}.extension-row>button{justify-self:start}.extension-detail{padding:14px}.config-tabs button{flex:1 1 140px}}
+.extension-status{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 12px}.extension-status button.link{font-size:13px;min-height:36px;padding:4px 8px}.extension-badge{display:inline-block;font-size:13px;padding:3px 8px;border-radius:6px;background:color-mix(in srgb,var(--lv,var(--nw-off)) 12%,var(--nw-surface));color:var(--lv,var(--nw-off))}
+.extension-detail{padding:16px;border-left:2px solid var(--nw-accent);border-radius:8px;min-width:0}.extension-detail .actions{gap:16px}.extension-detail a{overflow-wrap:anywhere}.source-choice{padding-bottom:8px}.source-choice>.integration-info{padding:0 14px}.source-choice .choice{margin-bottom:4px}.configuration-recap{margin:-14px 0 10px;font-size:13px}
 
 /* The operator home: compact state, saved extensions and direct settings. */
 .technical-top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:26px}.technical-top p{margin:6px 0 0}

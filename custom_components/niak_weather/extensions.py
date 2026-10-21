@@ -12,9 +12,10 @@ from homeassistant.helpers import entity_registry as er
 
 # id, integration domain, name, benefit, repository, configuration stage, sensor setting
 CATALOGUE = (
+    ("meteo_france", "meteo_france", "Météo-France", "Prévisions du lieu et vigilance officielle.", "", 0, "weather_entity"),
     ("atmo", "atmofrance", "Atmo France", "Qualité de l’air et pollens de votre commune.", "sebcaps/atmofrance", 2, ""),
     ("vigieau", "vigieau", "Vigieau", "Restrictions d’eau et usages concernés.", "kamaradclimber/vigieau", 6, "water_restriction_entity"),
-    ("blitzortung", "blitzortung", "Blitzortung", "Éclairs à proximité, distance et direction de l’orage.", "mrk-its/homeassistant-blitzortung", 6, "lightning_entity"),
+    ("blitzortung", "blitzortung", "Blitzortung", "Éclairs à proximité, distance et direction de l’orage.", "mrk-its/homeassistant-blitzortung", 0, "lightning_entity"),
     ("waqi", "waqi", "WAQI", "Qualité de l’air mesurée par une station près de chez vous.", "", 2, ""),
     ("polleninformation", "polleninformation", "Polleninformation", "Pollens par espèce dans les pays couverts.", "krissen/polleninformation", 3, ""),
     ("irm_kmi", "irm_kmi", "IRM KMI", "Pollens en Belgique.", "jdejaegh/irm-kmi-ha", 3, ""),
@@ -25,11 +26,15 @@ CATALOGUE = (
 
 def inventory(hass: HomeAssistant, options: Mapping[str, Any]) -> list[dict[str, Any]]:
     """Installation is global, configuration is read from this place's saved options only."""
-    platforms = {e.platform for e in er.async_get(hass).entities.values()}
+    entities = er.async_get(hass).entities
+    platforms = {e.platform for e in entities.values()}
     installed = platforms | {e.domain for e in hass.config_entries.async_entries()}
     result = []
     for key, domain, name, benefit, repository, stage, field in CATALOGUE:
-        if field:
+        if key == "meteo_france":
+            chosen = any((entity := entities.get(options.get(setting, ""))) is not None and entity.platform == domain
+                         for setting in ("weather_entity", "vigilance_entity"))
+        elif field:
             chosen = bool(options.get(field))
         elif key == "atmo":
             chosen = (options.get("air_source") not in ("none", "waqi") and bool(options.get("atmo_air_entity"))
@@ -52,7 +57,7 @@ def inventory(hass: HomeAssistant, options: Mapping[str, Any]) -> list[dict[str,
                        "air_configured": options.get("air_source") not in ("none", "waqi") and bool(options.get("atmo_air_entity")) if key == "atmo" else False,
                        "pollen_configured": options.get("pollen_source") not in ("none", "legacy") and bool(options.get("atmo_pollen_entity")) if key == "atmo" else False,
                        "stage": stage, "field": field,
-                       "url": f"https://github.com/{repository}" if repository else "https://www.home-assistant.io/integrations/waqi/" if key == "waqi" else "",
+                       "url": f"https://github.com/{repository}" if repository else f"https://www.home-assistant.io/integrations/{domain}/" if key in ("waqi", "meteo_france") else "",
                        "integration": domain,
                        "install": ("Dans HACS, cherchez « Blitzortung.org Lightning Detector » et téléchargez-le. Redémarrez Home Assistant, "
                                    "puis ajoutez l’intégration « Blitzortung » dans Paramètres → Appareils et services. Choisissez votre maison."
