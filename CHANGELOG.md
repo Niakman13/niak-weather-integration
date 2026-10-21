@@ -1,3 +1,12 @@
+## 2.8.0 — Stable : accueil technique et réglages par sujet
+
+- Nouvel accueil technique : état de Weather, problèmes à corriger, extensions installées/configurées, statistiques, versions et liens utiles.
+- Réglages regroupés par sujet : Météo-France et Blitzortung dans Sources météo, air et pollens dans leurs onglets, Vigieau dans Eau et jardin.
+- Menu à icônes conforme à Niak Confort et cadres lisibles avec les thèmes Home Assistant, notamment Nordic.
+- Choix conservés entre les onglets et anciens liens compatibles.
+
+Cette version stable reprend la bêta 2.8.0b4 validée, sans changement fonctionnel supplémentaire.
+
 ## 2.8.0b4 — Bêta : réglages par sujet
 
 - L’onglet Extensions est supprimé : les intégrations d’air et de pollens se règlent dans leurs onglets, Vigieau dans Eau et jardin, Blitzortung dans Sources météo.
