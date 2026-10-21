@@ -1,3 +1,10 @@
+## 2.8.0b4 — Bêta : réglages par sujet
+
+- L’onglet Extensions est supprimé : les intégrations d’air et de pollens se règlent dans leurs onglets, Vigieau dans Eau et jardin, Blitzortung dans Sources météo.
+- Météo-France est identifié dans Sources météo, avec son état d’installation et sa sélection enregistrée pour le lieu.
+- Le menu de configuration reprend les deux rangées arrondies à icônes de Niak Confort.
+- Les anciens liens Extensions ouvrent Sources météo ; le brouillon reste conservé entre les onglets et le nouvel assistant passe par Eau et jardin.
+
 ## 2.8.0b3 — Bêta : tableau de bord technique et thèmes Home Assistant
 
 - La vue d’ensemble Météo devient un accueil technique : état des sources, prévisions reçues, dernier calcul, capteurs de la station, historique, entités et liaisons avec les autres briques.

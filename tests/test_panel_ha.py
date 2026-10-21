@@ -64,12 +64,30 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
         f = facts(self.hass, entry)
         self.assertEqual((f.forecast_hours, f.forecast_days, f.history_sources), (3, 2, 2))
         overview, _ = place(self.hass, entry)
-        self.assertEqual(len(overview["extensions"]), 8)
+        self.assertEqual(len(overview["extensions"]), 9)
         self.assertFalse(any(e["configured"] for e in overview["extensions"]))  # saved choices only
         self.assertEqual(overview["health"]["technical"]["forecast"]["received"], "il y a 4 min")
         coordinator.forecast_at = None
         pending = facts(self.hass, entry)
         self.assertIsNone(pending.forecast_hours)  # retained arrays are not a received forecast after startup
+
+    async def test_meteo_france_installation_and_saved_sources_are_distinct(self):
+        from custom_components.niak_weather.extensions import inventory
+        registry = er.async_get(self.hass)
+        def meteo(options):
+            return next(e for e in inventory(self.hass, options) if e["id"] == "meteo_france")
+        self.assertFalse(meteo({})["installed"])
+        weather = registry.async_get_or_create("weather", "meteo_france", "forecast")
+        other = registry.async_get_or_create("weather", "other_weather", "forecast")
+        vigilance = registry.async_get_or_create("sensor", "meteo_france", "vigilance")
+        self.assertTrue(meteo({})["installed"])
+        self.assertFalse(meteo({})["configured"])
+        self.assertTrue(meteo({"weather_entity": weather.entity_id})["configured"])
+        self.assertFalse(meteo({"weather_entity": other.entity_id})["configured"])
+        self.assertTrue(meteo({"weather_entity": other.entity_id, "vigilance_entity": vigilance.entity_id})["configured"])
+        self.assertEqual(meteo({})["stage"], 0)
+        self.assertEqual(meteo({})["url"], "https://www.home-assistant.io/integrations/meteo_france/")
+        self.assertNotIn("HACS", meteo({})["install"])
 
     async def test_extensions_distinguish_saved_selection_from_detection(self):
         from types import SimpleNamespace

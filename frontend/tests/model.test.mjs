@@ -37,11 +37,11 @@ test('the entities switched on, and a sensor line that says when it is gone',()=
 
 test('extensions group by use and Atmo keeps separate air and pollen configuration and destinations',()=>{
  const shared={installed:true,configured:true,stage:2,field:'',description:'',name:'Atmo France'};
- const groups=extensionGroups([{...shared,id:'atmo',air_configured:true,pollen_configured:false},{...shared,id:'waqi'},
-  {...shared,id:'polleninformation',stage:3},{...shared,id:'vigieau',stage:6},{...shared,id:'blitzortung',stage:6}]);
- assert.deepEqual(groups.map(g=>g.label),['Qualité de l’air','Pollens','Eau et jardin','Orages et éclairs']);
- assert.equal(groups[0].items[0].configured,true);
- assert.equal(groups[1].items[0].configured,false);
- assert.equal(groups[1].items[0].stage,3);
- assert.notEqual(groups[0].items[0].id,groups[1].items[0].id);
+ const groups=extensionGroups([{...shared,id:'meteo_france',stage:0},{...shared,id:'atmo',air_configured:true,pollen_configured:false},{...shared,id:'waqi'},
+  {...shared,id:'polleninformation',stage:3},{...shared,id:'vigieau',stage:6},{...shared,id:'blitzortung',stage:0}]);
+ assert.deepEqual(groups.map(g=>g.label),['Sources météo','Qualité de l’air','Pollens','Eau et jardin','Orages et éclairs']);
+ assert.equal(groups[1].items[0].configured,true);
+ assert.equal(groups[2].items[0].configured,false);
+ assert.equal(groups[2].items[0].stage,3);
+ assert.notEqual(groups[1].items[0].id,groups[2].items[0].id);
 });

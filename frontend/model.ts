@@ -36,7 +36,7 @@ export interface DraftReply {draft:Sources;view:View;error:string}
 export type Change={op:string;key?:string;value?:unknown;area?:string};
 
 export const NONE='none';
-export const stages=['Sources météo','Station météo · capteurs locaux','Qualité de l’air','Pollens','Entités','Récapitulatif','Extensions'];
+export const stages=['Sources météo','Station météo · capteurs locaux','Qualité de l’air','Pollens','Entités','Récapitulatif','Eau et jardin'];
 // What each step is for, shown on top of it in a frame that folds: one idea per line.
 export const intros:string[][]=[
  ['Les prévisions du lieu viennent d’un service météo installé dans Home Assistant, Météo-France par exemple.',
@@ -54,7 +54,7 @@ export const intros:string[][]=[
   'Elles servent à vos automatisations et tableaux de bord ; la carte n’en a pas besoin.'],
  ['Tout ce que vous avez choisi, onglet par onglet.',
   'Rien ne change tant que vous n’avez pas enregistré ; un oubli, revenez à l’onglet voulu.'],
- ['Les extensions sont des intégrations de Home Assistant qui enrichissent la météo.', 'Installez-les dans Home Assistant, puis choisissez leurs données ici.', 'Rien ne change tant que vous n’avez pas enregistré.'],
+ ['Les restrictions d’eau de votre commune viennent de Vigieau.', 'Choisissez ici le capteur de la zone d’eau du robinet (AEP). Facultatif.'],
 ];
 
 // The entities switched on, by key, as the « Entités » step shows them.
@@ -87,6 +87,7 @@ export function extensionGroups(items:Extension[]):ExtensionGroup[]{
   configured:(key==='air'?atmo.air_configured:atmo.pollen_configured)??atmo.configured,
   description:key==='air'?'Qualité de l’air de votre commune.':'Pollens de votre commune, aujourd’hui et demain.'}]:[];
  return [
+  {key:'weather',label:'Sources météo',items:items.filter(e=>e.id==='meteo_france')},
   {key:'air',label:'Qualité de l’air',items:[...subject('air',2),...items.filter(e=>e.id==='waqi')]},
   {key:'pollen',label:'Pollens',items:[...subject('pollen',3),...items.filter(e=>['polleninformation','irm_kmi','swiss_pollen','kleenex_pollenradar'].includes(e.id))]},
   {key:'water',label:'Eau et jardin',items:items.filter(e=>e.id==='vigieau')},

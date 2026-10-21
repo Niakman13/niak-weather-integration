@@ -6,7 +6,10 @@ import styles from './styles.css';
 import {frame,hubStyles,modernStyles,hubIcon,helpTip} from './socle/ui';
 import {NONE,stages,intros,extensionGroups,enabledKeys,provenance,sameSet,entityLine,grouped,capital,type Change,type Choice,type DraftReply,type Field,type Hass,type Line,type Place,type Places,type Sources,type View,type Extension} from './model';
 
-const categories=['sources','station','air','pollens','entites','recapitulatif','extensions'];
+const categories=['sources','station','air','pollens','entites','recapitulatif','eau-jardin'];
+const order=[0,1,2,3,6,4,5];
+const sections=[{stage:0,label:'Sources météo',icon:'weather'},{stage:1,label:'Station météo',icon:'temperature'},{stage:2,label:'Qualité de l’air',icon:'air'},{stage:3,label:'Pollens',icon:'pollen'},{stage:6,label:'Eau et jardin',icon:'pollen'},{stage:4,label:'Entités',icon:'entities'}];
+const sectionStage=(section:string)=>section==='extensions'?0:categories.indexOf(section);
 
 @customElement('niak-weather-setup')
 export class WeatherSetup extends LitElement {
@@ -61,7 +64,7 @@ export class WeatherSetup extends LitElement {
  private remember(){if(this.draft&&this.view)this.drafts.set(this.entryId??'nouveau',{draft:this.draft,view:this.view,stage:this.stage,enabled:this.enabled,error:this.error,initial:this.initial,initialEnabled:this.initialEnabled,savedOptions:this.savedOptions,touched:this.touched,placeTitle:this.placeTitle});}
  private async followRoute(){
   const path=this.route?.path??'';if(path===this.routeHandled)return;this.routeHandled=path;this.routeGeneration++;
-  const parts=path.split('/').filter(Boolean),section=parts[0]==='reglages'?(parts[1]??'extensions'):parts[0],id=parts[0]==='reglages'?parts[2]:parts[1],stage=categories.indexOf(section);this.remember();
+  const parts=path.split('/').filter(Boolean),section=parts[0]==='reglages'?(parts[1]??'sources'):parts[0],id=parts[0]==='reglages'?parts[2]:parts[1],stage=sectionStage(section);this.remember();
   const target=id??(this.editing?this.entryId:undefined)??(this.places?.places.length===1?this.places.places[0].entry_id:undefined);
   if(stage>=0&&target){
    const cached=this.drafts.get(target);if(cached){Object.assign(this,cached);this.entryId=target==='nouveau'?null:target;this.stage=stage;this.editing=true;return;}
@@ -120,11 +123,22 @@ export class WeatherSetup extends LitElement {
  private go(stage:number){this.stage=stage;this.path('reglages/'+categories[stage]+'/' +(this.entryId??'nouveau'));void this.updateComplete.then(()=>{this.top();});}
 
  // ---- Pieces ----
- private choiceList(name:string,choices:Choice[],value:string,pick:(v:string)=>void){
-  return html`<div role="radiogroup" aria-label=${({model:'Modèle de station',air:'Source de qualité de l’air',pollen:'Source des pollens'} as Record<string,string>)[name]??name}>${choices.map(c=>html`<label class="choice ${c.value===value?'on':''} ${c.available===false?'off':''}">
+ private choiceList(name:string,choices:Choice[],value:string,pick:(v:string)=>void,extensions:Extension[]=[]){
+  return html`<div role="radiogroup" aria-label=${({model:'Modèle de station',air:'Source de qualité de l’air',pollen:'Source des pollens'} as Record<string,string>)[name]??name}>${choices.map(c=>{const e=extensions.find(e=>e.id===c.value||e.id==='atmo-'+name&&c.value==='atmo');return html`<div class="source-choice"><label class="choice ${c.value===value?'on':''} ${c.available===false?'off':''}">
    <input type="radio" name=${name} .checked=${c.value===value} ?disabled=${c.available===false||this.busy} @change=${()=>pick(c.value)}>
-   <span><strong>${c.label}</strong>${c.available===false?html`<span>Pas encore installée</span>`:c.hint?html`<span>${c.hint}</span>`:nothing}</span></label>`)}</div>`;
+   <span><strong>${c.label}</strong>${c.hint?html`<span>${c.hint}</span>`:nothing}${c.available===false&&(!e||e.installed)?html`<span>${e?.installed?'Aucune donnée détectée pour cette source':'Pas encore installée'}</span>`:nothing}</span></label>
+   ${e?this.integrationInfo(e,c.available!==false):nothing}</div>`;})}</div>`;
  }
+ private integrationInfo(e:Extension|undefined,available=true):TemplateResult|typeof nothing{
+  if(!e)return nothing;
+  return html`<div class="integration-info" aria-label=${e.name}><div class="extension-status">
+   <span class="extension-badge ${e.installed?'ok':'none'}">${e.installed?'Installée':'Pas installée'}</span>
+   ${e.configured?html`<span class="extension-badge ok">Configurée pour ce lieu</span>`:nothing}
+   ${!e.installed||!available?html`<button class="link" ?disabled=${this.busy} aria-expanded=${this.extensionId===e.id?'true':'false'} @click=${()=>{this.extensionId=this.extensionId===e.id?'':e.id;}}>${e.installed?'Configurer dans Home Assistant':'Comment l’installer'}</button>`:nothing}</div>
+   ${this.extensionId===e.id?html`<div class="extension-detail"><p>${e.install}</p><div class="actions">${e.url?html`<a href=${e.url} target="_blank" rel="noreferrer">Voir l’intégration ${e.name}</a>`:nothing}<a href="/config/integrations" target="_blank" rel="noreferrer">Appareils et services</a></div><p class="hint">Après l’ajout dans Home Assistant, actualisez la détection dans cet onglet.</p></div>`:nothing}
+  </div>`;
+ }
+ private refreshSources(){return html`<button class="link" ?disabled=${this.busy} @click=${()=>void this.change({op:'redetect',value:'weather'})}>Actualiser la détection</button>`;}
  private field(f:Field):TemplateResult{
   const origin=provenance(f.key,f.value,this.savedOptions,this.touched);
   return html`<div class="field nk-setting-row"><div class="field-top"><h3 id=${'l-'+f.key}>${f.label}</h3><span>${f.need}</span>${f.help?helpTip(f.label,f.help):nothing}</div>
@@ -148,17 +162,18 @@ export class WeatherSetup extends LitElement {
  }
  private bottom(next?:TemplateResult){
   if(this.entryId&&!next)return html`<div class="bottom"><button ?disabled=${this.busy} @click=${()=>this.leave()}>Retour à la vue d’ensemble</button><button class="primary" ?disabled=${this.busy||!this.draft?.weather_entity} @click=${()=>void this.save()}>Enregistrer</button></div>`;
-  return html`<div class="bottom"><button ?disabled=${this.busy||this.stage===0} @click=${()=>this.go(this.stage-1)}>Retour</button>
-   ${next??html`<button class="primary" ?disabled=${this.busy} @click=${()=>this.go(this.stage===6?0:this.stage+1)}>Continuer</button>`}</div>`;
+  return html`<div class="bottom"><button ?disabled=${this.busy||this.stage===0} @click=${()=>this.go(order[Math.max(0,order.indexOf(this.stage)-1)])}>Retour</button>
+   ${next??html`<button class="primary" ?disabled=${this.busy} @click=${()=>this.go(order[Math.min(order.indexOf(this.stage)+1,order.length-1)])}>Continuer</button>`}</div>`;
  }
 
  // ---- The steps ----
  private prevision(v:View){const p=v.prevision;
-  return html`${frame('Prévisions du lieu',html`${this.field(p.fields[0])}
+  return html`${frame('Prévisions du lieu',html`<h3>Météo-France</h3>${this.integrationInfo(v.extensions?.find(e=>e.id==='meteo_france'))}${this.field(p.fields[0])}
    <div class="field nk-setting-row"><div class="field-top"><h3 id="l-location">Nom du lieu</h3><span>Facultatif</span>${helpTip('Nom du lieu','Affiché en tête de la carte. Vide : le nom vient du service météo.')}</div>
     <input aria-labelledby="l-location" .value=${p.location} placeholder=${p.location_placeholder} ?disabled=${this.busy} @change=${(e:Event)=>this.set('location',(e.target as HTMLInputElement).value.trim())}></div>`,{className:'nk-field-section nk-plain'})}
    ${frame('Alertes et saison',html`${p.fields.slice(1).filter(f=>!['water_restriction_entity','lightning_entity'].includes(f.key)).map(f=>this.field(f))}`,{className:'nk-field-section nk-plain'})}
-   <button class="link" ?disabled=${this.busy} @click=${()=>void this.change({op:'redetect',value:'weather'})}>Rechercher à nouveau</button>
+   ${frame('Orages et éclairs',html`<h3>Blitzortung</h3>${this.integrationInfo(v.extensions?.find(e=>e.id==='blitzortung'),!!p.fields.find(f=>f.key==='lightning_entity')?.options.length)}${p.fields.filter(f=>f.key==='lightning_entity').map(f=>this.field(f))}`,{className:'nk-field-section nk-plain'})}
+   ${this.refreshSources()}
    ${frame('Réglages avancés',html`${helpTip('Soleil et prévisions','Laissés vides, Niak prend le soleil de Home Assistant.')}${p.advanced.map(f=>this.field(f))}
     <div class="field nk-setting-row"><div class="field-top"><h3 id="l-source">Nom de la source des prévisions</h3><span>Facultatif</span></div><input aria-labelledby="l-source" .value=${p.forecast_source} ?disabled=${this.busy} @change=${(e:Event)=>this.set('forecast_source',(e.target as HTMLInputElement).value.trim())}></div>`,{collapsible:true,open:false})}${this.bottom()}`;
  }
@@ -173,16 +188,14 @@ export class WeatherSetup extends LitElement {
     <button class="link" ?disabled=${this.busy} @click=${()=>void this.change({op:'redetect',value:'station'})}>Rechercher à nouveau les capteurs</button>`}${this.bottom()}`;
  }
  private air(v:View){const a=v.air;
-  return html`${frame('Source de qualité de l’air',html`${this.choiceList('air',a.sources,a.value,x=>void this.change({op:'air',value:x}))}
-   ${a.areas.length||a.value==='waqi'?nothing:html`<p class="notice">Atmo France n’est pas encore installée : <a href="https://github.com/sebcaps/atmofrance" target="_blank" rel="noreferrer">installer l’intégration Atmo France</a>, puis revenez ici.</p>`}
-   ${a.stations.length||a.value==='atmo'?nothing:html`<p class="notice">WAQI n’est pas encore installée : créez un jeton gratuit sur <a href="https://aqicn.org/data-platform/token/" target="_blank" rel="noreferrer">aqicn.org</a>, puis ajoutez l’intégration « World Air Quality Index » dans Paramètres → Appareils et services.</p>`}
+  return html`${frame('Source de qualité de l’air',html`${this.choiceList('air',a.sources,a.value,x=>void this.change({op:'air',value:x}),extensionGroups(v.extensions??[]).find(g=>g.key==='air')?.items)}
    ${a.value==='atmo'&&a.areas.length?this.zone('l-aarea','Zone Atmo France',a.areas,a.area,x=>void this.change({op:'air',value:'atmo',area:x})):nothing}
-   ${a.value==='waqi'&&a.stations.length?this.zone('l-astation','Station WAQI',a.stations,a.station,x=>void this.change({op:'air',value:'waqi',area:x})):nothing}`,{className:'nk-field-section nk-plain'})}${this.bottom()}`;
+   ${a.value==='waqi'&&a.stations.length?this.zone('l-astation','Station WAQI',a.stations,a.station,x=>void this.change({op:'air',value:'waqi',area:x})):nothing}`,{className:'nk-field-section nk-plain'})}${this.refreshSources()}${this.bottom()}`;
  }
  private pollen(v:View){
   const p=v.pollen;const chosen=p.species.filter(s=>s.chosen).map(s=>s.id);
   const toggle=(id:string,on:boolean)=>void this.change({op:'pollens',value:on?[...chosen,id]:chosen.filter(x=>x!==id)});
-  return html`${frame('Source des pollens',html`${this.choiceList('pollen',p.sources,p.value,x=>void this.change({op:'pollen',value:x}))}
+  return html`${frame('Source des pollens',html`${this.choiceList('pollen',p.sources,p.value,x=>void this.change({op:'pollen',value:x}),extensionGroups(v.extensions??[]).find(g=>g.key==='pollen')?.items)}
    ${p.value==='atmo'&&p.areas.length?this.zone('l-parea','Zone Atmo France des pollens',p.areas,p.area,x=>void this.change({op:'pollen',value:'atmo',area:x})):nothing}
    ${p.value==='swiss_pollen'&&p.stations.length?html`${this.zone('l-pstation','Station Swiss Pollen',p.station?p.stations:[{value:'',label:'Choisir une station…'},...p.stations],p.station,x=>void this.change({op:'pollen_station',value:x}))}
     <p class="hint">Mesures actuelles, sans prévision pour demain. Les niveaux d’une station hors service restent indisponibles.</p>`:nothing}
@@ -193,7 +206,7 @@ export class WeatherSetup extends LitElement {
     ${p.species.map(s=>html`<label class="check"><input type="checkbox" .checked=${s.chosen} ?disabled=${this.busy} @change=${(e:Event)=>toggle(s.id,(e.target as HTMLInputElement).checked)}>
      <span>${s.label} <span class="hint inline">· ${s.state||'indisponible'}</span>${s.chosen&&!s.available?html`<span class="warn">Ne répond pas pour l’instant (hors saison ?).</span>`:nothing}</span></label>`)}`,{className:'nk-field-section nk-plain'}):nothing}
    ${p.risk?frame(p.risk.label,html`${this.field(p.risk)}`,{className:'nk-field-section nk-plain'}):nothing}
-   ${this.bottom()}`;
+   ${this.refreshSources()}${this.bottom()}`;
  }
  private entities(v:View){
   const e=v.entities;
@@ -212,33 +225,20 @@ export class WeatherSetup extends LitElement {
       <span>${i.name}${i.hint?html`<span class="hint">${i.hint}</span>`:nothing}${i.need?html`<span class=${i.optional?'hint':'warn'}>${i.need}</span>`:nothing}</span></label>`)}`,{count:`${on} sur ${items.length}`,className:'nk-field-section nk-plain'});})}
    ${this.bottom()}`;
  }
- private extensionRows(items:Extension[]):TemplateResult{
-  const row=(e:Extension)=>html`<section class="extension-row" aria-label=${e.name}><div><h3>${e.name}</h3><p>${e.description}</p><div class="extension-status">
-   <span class="extension-badge ${e.installed?'ok':'none'}">${e.installed?'Installée':'Pas installée'}</span>
-   ${e.configured?html`<span class="extension-badge ok">Configurée</span>`:e.installed?html`<span class="extension-badge bad">À configurer</span>`:nothing}</div></div>
-   <button ?disabled=${this.busy} @click=${()=>{this.extensionId=e.id;if(e.installed&&!e.field)this.go(e.stage);}}>${e.configured?'Modifier':e.installed?'Configurer':'Comment l’installer'}</button>
-   ${this.extensionId===e.id?html`<div class="extension-detail"><h3>${e.installed?'Configurer':'Installer'} ${e.name}</h3>
-    ${!e.installed||e.field&&!this.view?.prevision.fields.find(f=>f.key===e.field)?.options.length?html`<p>${e.install}</p><p class="hint">Après l’ajout dans Home Assistant, revenez ici puis actualisez la détection.</p>
-     <div class="actions">${e.url?html`<a href=${e.url} target="_blank" rel="noreferrer">Voir l’intégration ${e.name}</a>`:nothing}<a href="/config/integrations" target="_blank" rel="noreferrer">Appareils et services</a></div>`:nothing}
-    ${e.field?this.view?.prevision.fields.filter(f=>f.key===e.field).map(f=>this.field(f)):e.installed?html`<button class="link" @click=${()=>this.go(e.stage)}>Choisir les données de ${e.name} →</button>`:nothing}
-   </div>`:nothing}</section>`;
-  return html`${extensionGroups(items).map(group=>html`<details class="extension-category" ?open=${group.items.some(e=>e.id===this.extensionId)}>
-   <summary><span>${group.label}</span><span class="category-count">${group.items.filter(e=>e.configured).length} configurée${group.items.filter(e=>e.configured).length>1?'s':''} · ${group.items.length} disponible${group.items.length>1?'s':''}</span></summary>
-   ${group.items.map(row)}</details>`)}`;
- }
- private extensions(v:View){return html`${frame('Extensions météo',html`<p class="muted">Installez une intégration dans Home Assistant, puis choisissez les données que Niak Weather utilisera pour ce lieu.</p>
-  ${this.extensionRows(v.extensions??[])}
-  <button class="link" ?disabled=${this.busy} @click=${()=>void this.change({op:'redetect',value:'weather'})}>Actualiser la détection des extensions</button>`,{className:'extensions-frame'})}${this.bottom()}`;}
+ private water(v:View){return html`${frame('Restrictions d’eau',html`<h3>Vigieau</h3>${this.integrationInfo(v.extensions?.find(e=>e.id==='vigieau'),!!v.prevision.fields.find(f=>f.key==='water_restriction_entity')?.options.length)}
+  ${v.prevision.fields.filter(f=>f.key==='water_restriction_entity').map(f=>this.field(f))}`,{className:'nk-field-section nk-plain'})}${this.refreshSources()}${this.bottom()}`;}
  private recap(v:View){
   const added=this.enabled.filter(k=>!this.initialEnabled.includes(k)).length,removed=this.initialEnabled.filter(k=>!this.enabled.includes(k)).length;
   const change=[added?`${added} de plus`:'',removed?`${removed} de moins`:''].filter(Boolean).join(', ');
   const entities=v.entities.new?v.entities.families.filter(f=>f.chosen).map(f=>f.name).join(', ')||'aucune famille'
    :`${this.enabled.length} actives`+(change?` (${change} qu’avant)`:'');
-  return html`${frame('Récapitulatif',html`<dl class="summary">
+  return html`${frame('Configuration du lieu',html`<dl class="summary">
     <dt>Sources météo</dt><dd>${v.summary.weather} · « ${v.title} »</dd>
     <dt>Station météo</dt><dd>${v.summary.station}${v.station.model!==NONE?(v.station.history?' · historique calculé':' · sans historique'):''}</dd>
     <dt>Qualité de l’air</dt><dd>${capital(v.summary.air)}</dd>
     <dt>Pollens</dt><dd>${capital(v.summary.pollen)}</dd>
+    <dt>Eau et jardin</dt><dd>${v.prevision.fields.find(f=>f.key==='water_restriction_entity')?.entity?.name||v.prevision.fields.find(f=>f.key==='water_restriction_entity')?.value||'Non configuré'}</dd>
+    <dt>Orages et éclairs</dt><dd>${v.prevision.fields.find(f=>f.key==='lightning_entity')?.entity?.name||v.prevision.fields.find(f=>f.key==='lightning_entity')?.value||'Non configuré'}</dd>
     <dt>Entités</dt><dd>${entities}</dd></dl>`)}
    ${v.needs.length?html`${frame('À savoir',html`<ul>${v.needs.map(n=>html`<li class="warn">${n}. L’entité restera vide.</li>`)}</ul>`)}`:nothing}
    <p class="notice">${this.entryId?'En enregistrant, le lieu redémarre avec ses nouveaux réglages : la carte se met à jour quelques secondes plus tard.':'En enregistrant, Niak Weather crée ce lieu et ses entités.'}</p>
@@ -249,11 +249,11 @@ export class WeatherSetup extends LitElement {
  // ---- Pages ----
  private home(){
   const p=this.places!,parts=(this.route?.path??'').split('/').filter(Boolean);
-  const choosing=parts[0]==='reglages'||categories.includes(parts[0]),stage=categories.indexOf(parts[0]==='reglages'?(parts[1]??'extensions'):parts[0]);
+  const choosing=parts[0]==='reglages'||(categories.includes(parts[0])||parts[0]==='extensions'),stage=sectionStage(parts[0]==='reglages'?(parts[1]??'sources'):parts[0]);
   return html`<main><div class="technical-top"><div><h1>${choosing?'Réglages généraux':'Météo'}</h1><p class="muted">${choosing?'Choisissez le lieu à configurer.':'État de Weather, extensions et configuration de vos lieux.'}</p></div>
    ${!choosing&&p.places.length?html`<button class="link" ?disabled=${this.busy} @click=${()=>void this.load()}>Actualiser le bilan</button>`:nothing}</div>
    ${this.saved?html`<p class="notice" role="status">${this.saved}</p>`:nothing}
-   ${p.places.length?p.places.map(place=>choosing?frame(place.title,html`<p class="muted">${place.health.summary}</p><button ?disabled=${this.busy} @click=${()=>void this.open(place.entry_id,stage>=0?stage:6)}>Configurer le lieu</button>`):this.place(place)):frame('Votre lieu météo',html`
+   ${p.places.length?p.places.map(place=>choosing?frame(place.title,html`<p class="muted">${place.health.summary}</p><button ?disabled=${this.busy} @click=${()=>void this.open(place.entry_id,stage>=0?stage:0)}>Configurer le lieu</button>`):this.place(place)):frame('Votre lieu météo',html`
     <p class="muted">Configurez votre lieu pour suivre ici les sources, les capteurs et les données disponibles.</p>
     ${p.can_add?html`<button class="primary" ?disabled=${this.busy} @click=${()=>void this.open(null)}>Configurer mon lieu</button>`:html`<p class="warn">Aucun service météo dans Home Assistant : installez Météo-France dans Appareils et services, puis revenez ici.</p>`}`)}
    ${p.places.length&&p.can_add?html`<div class="footer"><button class="link" ?disabled=${this.busy} @click=${()=>void this.open(null)}>Ajouter un lieu</button></div>`:nothing}</main>`;
@@ -273,7 +273,7 @@ export class WeatherSetup extends LitElement {
   const level=p.failed?'bad':!p.loaded?'none':h.level==='ok'?'ok':'bad';
   return html`<section class="technical-place" aria-labelledby=${'p-'+p.entry_id}>
    <div class="head"><div><h2 id=${'p-'+p.entry_id}>${p.title}</h2><p class="state ${level}"><span class="dot"></span>${p.failed?'Démarrage en échec':!p.loaded?'Redémarrage en cours':h.todo.length?'Fonctionnement à vérifier':'En fonctionnement'}${p.loaded?html`<span class="muted"> · ${h.todo.length?`${h.todo.length} point${h.todo.length>1?'s':''} à régler`:'aucun problème détecté'}</span>`:nothing}</p></div>
-    <button ?disabled=${this.busy} @click=${()=>void this.open(p.entry_id,6)}>Réglages généraux</button></div>
+    <button ?disabled=${this.busy} @click=${()=>void this.open(p.entry_id,0)}>Réglages généraux</button></div>
    ${h.todo.length?frame('À corriger',html`<ul class="lines">${h.todo.map(l=>this.line(p.entry_id,l))}</ul>`,{className:'todo'}):nothing}
    <div class="dashboard-main">
     ${frame('État de Weather',html`${row('Lieu',p.loaded?'Chargé':p.failed?'En échec':'En cours de chargement',p.loaded?'ok':p.failed?'bad':'none')}
@@ -291,8 +291,8 @@ export class WeatherSetup extends LitElement {
    </div>
    ${frame('Extensions',html`${extensions?html`<p class="hint extension-summary">${extensions.filter(e=>e.installed).length} / ${extensions.length} installées dans Home Assistant · ${extensions.filter(e=>e.configured).length} configurée${extensions.filter(e=>e.configured).length>1?'s':''} pour ce lieu</p>
     <div class="extension-overview">${extensionGroups(extensions).map(group=>html`<div class="extension-overview-group"><h3>${group.label}</h3><ul>${group.items.map(e=>html`<li><span>${e.name}</span>${badge(e)}</li>`)}</ul></div>`)}</div>`:html`<p class="muted">État des extensions non reçu. Actualisez le bilan.</p>`}
-    <button class="link" ?disabled=${this.busy} @click=${()=>void this.open(p.entry_id,6)}>Gérer les extensions →</button>`,{className:'overview-extensions'})}
-   ${frame('Configuration',html`<nav class="dashboard-config" aria-label=${'Configuration de '+p.title}>${[0,1,2,3,4].map(config)}</nav>`)}
+    <button class="link" ?disabled=${this.busy} @click=${()=>void this.open(p.entry_id,0)}>Configurer les sources →</button>`,{className:'overview-extensions'})}
+   ${frame('Configuration',html`<nav class="dashboard-config" aria-label=${'Configuration de '+p.title}>${[0,1,2,3,6,4].map(config)}</nav>`)}
    ${frame('Versions et liens',html`<div class="dashboard-main dashboard-meta"><div>
      ${row('Intégration',version||'Version non reçue')}
      ${card?row('Carte',card.text.replace(/^Carte /,'')+' · '+card.why,card.level):nothing}
@@ -311,13 +311,14 @@ export class WeatherSetup extends LitElement {
  }
  private editor(){
   const v=this.view!;
-  const body=[this.prevision,this.station,this.air,this.pollen,this.entities,this.recap,this.extensions][this.stage].call(this,v);
+  const body=[this.prevision,this.station,this.air,this.pollen,this.entities,this.recap,this.water][this.stage].call(this,v);
   return html`<main><button class="link" @click=${()=>this.leave()}>← Vue d’ensemble Météo</button>
    ${this.confirmLeave?html`<div class="notice" role="alert"><p>Vos changements ne sont pas enregistrés.</p><div class="actions">
     <button @click=${()=>{this.confirmLeave=false;}}>Continuer à modifier</button><button @click=${()=>this.close()}>Abandonner les changements</button></div></div>`:nothing}
    <div class="workspace-head"><h1>${this.entryId?'Réglages généraux':'Nouveau lieu'}</h1><p class="step-count">Les réglages de ce lieu météo</p></div>
    <div class="place-context"><span>Lieu météo : <strong>${this.placeTitle||v.title}</strong></span></div>
-   <nav class="steps config-tabs" aria-label="Configuration météo">${[6,0,1,2,3,4,5].map(i=>html`<button aria-current=${i===this.stage?'step':'false'} ?disabled=${this.busy} @click=${()=>this.go(i)}>${stages[i]}</button>`)}</nav>
+   <nav class="room-menu" aria-label="Configuration météo">${[sections.slice(0,3),sections.slice(3)].map(row=>html`<div class="room-menu-row">${row.map(x=>html`<button aria-label=${stages[x.stage]} title=${stages[x.stage]} aria-current=${x.stage===this.stage?'page':nothing} ?disabled=${this.busy} @click=${()=>this.go(x.stage)}>${hubIcon(x.icon)}<span>${x.label}</span></button>`)}</div>`)}</nav>
+   <button class="link configuration-recap" aria-current=${this.stage===5?'page':nothing} ?disabled=${this.busy} @click=${()=>this.go(5)}>Récapitulatif</button>
    ${this.error?html`<p class="notice error" role="alert">${this.error}</p>`:nothing}
    <div class="room-content-head"><h2>${stages[this.stage]}</h2></div>${this.intro()}${body}</main>${this.busy?html`<p class="busy" role="status">Un instant…</p>`:nothing}`;
  }
