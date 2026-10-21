@@ -81,6 +81,24 @@ class NiakWeatherApi:
                 "entity_id": entity_id, "index": index, "label": item.extra.get("libelle") if index is not None else None,
                 "at": data.computed.isoformat() if data is not None else None}
 
+    def season(self, entry_id: str | None = None) -> dict[str, Any] | None:
+        """Today's season for this place, as Niak Weather shows it: the Season sensor chosen in its settings when it
+        answers, else the astronomical date. `season` is « spring », « summer », « autumn » or « winter »;
+        `day_length` the hours of daylight. None without a place."""
+        entry = self._entry(entry_id)
+        if entry is None:
+            return None
+        from datetime import datetime, timezone
+        from zoneinfo import ZoneInfo
+        try:
+            from .engine.season import current_season
+        except ImportError:  # loaded on its own, as by the tests
+            from engine.season import current_season
+        found = current_season(self.hass.states.get, entry.runtime_data.settings.season_entity, datetime.now(timezone.utc),
+                               ZoneInfo(self.hass.config.time_zone), self.hass.config.latitude, self.hass.config.elevation or 0)
+        return {"entry_id": entry.entry_id, "season": found.season, "label": found.label, "from_sensor": found.from_sensor,
+                "days_in": found.days_in, "day_length": found.day_length}
+
     def rain(self, entry_id: str | None = None) -> dict[str, Any] | None:
         """When the next rain starts. `minutes` (0: due now) with `precision` « minute » when Météo-France's radar
         forecast says it, « hour » when only the hourly forecast does (the rain falls somewhere in that hour);
