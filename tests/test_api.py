@@ -114,3 +114,34 @@ def test_season_is_shared_with_the_other_bricks():
     states.clear()  # no sensor: the date decides
     assert NiakWeatherApi(hass).season()["from_sensor"] is False
     assert NiakWeatherApi(hass_with()).season() is None
+
+
+def test_lightning_is_published_from_the_strikes_kept():
+    from engine.lightning import Strike
+    at = datetime(2026, 10, 21, 14, tzinfo=timezone.utc)
+    e = entry("e1", "Gardanne", Settings(weather_entity="weather.home", lightning_entity="sensor.blitzortung_distance"))
+    e.runtime_data.data = SimpleNamespace(catalogue={}, computed=at)
+    e.runtime_data.strikes = [Strike(at.timestamp() - 300, 14.0, 225.0), Strike(at.timestamp() - 60, 9.0, 230.0)]
+    hass = hass_with(e)
+    hass.states = SimpleNamespace(get=lambda entity_id: SimpleNamespace(state="9.0"))
+    seen = NiakWeatherApi(hass).lightning()
+    assert seen["near"] and seen["overhead"] and seen["nearest_km"] == 9.0 and seen["direction"] == "au sud-ouest" and seen["count"] == 2
+    assert seen["text"] == "Orage à 9 km au sud-ouest" and seen["last"] == "2026-10-21T13:59:00+00:00" and seen["available"]
+    hass.states = SimpleNamespace(get=lambda entity_id: SimpleNamespace(state="unavailable"))
+    assert NiakWeatherApi(hass).lightning()["available"] is False
+    plain = entry("e2", "Gardanne", Settings(weather_entity="weather.home"))
+    plain.runtime_data.data = SimpleNamespace(catalogue={}, computed=at)
+    assert NiakWeatherApi(hass_with(plain)).lightning() is None
+
+
+def test_water_restrictions_are_published_with_watering():
+    from engine.catalogue import Item
+    at = datetime(2026, 8, 12, 8, tzinfo=timezone.utc)
+    e = entry("e1", "Gardanne", Settings(weather_entity="weather.home", water_restriction_entity="sensor.vigieau"))
+    e.runtime_data.data = SimpleNamespace(catalogue={"restrictions_eau": Item("alerte", "Alerte", "vigieau", extra={
+        "niveau": 2, "libelle": "Alerte", "usages": ["Arrosage des pelouses"], "arrosage_restreint": True, "arrete": None})}, computed=at)
+    assert NiakWeatherApi(hass_with(e)).water() == {"entry_id": "e1", "entity_id": "sensor.vigieau", "level": 2, "state": "alerte", "label": "Alerte",
+                                                     "restricted": True, "watering_restricted": True, "usages": ["Arrosage des pelouses"],
+                                                     "order": None, "at": "2026-08-12T08:00:00+00:00"}
+    e.runtime_data.data = SimpleNamespace(catalogue={"restrictions_eau": Item(None, "Vigieau indisponible", "vigieau")}, computed=at)
+    assert NiakWeatherApi(hass_with(e)).water()["level"] is None  # the source does not answer

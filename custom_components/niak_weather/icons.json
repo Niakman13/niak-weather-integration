@@ -68,6 +68,15 @@
       },
       "bulletin": {
         "default": "mdi:text-box-outline"
+      },
+      "restrictions_eau": {
+        "default": "mdi:water-check",
+        "state": {
+          "vigilance": "mdi:water-minus",
+          "alerte": "mdi:water-alert",
+          "alerte_renforcee": "mdi:water-remove",
+          "crise": "mdi:water-off"
+        }
       }
     },
     "binary_sensor": {

@@ -11,8 +11,9 @@ from datetime import datetime, timedelta
 from typing import Any, Callable, Mapping, Sequence
 from zoneinfo import ZoneInfo
 
-from . import atmo, polleninfo, swiss, waqi
+from . import atmo, polleninfo, swiss, water, waqi
 from .forecast import Day, Hour
+from .lightning import Lightning
 from .local import LocalWeather
 from .settings import Settings
 from .units import finite, french
@@ -150,7 +151,7 @@ class _Point:
 
 
 def build_brief(w: LocalWeather, settings: Settings, get: Callable[[str], Any], hours: Sequence[Hour], days: Sequence[Day],
-                now: datetime, zone: ZoneInfo, platforms: Mapping[str, str] | None = None) -> Brief:
+                now: datetime, zone: ZoneInfo, platforms: Mapping[str, str] | None = None, lightning: Lightning | None = None) -> Brief:
     signals: list[Signal] = []
     caveats: list[str] = []
     add = signals.append
@@ -200,6 +201,17 @@ def build_brief(w: LocalWeather, settings: Settings, get: Callable[[str], Any], 
         add(Signal("fog", "now", 1, "Brouillard possible", "Estimé avec l’humidité et le point de rosée. La visibilité n’est pas mesurée.", "mdi:weather-fog", src("humidity")))
     if (w.uv or 0) >= 6:
         add(Signal("uv", "now", 2 if (w.uv or 0) >= 8 else 1, f"UV élevés : indice {number(w.uv or 0)}", "Indice UV de vos capteurs.", "mdi:weather-sunny-alert", src("uv")))
+    if lightning is not None and lightning.nearest is not None:
+        # Strikes seen now by Blitzortung: within 30 km the storm is here (one gesture to give); farther, only worth knowing.
+        add(Signal("storm-near" if lightning.near else "storm-far", "now", lightning.level, lightning.text,
+                   lightning.explanation + (" Débranchez les appareils sensibles et rentrez ce qui craint." if lightning.near else ""),
+                   "mdi:weather-lightning", settings.lightning_entity, short=lightning.text))
+    restriction = water.read(get, settings)
+    if restriction is not None and restriction.level >= water.ALERT:
+        add(Signal("water", "now", 2 if restriction.level >= 4 else 1,
+                   f"Restrictions d’eau : {restriction.label.lower()}" + (", arrosage restreint" if restriction.watering else ""),
+                   f"Arrêté préfectoral relayé par Vigieau{f' : {len(restriction.usages)} usages concernés' if restriction.usages else ''}. "
+                   "Ouvrez le capteur pour le détail.", "mdi:water-off" if restriction.level >= 4 else "mdi:water-alert", restriction.entity_id))
     p = w.pressure_trend
     if p.direction is not None and str(p.direction) in ("hausse", "baisse") and p.change is not None:
         add(Signal("pressure", "now", 0,
@@ -221,7 +233,8 @@ def build_brief(w: LocalWeather, settings: Settings, get: Callable[[str], Any], 
                    "Total prévu sur les 6 prochaines heures.", "mdi:weather-pouring", settings.weather_entity, **when(rains[0].hour.time),
                    short=f"{'Fortes pluies' if heavy else 'Pluie'} : {amount}"))
     storm = next((x for x in upcoming if x.hour.condition.replace("_", "-") in ("lightning", "lightning-rainy", "hail")), None)
-    if storm:
+    # A storm already seen within 30 km says more than the forecast of one.
+    if storm and not (lightning is not None and lightning.near):
         add(Signal("storm", "future", 2, f"Orage ou grêle {_timing(storm.hours)}", "Annoncé par le fournisseur météo pour les 6 prochaines heures.",
                    "mdi:weather-lightning", settings.weather_entity, **when(storm.hour.time), short="Orage ou grêle"))
     cold = next((x for x in upcoming if x.hour.temperature is not None and x.hour.temperature <= 0), None)
@@ -354,7 +367,8 @@ def build_brief(w: LocalWeather, settings: Settings, get: Callable[[str], Any], 
         lines.append(f"{omitted} autre{'s' if omitted > 1 else ''} point{'s' if omitted > 1 else ''} à consulter dans les explications.")
     available = feels is not None or bool(signals) or bool(upcoming)
     official_signal = next((s for s in signals if s.key == "official"), None)
-    themes = {"wind": "Vent", "wind-rain": "Pluie et vent", "rain-now": "Pluie", "rain-future": "Pluie", "storm": "Orage",
+    themes = {"wind": "Vent", "wind-rain": "Pluie et vent", "rain-now": "Pluie", "rain-future": "Pluie", "storm": "Orage", "storm-near": "Orage",
+              "water": "Restrictions d’eau",
               "temperature": "Chaleur" if feels is not None and feels >= 34 else "Froid", "freeze-future": "Froid", "frost-night": "Gel", "fog": "Brouillard", "uv": "UV"}
     topics: list[str] = []
     for s in signals:

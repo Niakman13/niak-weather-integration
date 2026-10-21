@@ -106,7 +106,7 @@ class _SourceSteps:
             return self.async_abort(reason="no_weather")  # type: ignore[attr-defined]
         if user_input is not None:
             advanced = user_input.get("advanced") or {}
-            for key in ("weather_entity", "location", "vigilance_entity", "season_entity"):
+            for key in ("weather_entity", "location", "vigilance_entity", "season_entity", "water_restriction_entity", "lightning_entity"):
                 self.sources[key] = user_input.get(key, "")
             for key in ("sun_entity", "sun_elevation_entity", "forecast_source"):
                 self.sources[key] = advanced.get(key, "")
@@ -119,6 +119,8 @@ class _SourceSteps:
             vol.Optional("location"): TextSelector(),
             vol.Optional("vigilance_entity"): _sensor(detection.vigilance_candidates(states, registry), filled.get("vigilance_entity") or ""),
             vol.Optional("season_entity"): _sensor(detection.season_candidates(states, registry), filled.get("season_entity") or ""),
+            vol.Optional("water_restriction_entity"): _sensor(detection.water_candidates(states, registry), filled.get("water_restriction_entity") or ""),
+            vol.Optional("lightning_entity"): _sensor(detection.lightning_candidates(states, registry), filled.get("lightning_entity") or ""),
             vol.Required("advanced"): section(vol.Schema({
                 vol.Optional("sun_entity"): EntitySelector(EntitySelectorConfig(domain="sun")),
                 vol.Optional("sun_elevation_entity"): EntitySelector(EntitySelectorConfig(domain="sensor")),

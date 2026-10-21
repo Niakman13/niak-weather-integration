@@ -37,7 +37,8 @@ STATION_RULES: dict[str, re.Pattern[str]] = {k: re.compile(v) for k, v in {
     "temperature_trend_entity": r"tendance.*temp.*(?:ext|dehors)|temp.*(?:ext|outdoor).*trend",
 }.items()}
 STATION_FIELDS = tuple(STATION_RULES)
-SOURCE_FIELDS = ("weather_entity", "vigilance_entity", "sun_entity", "sun_elevation_entity", "season_entity")
+SOURCE_FIELDS = ("weather_entity", "vigilance_entity", "sun_entity", "sun_elevation_entity", "season_entity", "water_restriction_entity",
+                 "lightning_entity")
 CATEGORY_FIELDS: dict[str, tuple[str, ...]] = {"weather": SOURCE_FIELDS, "station": STATION_FIELDS, "atmo": ATMO_KEYS}
 
 _WIND_UNITS = r"^(km/h|m/s|mph|kn|kt|kts|knots?)$"
@@ -379,8 +380,41 @@ def vigilance_candidates(states: Sequence[StateLike], registry: Registry) -> lis
     return found
 
 
-def detect_sources(states: Sequence[StateLike], registry: Registry, options: Mapping[str, Any]) -> dict[str, str]:
-    """The weather service (Météo-France first), its vigilance, the sun and the season, each only when there is a single choice."""
+def water_candidates(states: Sequence[StateLike], registry: Registry) -> list[str]:
+    """Vigieau's alert level sensors, one per watched zone: not its number twin, nor one sensor per use."""
+    found = []
+    for state in states:
+        entry = registry.get(state.entity_id) or {}
+        unique_id, key = str(entry.get("unique_id") or ""), str(entry.get("translation_key") or "")
+        if (entry.get("platform") != "vigieau" or entry.get("disabled_by") or not state.entity_id.startswith("sensor.")
+                or unique_id.endswith("-numeric") or key.endswith("_numeric") or key.endswith("_restrictions")):
+            continue
+        if key == "alert_level" or re.search(r"alert", unique_id, re.IGNORECASE):
+            found.append(state.entity_id)
+    return found
+
+
+def tap_water(candidates: Sequence[str], registry: Registry, devices: Devices) -> str | None:
+    """Among several Vigieau zones, the drinking water one (AEP), whose device Vigieau names « Vigieau <commune> AEP »."""
+    aep = [i for i in candidates if re.search(r"\bAEP$", str((devices.get(str((registry.get(i) or {}).get("device_id") or "")) or {}).get("name") or ""))]
+    return aep[0] if len(aep) == 1 else None
+
+
+def lightning_candidates(states: Sequence[StateLike], registry: Registry) -> list[str]:
+    """Blitzortung's distance sensors: each of their changes is a strike."""
+    found = []
+    for state in states:
+        entry = registry.get(state.entity_id) or {}
+        if entry.get("platform") != "blitzortung" or entry.get("disabled_by") or not state.entity_id.startswith("sensor."):
+            continue
+        if entry.get("translation_key") == "distance" or str(entry.get("unique_id") or "").endswith("-distance"):
+            found.append(state.entity_id)
+    return found
+
+
+def detect_sources(states: Sequence[StateLike], registry: Registry, options: Mapping[str, Any], devices: Devices | None = None) -> dict[str, str]:
+    """The weather service (Météo-France first), its vigilance, the sun, the season, Vigieau and Blitzortung, each only when there is a
+    single choice (for Vigieau, the drinking water zone among several)."""
     detected: dict[str, str] = {}
     # Niak Weather's own weather entity is a result, never a source.
     weather = [s for s in states if s.entity_id.startswith("weather.") and (registry.get(s.entity_id) or {}).get("platform") != "niak_weather"]
@@ -401,6 +435,13 @@ def detect_sources(states: Sequence[StateLike], registry: Registry, options: Map
     seasons = season_candidates(states, registry)
     if options.get("season_entity") is None and len(seasons) == 1:
         detected["season_entity"] = seasons[0]
+    waters = water_candidates(states, registry)
+    water = waters[0] if len(waters) == 1 else tap_water(waters, registry, devices or {})
+    if options.get("water_restriction_entity") is None and water:
+        detected["water_restriction_entity"] = water
+    lightnings = lightning_candidates(states, registry)
+    if options.get("lightning_entity") is None and len(lightnings) == 1:
+        detected["lightning_entity"] = lightnings[0]
     return detected
 
 
@@ -419,7 +460,7 @@ def fill(states: Sequence[StateLike], registry: Registry, devices: Devices, opti
     if category == "atmo" and search.get("atmo_area") and not any(a["value"] == search["atmo_area"] for a in atmo.areas(states, registry, devices)):
         del search["atmo_area"]
     if category == "weather":
-        detected: dict[str, Any] = dict(detect_sources(states, registry, search))
+        detected: dict[str, Any] = dict(detect_sources(states, registry, search, devices))
     else:
         found = detect_station(states, registry, devices, search)
         keys = [*CATEGORY_FIELDS[category], *(("station_device_id", "station_model") if category == "station" else ()),

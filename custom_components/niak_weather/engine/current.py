@@ -8,6 +8,7 @@ from typing import Any, Callable, Sequence
 
 from .conditions import CONDITIONS
 from .forecast import Hour
+from .lightning import Lightning
 from .local import LocalWeather
 from .nuances import sky_detail
 from .settings import Settings
@@ -73,9 +74,10 @@ class CurrentWeather:
 
 
 def current_weather(get: Getter, settings: Settings, w: LocalWeather, temperature_trend: float | None = None,
-                    original_condition: str | None = None, hour_rain: float | None = None) -> CurrentWeather:
+                    original_condition: str | None = None, hour_rain: float | None = None,
+                    lightning: Lightning | None = None) -> CurrentWeather:
     """Current conditions only: no future forecast or alert can select the sky. `original_condition` is Météo-France's sensor
-    of its own description, when enabled; `hour_rain` the rain forecast for this hour, in mm."""
+    of its own description, when enabled; `hour_rain` the rain forecast for this hour, in mm; `lightning` Blitzortung's strikes."""
     weather = get(settings.weather_entity)
     condition = weather.state.replace("_", "-") if available(weather) else "unknown"
     if condition == "clear":
@@ -94,6 +96,11 @@ def current_weather(get: Getter, settings: Settings, w: LocalWeather, temperatur
     if settings.rain_rate_entity and rate == 0 and condition in ("rainy", "pouring", "lightning-rainy"):
         condition = "lightning" if condition == "lightning-rainy" else "cloudy"
         source, condition_entity = NO_RAIN_MEASURED, settings.rain_rate_entity
+    # Strikes within 10 km in the last ten minutes: the storm is here, whatever the bulletin says. Snow and hail keep their sky.
+    if lightning is not None and lightning.overhead and condition not in ("lightning", "lightning-rainy", "hail", "snowy", "snowy-rainy"):
+        raining = condition in ("rainy", "pouring") or (rate is not None and rate >= 0.3)
+        condition = "lightning-rainy" if raining else "lightning"
+        source, condition_entity = f"Éclairs à {french(max(1.0, lightning.recent_nearest or 0), 0)} km · Blitzortung", settings.lightning_entity
 
     sun = get(settings.sun_entity or "sun.sun")
     elevation_sensor = _state(get, settings.sun_elevation_entity)

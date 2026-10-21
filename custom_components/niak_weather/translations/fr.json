@@ -26,13 +26,17 @@
           "weather_entity": "Prévisions météo",
           "location": "Nom du lieu",
           "vigilance_entity": "Vigilance officielle",
-          "season_entity": "Saison"
+          "season_entity": "Saison",
+          "water_restriction_entity": "Restrictions d’eau (Vigieau)",
+          "lightning_entity": "Éclairs (Blitzortung)"
         },
         "data_description": {
           "weather_entity": "Météo-France, MétéoSuisse ou un autre fournisseur.",
           "location": "Affiché en haut de la carte.",
           "vigilance_entity": "Facultatif : Météo-France ou MeteoSwiss (capteur regroupant les alertes).",
-          "season_entity": "Facultatif. Sans capteur, la saison suit la date."
+          "season_entity": "Facultatif. Sans capteur, la saison suit la date.",
+          "water_restriction_entity": "Facultatif : le niveau d’alerte de l’intégration Vigieau, zone de l’eau du robinet (AEP).",
+          "lightning_entity": "Facultatif : le capteur de distance de l’intégration Blitzortung. À moins de 30 km, le capteur Orage s’allume."
         },
         "sections": {
           "advanced": {
@@ -182,13 +186,17 @@
           "weather_entity": "Prévisions météo",
           "location": "Nom du lieu",
           "vigilance_entity": "Vigilance officielle",
-          "season_entity": "Saison"
+          "season_entity": "Saison",
+          "water_restriction_entity": "Restrictions d’eau (Vigieau)",
+          "lightning_entity": "Éclairs (Blitzortung)"
         },
         "data_description": {
           "weather_entity": "Météo-France, MétéoSuisse ou un autre fournisseur.",
           "location": "Affiché en haut de la carte.",
           "vigilance_entity": "Facultatif : Météo-France ou MeteoSwiss (capteur regroupant les alertes).",
-          "season_entity": "Facultatif. Sans capteur, la saison suit la date."
+          "season_entity": "Facultatif. Sans capteur, la saison suit la date.",
+          "water_restriction_entity": "Facultatif : le niveau d’alerte de l’intégration Vigieau, zone de l’eau du robinet (AEP).",
+          "lightning_entity": "Facultatif : le capteur de distance de l’intégration Blitzortung. À moins de 30 km, le capteur Orage s’allume."
         },
         "sections": {
           "advanced": {
@@ -362,7 +370,7 @@
         "maintenant": "Maintenant — ressenti, temps observé, pluie en cours",
         "alertes": "Alertes — vigilance, orage, vent fort, gel, canicule",
         "prochaines_heures": "Prochaines heures — pluie à venir, minimale, maximale",
-        "jardin": "Jardin — pluie des 7 jours",
+        "jardin": "Jardin — pluie des 7 jours, restrictions d’eau",
         "batiment": "Bâtiment — degrés-jours de chauffe et de climatisation",
         "energie": "Énergie — ensoleillement de demain",
         "vie_pratique": "Vie pratique — séchage du linge, givre, air, pollens",
@@ -400,6 +408,7 @@
         "maximale_demain": "Maximale de demain",
         "rafales_6h": "Rafales max. sur 6 h",
         "pluie_7j": "Pluie des 7 derniers jours — pour l’arrosage",
+        "restrictions_eau": "Restrictions d’eau — l’arrêté sécheresse de votre commune, via Vigieau",
         "degres_jours_chauffe": "Degrés-jours de chauffe — le besoin de chauffage",
         "degres_jours_clim": "Degrés-jours de climatisation",
         "ensoleillement_demain": "Ensoleillement de demain — en %",
@@ -534,6 +543,16 @@
       },
       "pollens": {
         "name": "Pollens"
+      },
+      "restrictions_eau": {
+        "name": "Restrictions d’eau",
+        "state": {
+          "aucune": "Pas de restriction",
+          "vigilance": "Vigilance",
+          "alerte": "Alerte",
+          "alerte_renforcee": "Alerte renforcée",
+          "crise": "Crise"
+        }
       }
     },
     "binary_sensor": {

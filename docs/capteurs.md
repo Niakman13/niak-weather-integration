@@ -55,7 +55,7 @@ Des oui/non prêts à déclencher, et la vigilance officielle. Une alerte s’al
 | `sensor.niak_weather_vigilance` | Verte, jaune, orange ou rouge, avec les phénomènes en attribut | Le niveau officiel dans une notification |
 | `sensor.niak_weather_alerte` | La situation la plus marquante, en un mot | Un badge, une couleur de tableau de bord |
 | `sensor.niak_weather_en_bref` | Le titre de la synthèse ; le texte et le bulletin du jour en attributs | Le résumé du matin |
-| `binary_sensor.niak_weather_orage` | Orage ou grêle en cours ou prévu dans les 6 h | Débrancher, abriter le robot tondeuse |
+| `binary_sensor.niak_weather_orage` | Orage ou grêle en cours ou prévu dans les 6 h ; avec Blitzortung, des éclairs à moins de 30 km (distance, direction et tendance en attributs) | Débrancher, abriter le robot tondeuse |
 | `binary_sensor.niak_weather_vent_fort` | Vent ≥ 30 km/h ou rafales ≥ 40 km/h | Rentrer les stores et le parasol |
 | `binary_sensor.niak_weather_pluie_forte` | ≥ 4 mm/h mesurés, ou forte pluie prévue dans les 6 h | Surveiller gouttières et pompe de relevage |
 | `binary_sensor.niak_weather_gel` | Gel mesuré, ou gel au sol possible cette nuit (≤ 3 °C prévus) | Rentrer les plantes, hors-gel |
@@ -82,6 +82,7 @@ Les prévisions du fournisseur, résumées en chiffres utiles.
 | Entité | Ce qu’elle donne | Exemple d’usage |
 | --- | --- | --- |
 | `sensor.niak_weather_pluie_7j` · *à activer* | La pluie mesurée sur 7 jours, aujourd’hui compris | Alerte sécheresse |
+| `sensor.niak_weather_restrictions_eau` · *à activer* | Les restrictions d’eau de votre commune (Vigieau) : `aucune`, `vigilance`, `alerte`, `alerte_renforcee` ou `crise` ; les usages restreints et le lien de l’arrêté en attributs | Couper l’arrosage automatique en alerte |
 
 L’évapotranspiration et le bilan hydrique arriveront avec le chantier de l’arrosage.
 
