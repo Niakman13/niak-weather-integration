@@ -52,13 +52,14 @@ class NiakWeatherApi:
         return {"entry_id": entry.entry_id, "title": entry.title, "sensors": sensors}
 
     def hourly(self, entry_id: str | None = None) -> list[dict[str, Any]]:
-        """The hourly forecast as Niak Weather reads it: °C, %, mm, km/h and degrees, ISO times."""
+        """The hourly forecast as Niak Weather reads it: °C, %, mm, km/h and degrees, ISO times; `cloud_coverage` in %
+        when the weather service gives it (Niak Confort estimates with it the sun its station cannot see)."""
         entry = self._entry(entry_id)
         if entry is None:
             return []
         return [{"time": h.time.isoformat(), "temperature": h.temperature, "humidity": h.humidity,
                  "precipitation": h.precipitation, "wind_speed": h.wind_speed, "wind_gust": h.wind_gust,
-                 "wind_bearing": h.wind_bearing, "condition": h.condition}
+                 "wind_bearing": h.wind_bearing, "condition": h.condition, "cloud_coverage": h.cloud_coverage}
                 for h in entry.runtime_data.hours if h.time is not None]
 
     def air(self, entry_id: str | None = None) -> dict[str, Any] | None:

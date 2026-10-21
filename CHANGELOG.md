@@ -1,3 +1,13 @@
+## 2.6.3 — Stable : la couverture nuageuse partagée
+
+**En bref**
+
+- **La couverture nuageuse est partagée avec les autres briques Niak.** Niak Confort s’en sert pour estimer le soleil quand votre station est à l’ombre.
+
+### Nouveautés
+
+- La prévision heure par heure transmise aux autres briques donne aussi la couverture nuageuse (en %), quand le service météo la fournit.
+
 ## 2.6.2 — Stable : la saison partagée
 
 **En bref**
