@@ -1,8 +1,8 @@
-## 2.8.2 — Stable : UV with a Netatmo station
+## 2.8.2 — Stable : UV avec une station Netatmo
 
-- With a Netatmo station, the « Indice UV » box is offered again in Réglages → Station, under Soleil: a UV sensor from another device (OpenUV…) can be chosen there.
-- OpenUV's current UV index is now recognised automatically (not its daily maximum, nor its text level).
-- Without a UV sensor, « UV forts » relies on the UV index of the weather service instead of staying unknown.
+- Avec une station Netatmo, la case « Indice UV » est de nouveau proposée dans Réglages → Station, rubrique Soleil : on peut y choisir le capteur UV d’un autre appareil, comme OpenUV.
+- L’indice UV actuel d’OpenUV est reconnu automatiquement (ni son maximum du jour, ni son niveau en toutes lettres).
+- Sans capteur UV, « UV forts » utilise l’indice UV du service météo au lieu de rester inconnu.
 
 ## 2.8.1 — Stable : l’heure, et pluie, vent et pression sur plusieurs jours
 
