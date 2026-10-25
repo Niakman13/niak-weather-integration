@@ -84,9 +84,16 @@ export interface WindView {
   top: number;
   meanLabel: string; empty: string; stats: Stat[];
 }
+/** How far back the pressure chart goes: six hours, a day, two days or a week. */
+export type PressurePeriodId = '6h' | '1d' | '2d' | '7d';
+export interface PressurePeriod { period: PressurePeriodId; series: Point[]; low: number; top: number; stats: Stat[] }
 export interface PressureView {
   source: string; value?: number; entity?: string; description: string;
+  /** The period shown, six hours by default: `series`, `low`, `top` and `stats` are the ones of this period. */
+  period?: PressurePeriodId;
   trend?: Chip; series: Point[]; low: number; top: number; empty: string; stats: Stat[];
+  /** Every period, from 2.8.1 on; an older integration sends six hours only. */
+  periods?: PressurePeriod[];
 }
 
 /** One forecast hour. */

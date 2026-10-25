@@ -46,6 +46,10 @@ export interface WeatherCardConfig {
   banner_blocks?: BannerBlock[];
   /** « Aujourd'hui »: comfort (feel), rain, wind, pressure, extras (chips), air (today's air and pollens). */
   today_blocks?: TodayBlock[];
+  /** How far back the pressure chart goes. Default: six hours. */
+  pressure_span?: '6h' | '1d' | '2d' | '7d';
+  /** The time in the banner: under the title (left) or above « En ce moment » (right). Unset: no clock. */
+  clock?: 'none' | 'left' | 'right';
   /** « Prévisions »: hours (the 18-hour curve), days (the 7-day table), air (tomorrow's air and pollens). */
   forecast_blocks?: ForecastBlock[];
   /** What a long press on the tile (a tap on mini and alert) does: popup, the full weather over the page; page, opens weather_path;

@@ -21,7 +21,8 @@ from .forecast import Day, Hour, daily_wind, day_offset, local_day
 from .lightning import Lightning
 from .local import LocalWeather
 from .season import MONTHS, Season, current_season
-from .series import ColumnStatus, Point, column_status, pressure_chart_series, rain_days, wind_chart_series, weather_history_key
+from .series import (PRESSURE_PERIODS, ColumnStatus, Point, column_status, joined, pressure_chart_series, pressure_week_key, rain_days,
+                     wind_chart_series, weather_history_key)
 from .settings import Settings
 from .station import Derived, RainDay
 from .trends import Change
@@ -104,6 +105,16 @@ class WindView:
 
 
 @dataclass(frozen=True)
+class PressurePeriod:
+    """The pressure chart over one of the periods the card offers: 6h, 1d, 2d or 7d."""
+    period: str
+    series: tuple[Point, ...]
+    low: float
+    top: float
+    stats: tuple[Stat, ...]
+
+
+@dataclass(frozen=True)
 class PressureView:
     source: str
     value: float | None
@@ -111,10 +122,12 @@ class PressureView:
     description: str
     trend: Chip | None
     series: tuple[Point, ...]
+    """Six hours, as before the periods: an older card still draws them."""
     low: float
     top: float
     empty: str
     stats: tuple[Stat, ...]
+    periods: tuple[PressurePeriod, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -312,6 +325,23 @@ def _comfort(get: Getter, settings: Settings, w: LocalWeather) -> ComfortView | 
                        source, sources.get("temperature"), example)
 
 
+AGO = {"6h": "Il y a 6 h", "1d": "Il y a 24 h", "2d": "Il y a 2 j", "7d": "Il y a 7 j"}
+
+
+def _pressure_period(period: str, rows: Sequence[Change], unit: str | None, now: datetime, value: float | None) -> PressurePeriod:
+    """One period of the pressure chart: its curve, its scale, and where it started, its lowest and highest values."""
+    series = pressure_chart_series(rows, unit, now, value, period)
+    values = [p.value for p in series if p.value is not None]
+    first = next((p for p in series if p.value is not None), None)
+    stats = []
+    if len(values) > 1:
+        # « Il y a… » only when the curve really starts near the beginning of the period.
+        if first is not None and first.time <= now.timestamp() - PRESSURE_PERIODS[period][0] * 5 / 6:
+            stats.append(Stat(AGO[period], f"{french(first.value, 0)} hPa"))
+        stats += [Stat("Min.", f"{french(min(values), 0)} hPa"), Stat("Max.", f"{french(max(values), 0)} hPa")]
+    return PressurePeriod(period, series, math.floor(min(values)) - 1 if values else 0, math.ceil(max(values)) + 1 if values else 2, tuple(stats))
+
+
 def _measures(get: Getter, settings: Settings, w: LocalWeather, hours: Sequence[Hour], history: Mapping[str, Sequence[Change]],
               rain_history: Mapping[str, Sequence[Change]], derived: Derived | None, now: datetime,
               zone: ZoneInfo) -> tuple[RainView | None, WindView | None, PressureView | None]:
@@ -429,23 +459,19 @@ def _measures(get: Getter, settings: Settings, w: LocalWeather, hours: Sequence[
         value = pressure_metric.value if pressure_metric and pressure_metric.value is not None else read(settings.pressure_entity, Kind.PRESSURE)
         entity = pressure_metric.entity if pressure_metric else settings.pressure_entity
         pressure_rows, pressure_unit = history_of(entity, "pressure", "hPa")
-        series = pressure_chart_series(pressure_rows, pressure_unit, now, value)
-        values = [p.value for p in series if p.value is not None]
+        key = weather_history_key(entity, "pressure") if entity == settings.weather_entity else entity or ""
+        week = joined(history.get(pressure_week_key(key), ()), pressure_rows)
+        periods = tuple(_pressure_period(period, week if period != "6h" else pressure_rows, pressure_unit, now, value) for period in PRESSURE_PERIODS)
+        six = periods[0]
         change, minutes = w.pressure_trend.change, w.pressure_trend.minutes
         measured = pressure_metric is not None and pressure_metric.source == STATION
-        first = next((p for p in series if p.value is not None), None)
-        stats = []
-        if len(values) > 1:
-            if first is not None and first.time <= now.timestamp() - 5 * 3600:
-                stats.append(Stat("Il y a 6 h", f"{french(first.value, 0)} hPa"))
-            stats += [Stat("Min.", f"{french(min(values), 0)} hPa"), Stat("Max.", f"{french(max(values), 0)} hPa")]
         pressure = PressureView(
             source=source_of(pressure_metric), value=value, entity=entity,
             description=(w.pressure_trend.text or "Mesurée chez vous") if measured or not pressure_metric else "Pression du bulletin",
             trend=None if change is None or not measured else pressure_trend(change, f"{french(minutes, 0)} min" if minutes and minutes < 150 else "3 h"),
-            series=series, low=math.floor(min(values)) - 1 if values else 0, top=math.ceil(max(values)) + 1 if values else 2,
+            series=six.series, low=six.low, top=six.top,
             empty="Historique du service météo absent ou trop court dans Home Assistant" if entity == settings.weather_entity
-                  else "Historique de pression indisponible ou insuffisant", stats=tuple(stats))
+                  else "Historique de pression indisponible ou insuffisant", stats=six.stats, periods=periods)
     return rain, wind, pressure
 
 

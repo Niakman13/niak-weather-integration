@@ -20,6 +20,8 @@ export interface FullOptions {
   onFold: (id: SectionId) => void;
   /** The hours/days tiles of the banner: their tab and the switch between them. */
   tab: 'hours' | 'days'; onTab: (tab: 'hours' | 'days') => void;
+  /** Where the banner shows the time, if it does. */
+  clock?: 'none' | 'left' | 'right';
 }
 
 function section(id: SectionId, title: string, subtitle: string, o: FullOptions, body: () => TemplateResult): TemplateResult {
@@ -39,7 +41,7 @@ export function renderFull(v: WeatherView, o: FullOptions): TemplateResult {
   const draw = (b: BannerBlock) => b === 'bulletin' ? html`<div class="hero-bulletin">${bulletinBlock(v)}</div>` : b === 'events' ? frise(v)
     : b === 'moments' ? moments(v) : forecastStrip(v, o.tab, o.onTab);
   return html`<div class="nw-full">
-    ${hero ? renderHero(v, o.sky, o.uid, banner, draw) : nothing}
+    ${hero ? renderHero(v, o.sky, o.uid, banner, draw, o.clock) : nothing}
     ${today.length ? section('today', 'Aujourd’hui', v.comfort ? 'Mesures et ressenti' : 'Conditions actuelles', o,
       () => renderToday(v, o.uid, o.station, renderAir(v.air.today), today)) : nothing}
     ${forecasts.length ? section('predictions', 'Prévisions', v.forecastSource, o,

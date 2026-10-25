@@ -1,4 +1,4 @@
-"""What the small history charts show: seven days of rain, six hours of wind and pressure, and a word on what is happening now."""
+"""What the small history charts show: seven days of rain, six hours of wind, six hours to a week of pressure, and a word on what is happening now."""
 from __future__ import annotations
 
 import math
@@ -13,11 +13,35 @@ from .trends import Change, Direction
 from .units import Kind, measurement
 
 SPAN, STEP = 6 * 3600, 600
-BUCKETS = SPAN // STEP
 BRIEF_OUTAGE = 15 * 60
 """A sensor unavailable for less than this (Home Assistant restarting) is not a gap: the curve goes on, as in Home Assistant's history."""
-KNOWN = STEP / 2
-"""A ten-minute point needs at least five minutes of readings."""
+# A point needs readings over at least half of its step: five minutes of a ten-minute point.
+PRESSURE_PERIODS: dict[str, tuple[int, int]] = {"6h": (SPAN, STEP), "1d": (86400, 3600), "2d": (2 * 86400, 3600), "7d": (7 * 86400, 3 * 3600)}
+"""The pressure chart's periods, as chosen in the card: span and step, in seconds. Past six hours, one point an hour or every three hours."""
+WEEK = PRESSURE_PERIODS["7d"][0]
+
+
+def pressure_week_key(entity_id: str) -> str:
+    """A week of pressure, kept apart from the six hours of detailed history."""
+    return f"{entity_id}#week"
+
+
+def hourly_changes(rows: Sequence[tuple[float, float, float | None]]) -> list[Change]:
+    """Hourly means of the long-term statistics as changes: each mean holds for its hour, a missing hour is a gap."""
+    out: list[Change] = []
+    for i, (start, end, mean) in enumerate(rows):
+        out.append(Change(start, "unavailable" if mean is None else str(mean)))
+        if i + 1 == len(rows) or rows[i + 1][0] > end:
+            out.append(Change(end, "unavailable"))
+    return out
+
+
+def joined(week: Sequence[Change], recent: Sequence[Change]) -> list[Change]:
+    """The week's hours up to where the detailed history starts, then the detailed history."""
+    if not recent:
+        return list(week)
+    start = min(c.time for c in recent)
+    return [*(c for c in week if c.time < start), *recent]
 
 
 def weather_history_key(entity_id: str, attribute: str) -> str:
@@ -85,8 +109,10 @@ def wind_chart_series(rows: Sequence[Change], unit: str | None, now: datetime, c
     return _chart_series(rows, unit, now, current, mode, Kind.WIND)
 
 
-def pressure_chart_series(rows: Sequence[Change], unit: str | None, now: datetime, current: float | None = None) -> tuple[Point, ...]:
-    return _chart_series(rows, unit, now, current, "mean", Kind.PRESSURE)
+def pressure_chart_series(rows: Sequence[Change], unit: str | None, now: datetime, current: float | None = None,
+                          period: str = "6h") -> tuple[Point, ...]:
+    span, step = PRESSURE_PERIODS[period]
+    return _chart_series(rows, unit, now, current, "mean", Kind.PRESSURE, span, step)
 
 
 @dataclass
@@ -97,20 +123,22 @@ class _Bucket:
     missing: bool = False
 
 
-def _chart_series(rows: Sequence[Change], unit: str | None, now: datetime, current: float | None, mode: str, kind: Kind) -> tuple[Point, ...]:
+def _chart_series(rows: Sequence[Change], unit: str | None, now: datetime, current: float | None, mode: str, kind: Kind,
+                  span: int = SPAN, step: int = STEP) -> tuple[Point, ...]:
     end = now.timestamp()
-    start = end - SPAN
+    start = end - span
+    buckets_count, known = span // step, step / 2
     events = [Point(p.time, p.value if p.value is not None and p.value >= 0 else None) for p in _points(rows, unit, kind, end)]
     if not events:
         return ()
-    buckets = [_Bucket() for _ in range(BUCKETS)]
+    buckets = [_Bucket() for _ in range(buckets_count)]
     for i, event in enumerate(events):
         a, b = max(start, event.time), min(end, events[i + 1].time if i + 1 < len(events) else end)
         if event.value is None and (events[i + 1].time if i + 1 < len(events) else end) - event.time < BRIEF_OUTAGE:
             continue
-        j = max(0, math.floor((a - start) / STEP))
-        while b > a and j < BUCKETS and start + j * STEP < b:
-            bucket, duration = buckets[j], min(b, start + (j + 1) * STEP) - max(a, start + j * STEP)
+        j = max(0, math.floor((a - start) / step))
+        while b > a and j < buckets_count and start + j * step < b:
+            bucket, duration = buckets[j], min(b, start + (j + 1) * step) - max(a, start + j * step)
             if event.value is None:
                 bucket.missing = True
             else:
@@ -118,8 +146,8 @@ def _chart_series(rows: Sequence[Change], unit: str | None, now: datetime, curre
                 bucket.duration += duration
                 bucket.peak = max(bucket.peak, event.value)
             j += 1
-    full = [not b.missing and b.duration >= KNOWN for b in buckets]
-    return (*(Point(start + (i + 0.5) * STEP, (b.sum / b.duration if mode == "mean" else b.peak) if full[i] else None) for i, b in enumerate(buckets)),
+    full = [not b.missing and b.duration >= known for b in buckets]
+    return (*(Point(start + (i + 0.5) * step, (b.sum / b.duration if mode == "mean" else b.peak) if full[i] else None) for i, b in enumerate(buckets)),
             Point(end, current))
 
 

@@ -32,4 +32,13 @@ describe('What the card shows of the integration’s view', () => {
     expect(v.air.today[0]).toMatchObject({ primary: reading, details: [], updated: '' });
     expect(v.location).toBe('Gardanne');
   });
+  it('shows the pressure over the chosen period, six hours with an older integration', () => {
+    const six = { period: '6h' as const, series: [[1, 1012]] as [number, number][], low: 1011, top: 1013, stats: [] };
+    const week = { period: '7d' as const, series: [[1, 1000], [2, 1012]] as [number, number][], low: 999, top: 1013, stats: [{ label: 'Il y a 7 j', value: '1 000 hPa' }] };
+    const pressure = { source: 'Station', description: '', empty: '', ...six, periods: [six, week] };
+    const v = displayed({ ...view, pressure } as WeatherView, config({ pressure_span: '7d' }), false).pressure!;
+    expect([v.period, v.series, v.low, v.stats]).toEqual(['7d', week.series, 999, week.stats]);
+    const old = displayed({ ...view, pressure: { ...pressure, periods: undefined } } as WeatherView, config({ pressure_span: '7d' }), false).pressure!;
+    expect([old.period, old.series]).toEqual(['6h', six.series]);
+  });
 });

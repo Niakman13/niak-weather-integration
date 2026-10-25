@@ -4,6 +4,7 @@ import { css, html, nothing, type TemplateResult } from 'lit';
 import type { WeatherView } from '../view';
 import { alertPill, info, label, nf, tint, unbroken } from '../ui/parts';
 import { nowBlock } from './tile';
+import '../ui/clock';
 
 const GROUPS = [
   { key: 'official', title: 'Vigilance officielle' },
@@ -29,8 +30,10 @@ function briefInfo(v: WeatherView, uid: string): TemplateResult {
 
 import type { BannerBlock } from '../types';
 
-/** The banner: the place, the vigilance and the weather now, then its blocks drawn by `draw`, in their order. */
-export function renderHero(v: WeatherView, sky: TemplateResult, uid: string, blocks: BannerBlock[], draw: (b: BannerBlock) => unknown): TemplateResult {
+/** The banner: the place, the vigilance and the weather now, then its blocks drawn by `draw`, in their order.
+ *  `clock` puts the time under the title (left) or above the weather now (right). */
+export function renderHero(v: WeatherView, sky: TemplateResult, uid: string, blocks: BannerBlock[], draw: (b: BannerBlock) => unknown,
+  clock: 'none' | 'left' | 'right' = 'none'): TemplateResult {
   const trend = v.now.trend === undefined ? nothing : html`<span class="nw-chip" style=${tint(v.now.trend > 0 ? 'heat' : 'cold')}
     title=${v.now.trend > 0 ? 'La température monte' : 'La température baisse'}><ha-icon icon=${v.now.trend > 0 ? 'mdi:arrow-top-right' : 'mdi:arrow-bottom-right'}></ha-icon>${v.now.trend > 0 ? '+' : '−'}${nf(Math.abs(v.now.trend))} °C/h</span>`;
   const season = v.season.news ? html`<span class="nw-chip" style=${tint('calm')} title=${v.season.tip}><ha-icon icon=${v.season.info.icon}></ha-icon>${v.season.news}</span>` : nothing;
@@ -42,10 +45,11 @@ export function renderHero(v: WeatherView, sky: TemplateResult, uid: string, blo
     <div class="sky" aria-hidden="true">${sky}</div><div class="veil" aria-hidden="true"></div>
     <header class="fm-head"><h2>Synthèse</h2>${briefInfo(v, uid)}<span>${[v.location, v.dateLabel].filter(Boolean).join(' · ')}</span>${season}</header>
     <div class="hero-main">
+      ${clock === 'left' ? html`<niak-clock class="hero-clock"></niak-clock>` : nothing}
       ${official.length ? html`<div class="nw-alerts">${official.map(a => alertPill(a))}</div>` : nothing}
       ${blocks[0] === 'bulletin' ? bulletin : nothing}
     </div>
-    ${nowBlock(v, true, trend)}
+    ${nowBlock(v, true, trend, clock === 'right' ? html`<niak-clock class="now-clock"></niak-clock>` : nothing)}
     ${rest.length ? html`<div class="hero-blocks">${rest.map(draw)}</div>` : nothing}
   </section>`;
 }
@@ -69,6 +73,8 @@ export const heroStyles = css`
   .nw-hero > .nw-now { grid-area:now; align-self:start; gap:4px; }
   .nw-hero > .nw-now .temp { font-size:var(--nw-fs-temp); }
   .nw-hero > .nw-now .temp small { font-size:var(--nw-fs-title); }
+  .hero-clock { font-size:var(--nw-fs-temp); font-weight:300; letter-spacing:-1px; }
+  .now-clock { font-size:var(--nw-fs-title); font-weight:650; color:var(--nw-fg2); margin-bottom:4px; }
   .hero-blocks { grid-area:blocks; display:flex; flex-direction:column; gap:14px; margin-top:4px; min-width:0; }
   .hero-blocks > .nw-events, .hero-blocks > .hero-bulletin, .hero-blocks > .block { display:flex; flex-direction:column; gap:6px; }
   .brief-group { margin-top:10px; }

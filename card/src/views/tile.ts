@@ -75,9 +75,9 @@ export function todayRange(v: WeatherView): TemplateResult | typeof nothing {
 }
 
 /** « En ce moment »: condition, temperature and today's low and high, then the source. Shared by the tile and the banner. */
-export function nowBlock(v: WeatherView, kicker: boolean, extra: unknown = nothing): TemplateResult {
+export function nowBlock(v: WeatherView, kicker: boolean, extra: unknown = nothing, head: unknown = nothing): TemplateResult {
   const n = v.now;
-  return html`<div class="nw-now">${kicker ? label('En ce moment') : nothing}
+  return html`<div class="nw-now">${head}${kicker ? label('En ce moment') : nothing}
     <span class="cond" data-entity=${n.conditionEntity ?? nothing} title=${n.source}><ha-icon icon=${n.icon}></ha-icon>${n.label}</span>
     ${n.temperature === undefined ? html`<span class="cond">Température indisponible</span>`
       : html`<span class="temp" data-entity=${n.temperatureEntity ?? nothing} aria-label=${`${n.temperatureSource} : ${nf(n.temperature)} degrés Celsius`}>${nf(n.temperature)}<small>°C</small></span>`}

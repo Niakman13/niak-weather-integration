@@ -1,6 +1,6 @@
 // « Aujourd'hui »: the feel, then rain, wind and pressure measured at home, each in the same panel model.
 import { css, html, nothing, svg, type TemplateResult } from 'lit';
-import type { ComfortView, PressureView, RainView, Stat, WeatherView, WindView } from '../view';
+import type { ComfortView, PressurePeriodId, PressureView, RainView, Stat, WeatherView, WindView } from '../view';
 import type { TodayBlock } from '../types';
 import { chartEnd, chartY, curvePaths, extremePills, type ChartPaths, type ChartPill } from '../ui/charts';
 import { chip, entity, info, label, legend, nf, panelHead, tempColor } from '../ui/parts';
@@ -74,13 +74,23 @@ function windPanel(w: WindView): TemplateResult {
   </section>`;
 }
 
+/** The pressure chart's periods: span in seconds, title, axis. */
+const PERIODS: Record<PressurePeriodId, { span: number; title: string; axis: [string, string] }> = {
+  '6h': { span: 6 * 3600, title: '6 dernières heures', axis: ['−6 h', '−3 h'] },
+  '1d': { span: 86400, title: '24 dernières heures', axis: ['−24 h', '−12 h'] },
+  '2d': { span: 2 * 86400, title: '2 derniers jours', axis: ['−2 j', '−1 j'] },
+  '7d': { span: 7 * 86400, title: '7 derniers jours', axis: ['−7 j', ''] },
+};
+
 function pressurePanel(p: PressureView): TemplateResult {
-  const end = chartEnd(p.series), series = curvePaths(p.series, p.top, end, p.low);
+  const period = PERIODS[p.period ?? '6h'], end = chartEnd(p.series), series = curvePaths(p.series, p.top, end, p.low, period.span);
+  // The middle mark sits at the middle of the span; the week, whose middle is three days and a half, has none.
+  const axis = html`<div class="mini-axis">${label(period.axis[0])}${label(period.axis[1])}${label('maintenant')}</div>`;
   return html`<section class="nw-panel" aria-label="Pression">${panelHead('mdi:gauge', 'pressure', 'Pression', p.source)}
     <div class="metric-row"><div class="metric" data-entity=${entity(p.entity)}><div class="metric-main"><b>${p.value === undefined ? '—' : nf(p.value, 0)}</b><span>hPa</span></div>
       <small>${p.description}</small></div>${p.trend ? chip(p.trend) : nothing}</div>
-    <div class="mini"><div class="mini-top">6 dernières heures · hPa</div>
-      ${series.length ? html`<div class="mini-plot"><svg viewBox="0 0 100 50" preserveAspectRatio="none" role="img" aria-label="Pression des 6 dernières heures">${curve(series, 'var(--nw-pressure)')}</svg>${pills(extremePills(p.series, end, v => chartY(v, p.top, p.low), v => nf(v, 0)))}</div>${sixHours}`
+    <div class="mini"><div class="mini-top">${period.title} · hPa</div>
+      ${series.length ? html`<div class="mini-plot"><svg viewBox="0 0 100 50" preserveAspectRatio="none" role="img" aria-label=${`Pression des ${period.title}`}>${curve(series, 'var(--nw-pressure)')}</svg>${pills(extremePills(p.series, end, v => chartY(v, p.top, p.low), v => nf(v, 0), period.span))}</div>${axis}`
         : html`<p class="nw-empty">${p.empty}</p>`}</div>
     ${stats(p.stats)}
   </section>`;

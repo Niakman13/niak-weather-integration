@@ -36,7 +36,7 @@ from .engine.forecast import Day, Hour, Units, engine_rows, parse_days, parse_ho
 from .engine.local import LocalWeather
 from .engine.nowcast import rain_ahead
 from .engine.settings import Settings
-from .engine.series import weather_history
+from .engine.series import WEEK, hourly_changes, pressure_week_key, weather_history, weather_history_key
 from .engine.station import Derived, Statistic, midnight
 from .engine.trends import Change
 from .engine.view import to_json
@@ -136,9 +136,10 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         self.watch = AlertWatch(await self._store.async_load())
         # Listen first: a weather service that starts while the first fetches run is caught at once.
         entry.async_on_unload(async_track_state_change_event(self.hass, sorted(ids), self._on_state_change))
-        await asyncio.gather(self._load_forecasts(), self._load_history(), self._load_rain(), self._load_air_forecast(), self._load_strikes())
+        await asyncio.gather(self._load_forecasts(), self._load_history(), self._load_rain(), self._load_pressure_week(), self._load_air_forecast(),
+                             self._load_strikes())
         for interval, load in ((FORECAST_INTERVAL, self._load_forecasts), (HISTORY_INTERVAL, self._load_history), (RAIN_INTERVAL, self._load_rain),
-                               (AIR_INTERVAL, self._load_air_forecast)):
+                               (RAIN_INTERVAL, self._load_pressure_week), (AIR_INTERVAL, self._load_air_forecast)):
             entry.async_on_unload(async_track_time_interval(self.hass, self._in_background(load), interval))
         entry.async_on_unload(self._cancel_forecast_retry)
         entry.async_on_unload(self._stopped)
@@ -339,7 +340,42 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         start = now - timedelta(hours=6)
         if derived and not s.max_daily_gust_entity and s.wind_gust_entity:
             start = min(start, dt_util.start_of_local_day())
-        self.history = await self._states_during(start, ids)
+        recent = await self._states_during(start, ids)
+        # The week of pressure, loaded less often, stays beside the six hours.
+        self.history = {**{k: v for k, v in self.history.items() if k.endswith("#week")}, **recent}
+
+    async def _load_pressure_week(self) -> None:
+        """A week of pressure for the longer charts: hourly means of the long-term statistics, or the recorded states without them."""
+        s, now = self.settings, dt_util.utcnow()
+        start = now - timedelta(seconds=WEEK + 3600)
+        week: dict[str, list[Change]] = {}
+        if s.pressure_entity:
+            rows = await self._hourly_means(s.pressure_entity, start, now)
+            if rows is None:
+                rows = (await self._states_during(start, [s.pressure_entity])).get(s.pressure_entity, [])
+            week[pressure_week_key(s.pressure_entity)] = rows
+        elif s.weather_entity:
+            key = weather_history_key(s.weather_entity, "pressure")
+            week[pressure_week_key(key)] = (await self._states_during(start, [s.weather_entity])).get(key, [])
+        self.history = {**{k: v for k, v in self.history.items() if not k.endswith("#week")}, **week}
+
+    async def _hourly_means(self, entity_id: str, start: datetime, now: datetime) -> list[Change] | None:
+        """Hourly means in the sensor's own unit, or None when it keeps no statistics."""
+        state = self.hass.states.get(entity_id)
+        unit = state.attributes.get("unit_of_measurement") if state is not None else None
+        if state is None or state.attributes.get("state_class") != "measurement" or not unit:
+            return None
+
+        def during() -> list[dict[str, Any]]:
+            rows = statistics.statistics_during_period(self.hass, start, now, {entity_id}, "hour", {"pressure": unit}, {"mean"})
+            return list(rows.get(entity_id, []))
+
+        try:
+            rows = await get_instance(self.hass).async_add_executor_job(during)
+        except Exception as err:  # noqa: BLE001 - statistics are optional: the recorded states then give the week
+            LOGGER.debug("Pressure statistics unavailable for %s: %s", entity_id, err)
+            return None
+        return hourly_changes([(_seconds(r["start"]), _seconds(r["end"]), r.get("mean")) for r in rows]) if rows else None
 
     async def _load_strikes(self) -> None:
         """The last hour of strikes from the Recorder, after a restart: their distance only, the Recorder keeps no position."""

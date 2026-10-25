@@ -1,3 +1,8 @@
+## 2.8.1b1 — Bêta : l’heure et la pression sur plusieurs jours
+
+- La courbe de pression peut montrer les 6 dernières heures, 24 heures, 2 jours ou 7 jours : réglage « Courbe de pression » dans la section Aujourd’hui de la carte.
+- L’heure peut s’afficher dans le bandeau, en grand sous le titre ou au-dessus de « En ce moment » : réglage « Heure dans le bandeau ».
+
 ## 2.8.0 — Stable : accueil technique et réglages par sujet
 
 - Nouvel accueil technique : état de Weather, problèmes à corriger, extensions installées/configurées, statistiques, versions et liens utiles.

@@ -162,3 +162,31 @@ def test_recorded_weather_attributes_convert_each_rows_units_and_preserve_outage
     assert readings('wind_speed') == ['36.0', '10.0', 'unavailable', '12.0']
     assert readings('wind_gust_speed') == ['72.0', 'unavailable', 'unavailable', 'unavailable']
     assert readings('pressure') == ['1010.0', '1011.0', 'unavailable', '1012.0']
+
+
+def test_draws_a_week_of_pressure_from_hourly_means_then_the_detailed_six_hours() -> None:
+    from engine.series import hourly_changes, joined
+    end = NOW.timestamp()
+    hours = [(end - (168 - i) * 3600, end - (167 - i) * 3600, 1000 + i / 10) for i in range(162)]
+    recent = [Change(end - 6 * 3600, "1020"), Change(end - 3600, "1021")]
+    rows = joined(hourly_changes(hours), recent)
+    week = pressure_chart_series(rows, "hPa", NOW, 1021, "7d")
+    assert len(week) == 57 and week[-1].value == 1021
+    assert week[0].value == pytest.approx(1000.1, abs=0.01)
+    assert all(p.value is not None for p in week)
+    # The hours under the detailed history are left out: no double reading at the join.
+    assert max(c.time for c in rows if c.state != "1020" and c.state != "1021") < end - 6 * 3600
+
+
+def test_keeps_a_missing_hour_of_statistics_as_a_gap() -> None:
+    from engine.series import hourly_changes
+    end = NOW.timestamp()
+    hours = [(end - 10 * 3600, end - 9 * 3600, 1010.0), (end - 5 * 3600, end - 4 * 3600, 1012.0)]
+    series = pressure_chart_series(hourly_changes(hours), "hPa", NOW, None, "1d")
+    assert len(series) == 25
+    assert series[-11].value == 1010 and series[-10].value is None and series[-6].value == 1012 and series[-5].value is None
+
+
+def test_keeps_the_six_hour_pressure_chart_by_default() -> None:
+    rows = [Change(NOW.timestamp() - 7 * 3600, "1012")]
+    assert len(pressure_chart_series(rows, "hPa", NOW, 1012)) == len(pressure_chart_series(rows, "hPa", NOW, 1012, "6h")) == 37

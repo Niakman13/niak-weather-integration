@@ -1,8 +1,9 @@
-// The small six-hour charts, drawn from the integration's points in a 100 × 50 box. Only drawing here: the points come computed.
+// The small history charts, drawn from the integration's points in a 100 × 50 box. Only drawing here: the points come computed.
 import type { Point } from '../view';
 
-/** Height of the drawing box; the width is always 100 (six hours). */
+/** Height of the drawing box; the width is always 100, the chart's whole span. */
 export const CHART_HEIGHT = 50;
+/** Six hours, unless the chart says otherwise (the pressure over a day or a week). */
 const SPAN = 6 * 3600;
 export interface ChartPaths { line: string; area: string }
 /** A value posed on a chart: its position in % of the chart box, and its text. */
@@ -15,12 +16,12 @@ export const chartEnd = (...series: Point[][]) => Math.max(0, ...series.flatMap(
 export const chartY = (value: number, top: number, bottom = 0) => CHART_HEIGHT - 2 - (value - bottom) / Math.max(1e-6, top - bottom) * (CHART_HEIGHT - 6);
 
 /** Shape-preserving cubic curves: no overshoot, and never joined across unavailable data. */
-export function curvePaths(series: Point[], top: number, end: number, bottom = 0): ChartPaths[] {
+export function curvePaths(series: Point[], top: number, end: number, bottom = 0, span = SPAN): ChartPaths[] {
   const segments: Point[][] = []; let segment: Point[] = [];
   for (const p of series) { if (p[1] === null) { if (segment.length > 1) segments.push(segment); segment = []; } else segment.push(p); }
   if (segment.length > 1) segments.push(segment);
   return segments.map(group => {
-    const coords = group.map(([t, v]) => ({ x: (t - (end - SPAN)) / SPAN * 100, y: chartY(v!, top, bottom) }));
+    const coords = group.map(([t, v]) => ({ x: (t - (end - span)) / span * 100, y: chartY(v!, top, bottom) }));
     const slopes = coords.slice(1).map((p, i) => (p.y - coords[i].y) / (p.x - coords[i].x));
     const tangents = coords.map((_, i) => i === 0 ? slopes[0] : i === coords.length - 1 ? slopes.at(-1)! : slopes[i - 1] * slopes[i] <= 0 ? 0 : 2 / (1 / slopes[i - 1] + 1 / slopes[i]));
     slopes.forEach((s, i) => {
@@ -39,11 +40,11 @@ export function curvePaths(series: Point[], top: number, end: number, bottom = 0
 }
 
 /** The highest and lowest points of a curve, as pills on the chart; one pill when the curve is flat. */
-export function extremePills(series: Point[], end: number, y: (v: number) => number, text: (v: number) => string): ChartPill[] {
+export function extremePills(series: Point[], end: number, y: (v: number) => number, text: (v: number) => string, span = SPAN): ChartPill[] {
   const valid = series.filter((p): p is [number, number] => p[1] !== null);
   if (valid.length < 2) return [];
   const hi = valid.reduce((a, b) => b[1] > a[1] ? b : a), lo = valid.reduce((a, b) => b[1] < a[1] ? b : a);
-  const x = (t: number) => Math.min(92, Math.max(8, (t - (end - SPAN)) / SPAN * 100));
+  const x = (t: number) => Math.min(92, Math.max(8, (t - (end - span)) / span * 100));
   const pill = ([t, v]: [number, number]) => ({ x: x(t), y: y(v) / CHART_HEIGHT * 100, text: text(v) });
   return text(hi[1]) === text(lo[1]) ? [pill(hi)] : [pill(hi), pill(lo)];
 }

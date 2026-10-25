@@ -189,7 +189,7 @@ export class NiakWeatherCard extends LitElement {
     const sky = html`<niak-weather-sky .condition=${view.now.condition} .phase=${view.now.phase} .animated=${config.weather_animations !== false}
       .quality=${config.weather_animation_quality ?? (this.tile && LIGHT_SKY.matches ? 'low' : 'standard')} .wind=${view.now.wind ?? 0} .gust=${gust} .detail=${view.now.detail ?? ''} .season=${view.season.info.season}></niak-weather-sky>`;
     const full = () => renderFull(view, { sky, uid: this.uid, entity: view.weatherEntity, station: view.station,
-      sections: sections(config), tab: this.tab, onTab: this.setTab,
+      sections: sections(config), tab: this.tab, onTab: this.setTab, clock: config.clock,
       folded: this.folded, onFold: id => { this.folded = { ...this.folded, [id]: !this.folded[id] }; } });
     const title = `Météo${view.location ? ` · ${view.location}` : ''}`;
     const dialog = () => this.dialogOpen ? html`<dialog class="nw-dialog" aria-label=${title} @close=${() => { this.dialogOpen = false; }} @click=${this.openEntity} @keydown=${this.entityKey}>
