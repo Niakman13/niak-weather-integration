@@ -18,7 +18,7 @@ from .lightning import NEAR_KM, Lightning
 from .local import CONDITION_TITLES, LocalWeather
 from .settings import Settings
 from .station import Derived
-from .units import Kind, measurement
+from .units import Kind, finite, measurement
 
 HOUR = timedelta(hours=1)
 CONDITIONS = ("clear-night", "cloudy", "exceptional", "fog", "hail", "lightning", "lightning-rainy", "partlycloudy", "pouring", "rainy",
@@ -299,14 +299,17 @@ def build_catalogue(w: LocalWeather, brief: Brief, derived: Derived | None, sett
     else:
         items["canicule"] = Item(False, "Pas de forte chaleur", "prevision" if hottest else "station")
 
-    if not settings.uv_index_entity:
-        items["uv_fort"] = Item(None, "Pas de capteur UV", "station")
-    elif w.uv is None:
-        items["uv_fort"] = Item(None, "Capteur UV indisponible", "station")
+    # The UV sensor first; without it (or while it is silent), the weather service's index.
+    weather = get(settings.weather_entity) if settings.weather_entity else None
+    forecast_uv = finite(weather.attributes.get("uv_index")) if weather is not None and weather.state not in ("unavailable", "unknown") else None
+    uv, uv_source = (w.uv, "station") if w.uv is not None else (forecast_uv, "prevision")
+    if uv is None:
+        items["uv_fort"] = Item(None, "Capteur UV indisponible" if settings.uv_index_entity else "Pas de capteur UV ni d’indice prévu", "station")
     else:
-        strong = w.uv >= 6
-        items["uv_fort"] = Item(strong, f"Indice UV {number(w.uv, 0)} : {w.uv_text}" if strong else "Indice UV sous 6", "station",
-                                level=2 if w.uv >= 8 else 1 if strong else 0)
+        strong = uv >= 6
+        text = "faible" if uv < 3 else "modéré" if uv < 6 else "fort" if uv < 8 else "très fort" if uv < 11 else "extrême"
+        items["uv_fort"] = Item(strong, f"Indice UV {number(uv, 0)} : {text}" if strong else "Indice UV sous 6", uv_source,
+                                level=2 if uv >= 8 else 1 if strong else 0)
 
     # ---- Prochaines heures ----
     for key, span in (("pluie_heure", 1), ("pluie_6h", 6), ("pluie_24h_prevue", 24)):

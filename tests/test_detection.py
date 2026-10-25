@@ -328,7 +328,7 @@ def test_offers_every_module_of_the_chosen_netatmo_station_but_not_the_others() 
     offered = manual_candidates(every, "temperature_entity", registry, options, devices)
     assert "sensor.exterieur_temperature" in offered and "sensor.marseille_temperature" not in offered
     assert candidates(every, "temperature_entity", registry, options, devices) == ["sensor.exterieur_temperature"]
-    assert [title for _, title, _ in station_groups("netatmo")] == ["Température et humidité", "Pluie", "Vent", "Spécifiques"]
+    assert [title for _, title, _ in station_groups("netatmo")] == ["Température et humidité", "Pluie", "Vent", "Soleil", "Spécifiques"]
 
 
 def test_finds_a_renamed_netatmo_module_and_works_without_device_links() -> None:
@@ -350,3 +350,22 @@ def test_keeps_an_ecowitt_station_first_when_a_netatmo_is_also_there() -> None:
     # A saved choice of « no station » stays.
     declined = {**BASE, "station_model": "", **{f: "" for f in STATION_FIELDS}}
     assert fill(*netatmo_home(), declined, "station")["temperature_entity"] == ""
+
+
+def test_takes_the_uv_a_netatmo_station_lacks_from_openuv() -> None:
+    # Issue #5: a Netatmo station has no UV sensor; OpenUV's current index must be offered and recognised, not its daily maximum nor its level.
+    every, registry, devices = netatmo_home()
+    devices["openuv"] = {"name": "OpenUV", "manufacturer": "OpenUV", "model": None, "via_device_id": None}
+    UV = {"unit_of_measurement": "UV index", "state_class": "measurement"}
+    for entity_id, name, attributes, state in (("sensor.openuv_indice_uv_actuel", "Indice UV actuel", UV, "2.3"),
+                                               ("sensor.openuv_indice_uv_maximal", "Indice UV maximal", UV, "3.1"),
+                                               ("sensor.openuv_niveau_uv_actuel", "Niveau UV actuel", {}, "Faible"),
+                                               ("sensor.openuv_niveau_dozone_actuel", "Niveau d'ozone actuel", {"unit_of_measurement": "du"}, "300")):
+        registry[entity_id] = {"platform": "openuv", "device_id": "openuv", "unique_id": entity_id, "disabled_by": None,
+                               "translation_key": None, "original_name": name}
+        every.append(State(entity_id, state, {**attributes, "friendly_name": f"OpenUV {name}"}))
+    options = {**BASE, "station_model": "netatmo", "station_device_id": "main"}
+    assert any("uv_index_entity" in group for _, _, group in station_groups("netatmo"))
+    assert candidates(every, "uv_index_entity", registry, options, devices) == ["sensor.openuv_indice_uv_actuel"]
+    assert "sensor.openuv_indice_uv_actuel" in manual_candidates(every, "uv_index_entity", registry, options, devices)
+    assert fill(every, registry, devices, BASE, "station")["uv_index_entity"] == "sensor.openuv_indice_uv_actuel"

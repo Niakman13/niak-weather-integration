@@ -88,7 +88,7 @@ def test_frost_night() -> None:
     assert c["minimale_nuit"].value == -2 and c["minimale_nuit"].reason == "Vers 5 h"
     assert c["degres_jours_chauffe"].value == 14.5
     assert c["sechage_linge"].value == "mauvais"
-    assert c["uv_fort"].value is None and c["uv_fort"].reason == "Pas de capteur UV"
+    assert c["uv_fort"].value is None and c["uv_fort"].reason == "Pas de capteur UV ni d’indice prévu"
     assert c["canicule"].value is False
 
 
@@ -232,3 +232,14 @@ def test_families_say_what_starts_enabled_and_what_is_missing() -> None:
     assert families.enabled_at_first("qualite_air", ["vie_pratique"], False, bare) is False
     assert families.enabled_at_first("feels_like", ["alertes"], True, bare) is False
     assert sorted(k for _, keys in families.FAMILIES for k in keys) == sorted(set(k for _, keys in families.FAMILIES for k in keys))
+
+
+def test_takes_the_forecast_uv_without_a_uv_sensor() -> None:
+    # Issue #5: without a UV sensor, the weather service's index (PirateWeather, Met.no…) keeps « UV forts » working.
+    weather = State("sunny", {"temperature": 31, "temperature_unit": "°C", "wind_speed_unit": "km/h", "uv_index": 8.4})
+    c = run(SUMMER, {"sensor.t": 31, "sensor.h": 40}, SUMMER_HOURS, SUMMER_DAYS, options={"uv_index_entity": ""}, extra={"weather.home": weather})
+    assert (c["uv_fort"].value, c["uv_fort"].level, c["uv_fort"].source) == (True, 2, "prevision")
+    assert c["uv_fort"].reason == "Indice UV 8 : très fort"
+    # The sensor wins when it answers.
+    c = run(SUMMER, {"sensor.t": 31, "sensor.h": 40, "sensor.uv": 3}, SUMMER_HOURS, SUMMER_DAYS, extra={"weather.home": weather})
+    assert (c["uv_fort"].value, c["uv_fort"].source) == (False, "station")

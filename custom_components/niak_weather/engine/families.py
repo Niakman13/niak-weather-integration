@@ -34,7 +34,7 @@ def needs(settings: Settings) -> dict[str, str]:
     missing = {
         "vigilance": not settings.vigilance_entity and "la vigilance officielle",
         "restrictions_eau": not settings.water_restriction_entity and "l’intégration Vigieau",
-        "uv_fort": not settings.uv_index_entity and "un capteur UV",
+        "uv_fort": not settings.uv_index_entity and "un capteur UV (OpenUV, station…)",
         "pluie_7j": not (rain_gauge and settings.station_history) and "un pluviomètre et l’historique de la station",
         "rain_24h": not rain_gauge and "un pluviomètre",
         "pressure_trend": not settings.pressure_entity and "un capteur de pression",

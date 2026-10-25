@@ -152,7 +152,9 @@ def report(f: Facts) -> dict:
         if key in enabled:
             if key in STATION_DEPENDENT:
                 if f.station:
-                    tips.append(_line("tip", f"Compléter : {names.get(key, key)}", f"Facultatif : {text} permet cette fonction.", 1))
+                    why = (f"Facultatif : {text} mesure l’indice chez vous ; sans lui, l’indice UV du service météo est utilisé." if key == "uv_fort"
+                           else f"Facultatif : {text} permet cette fonction.")
+                    tips.append(_line("tip", f"Compléter : {names.get(key, key)}", why, 1))
                 continue
             todo.append(_line("bad", f"{names.get(key, key)} : active sans source", f"Il faut {text} : elle reste vide.", NEED_STAGE.get(key, 1)))
     for text in silent_sources(f):

@@ -1,3 +1,9 @@
+## 2.8.2 — Stable : UV with a Netatmo station
+
+- With a Netatmo station, the « Indice UV » box is offered again in Réglages → Station, under Soleil: a UV sensor from another device (OpenUV…) can be chosen there.
+- OpenUV's current UV index is now recognised automatically (not its daily maximum, nor its text level).
+- Without a UV sensor, « UV forts » relies on the UV index of the weather service instead of staying unknown.
+
 ## 2.8.1 — Stable : l’heure, et pluie, vent et pression sur plusieurs jours
 
 - Barres de pluie au choix : 24 dernières heures (une par heure), 7 jours ou 30 jours (une par jour), avec le total de la période.

@@ -31,12 +31,14 @@ STATION_RULES: dict[str, re.Pattern[str]] = {k: re.compile(v) for k, v in {
     "pressure_entity": r"pressure|pression",
     "solar_radiation_entity": r"solar.*radiation|radiation.*solar|rayonnement",
     "dew_point_entity": r"dew_?point|point.*rosee|rosee",
-    "uv_index_entity": r"uv_index|index_uv|\buv\b",
+    "uv_index_entity": r"uv_index|index_uv|indice_uv|uv_indice|\buv\b",
     "illuminance_entity": r"lux|illuminance|luminosite",
     "max_daily_gust_entity": r"max.*(?:daily.*gust|gust|rafale)|rafale.*max",
     "temperature_trend_entity": r"tendance.*temp.*(?:ext|dehors)|temp.*(?:ext|outdoor).*trend",
 }.items()}
 STATION_FIELDS = tuple(STATION_RULES)
+ANY_DEVICE = frozenset({"uv_index_entity"})
+"""Measures many stations lack (a Netatmo has no UV sensor): taken from another device, such as OpenUV, when the station has none."""
 SOURCE_FIELDS = ("weather_entity", "vigilance_entity", "sun_entity", "sun_elevation_entity", "season_entity", "water_restriction_entity",
                  "lightning_entity")
 CATEGORY_FIELDS: dict[str, tuple[str, ...]] = {"weather": SOURCE_FIELDS, "station": STATION_FIELDS, "atmo": ATMO_KEYS}
@@ -200,6 +202,11 @@ def detect_netatmo(states: Sequence[StateLike], registry: Registry, devices: Dev
         enabled = [i for i, on in ids if on and i in live]
         if options.get(field) is None and len(enabled) == 1:
             selected[field] = enabled[0]
+    for field in ANY_DEVICE:
+        # What Netatmo does not measure, from another device when only one fits.
+        found = candidates(states, field, registry, {**options, "station_device_id": None}, devices)
+        if options.get(field) is None and len(found) == 1:
+            selected[field] = found[0]
     return selected
 
 
@@ -228,6 +235,10 @@ def candidates(states: Sequence[StateLike], field: str, registry: Registry, opti
     if rule is None:
         return []
     covered = _station_devices(devices, device)
+    if field in ANY_DEVICE and covered:
+        # The station's own sensor first; without one, any device's.
+        own = candidates(states, field, registry, {**(options or {}), "station_device_id": None}, devices)
+        return [i for i in own if (registry.get(i) or {}).get("device_id") in covered] or own
     if covered and devices and netatmo_module(devices.get(device or "")) == "main":
         # A Netatmo station says what each sensor measures: no guess from names.
         live = {s.entity_id for s in states}
@@ -245,7 +256,8 @@ def candidates(states: Sequence[StateLike], field: str, registry: Registry, opti
             continue
         if (field == "temperature_entity" and re.search(_NOT_OUTDOOR, t)) or (field == "humidity_entity" and re.search(r"humidex|absolute|absolue|indoor|interieur", t)) \
                 or (field == "pressure_entity" and re.search(r"trend|tendance", t)) or (field == "wind_speed_entity" and re.search(r"gust|rafale|max", t)) \
-                or (field == "wind_gust_entity" and re.search(r"max|daily", t)) or (field == "daily_rain_entity" and re.search(r"24h|24_h|max|year", t)):
+                or (field == "wind_gust_entity" and re.search(r"max|daily", t)) or (field == "daily_rain_entity" and re.search(r"24h|24_h|max|year", t)) \
+                or (field == "uv_index_entity" and re.search(r"max|ozone|exposure|exposition|protection|niveau|level", t)):
             continue
         found.append(state.entity_id)
     return sorted(found)
@@ -257,7 +269,7 @@ def measurement_matches(state: StateLike, field: str) -> bool:
     if _RAIN_PERIODS.match(field):
         return cls == "precipitation" if cls else bool(re.search(r"^(mm|in|inch)$", unit))
     if field == "uv_index_entity" and not cls and not unit:
-        return bool(re.search(r"uv_index|index_uv|\buv\b", normal(f"{state.entity_id} {state.attributes.get('friendly_name')}")))
+        return bool(re.search(r"uv_index|index_uv|indice_uv|uv_indice|\buv\b", normal(f"{state.entity_id} {state.attributes.get('friendly_name')}")))
     rule = _MEASURES.get(field)
     if rule is None:
         return False
@@ -277,7 +289,7 @@ def manual_candidates(states: Sequence[StateLike], field: str, registry: Registr
             continue
         if not function_matches(state, field, entry):
             continue
-        if covered and entry.get("device_id") and entry.get("device_id") not in covered:
+        if covered and entry.get("device_id") and entry.get("device_id") not in covered and field not in ANY_DEVICE:
             continue
         typed = state.attributes.get("device_class") or state.attributes.get("unit_of_measurement")
         if measurement_matches(state, field) or (not typed and state.entity_id in semantic) or _netatmo_rain(entry, field):
@@ -502,9 +514,9 @@ def selected_station_model(options: Mapping[str, Any]) -> str:
 def station_groups(model: str) -> list[tuple[str, str, tuple[str, ...]]]:
     """The station's fields grouped by subject, only those its model has."""
     if model == NETATMO:
-        # Only what a Netatmo station measures; a subject it has no module for is left out.
+        # What a Netatmo station measures, and the UV it lacks, from another device (OpenUV…); a subject it has no module for is left out.
         fields = (("temperature_entity", "humidity_entity"), ("rain_rate_entity", "daily_rain_entity", "rain_total_entity"),
-                  ("wind_speed_entity", "wind_gust_entity", "wind_bearing_entity"), (), ("pressure_entity",))
+                  ("wind_speed_entity", "wind_gust_entity", "wind_bearing_entity"), ("uv_index_entity",), ("pressure_entity",))
         return [(name, title, group) for (name, title), group in zip(STATION_GROUPS, fields) if group]
     rain = (("rain_rate_entity", "daily_rain_entity", "rain_24h_entity", "weekly_rain_entity", "monthly_rain_entity", "yearly_rain_entity", "event_rain_entity")
             if model == "gw2000a" else ("rain_rate_entity", "rain_total_entity") if model == "ws90"
