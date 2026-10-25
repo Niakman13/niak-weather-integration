@@ -80,6 +80,8 @@ Tout se règle dans l’éditeur de la carte, rangé en blocs : le lieu et le fo
 | Bandeau intelligent (complète) | `banner_blocks` | `bulletin`, `events` | Sous le lieu, la vigilance et la météo du moment, dans l’ordre : `bulletin`, `events` (la frise), `moments`, `forecast` (les prévisions en tuiles). Le bandeau et son ciel animé restent toujours |
 | Bandeau intelligent (complète) | `clock` | `none` | L’heure de l’appareil dans le bandeau : `left` en grand sous le titre, `right` au-dessus de « En ce moment », `none` masquée |
 | Aujourd’hui (complète) | `today_blocks` | tout | `rain`, `wind`, `pressure`, `comfort` (ressenti), `extras` (pastilles), `air` (air et pollens du jour). Une liste vide retire la section |
+| Aujourd’hui (complète) | `rain_span` | `7d` | Les barres de pluie : `24h` (une par heure), `7d` (une par jour) ou `30d` (une par jour). 24 heures et 30 jours demandent un pluviomètre dont Home Assistant garde les statistiques ; sinon, 7 jours |
+| Aujourd’hui (complète) | `wind_span` | `6h` | La courbe du vent sur `6h`, `1d` (24 heures), `2d` (2 jours) ou `7d` (7 jours). Au-delà de 6 h, les moyennes horaires et les rafales maximales de chaque heure |
 | Aujourd’hui (complète) | `pressure_span` | `6h` | La courbe de pression sur `6h`, `1d` (24 heures), `2d` (2 jours) ou `7d` (7 jours). Au-delà de 6 h, les moyennes horaires gardées par Home Assistant |
 | Prévisions (complète) | `forecast_blocks` | tout | `hours` (18 heures), `days` (7 jours), `air` (air et pollens de demain). Une liste vide retire la section |
 | Contenu (tuile) | `tile_blocks` | `bulletin`, `events` | Ce que montre la tuile dépliée, dans l’ordre : `bulletin`, `events`, `moments`, `forecast` |

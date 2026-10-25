@@ -41,4 +41,13 @@ describe('What the card shows of the integration’s view', () => {
     const old = displayed({ ...view, pressure: { ...pressure, periods: undefined } } as WeatherView, config({ pressure_span: '7d' }), false).pressure!;
     expect([old.period, old.series]).toEqual(['6h', six.series]);
   });
+  it('shows the wind and the rain over the chosen periods, the default ones without them', () => {
+    const wind = { mean: [[1, 5]], gust: [], top: 20, periods: [{ period: '7d', mean: [[1, 9]], gust: [[1, 30]], top: 30 }] };
+    const rain = { days: [{ date: 'd', label: 'lun.', value: 1, partial: false }], periods: [{ period: '30d', days: [], total: 12, partial: true }] };
+    const v = displayed({ ...view, wind, rain } as unknown as WeatherView, config({ wind_span: '7d', rain_span: '30d' }), false);
+    expect([v.wind!.period, v.wind!.gust, v.wind!.top]).toEqual(['7d', [[1, 30]], 30]);
+    expect([v.rain!.period, v.rain!.days, v.rain!.total, v.rain!.totalPartial]).toEqual(['30d', [], 12, true]);
+    const plain = displayed({ ...view, wind, rain } as unknown as WeatherView, config({ rain_span: '24h' }), false);
+    expect([plain.wind!.period, plain.rain!.period, plain.rain!.days?.length]).toEqual(['6h', '7d', 1]);
+  });
 });

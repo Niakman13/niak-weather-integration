@@ -1,13 +1,27 @@
 // « Aujourd'hui »: the feel, then rain, wind and pressure measured at home, each in the same panel model.
 import { css, html, nothing, svg, type TemplateResult } from 'lit';
-import type { ComfortView, PressurePeriodId, PressureView, RainView, Stat, WeatherView, WindView } from '../view';
+import type { ChartPeriodId, ComfortView, PressureView, RainDay, RainPeriodId, RainView, Stat, WeatherView, WindView } from '../view';
 import type { TodayBlock } from '../types';
 import { chartEnd, chartY, curvePaths, extremePills, type ChartPaths, type ChartPill } from '../ui/charts';
 import { chip, entity, info, label, legend, nf, panelHead, tempColor } from '../ui/parts';
 
 const pills = (list: ChartPill[]) => list.map(p => html`<span class=${`pill${p.y < 30 ? ' low' : ''}`} style=${`left:${p.x}%;top:${p.y}%`}>${p.text}</span>`);
 const stats = (list: Stat[]) => list.length ? html`<div class="stats">${list.map(s => html`<div data-entity=${entity(s.entity)}>${label(s.label)}<b>${s.value}</b></div>`)}</div>` : nothing;
-const sixHours = html`<div class="mini-axis">${label('−6 h')}${label('−3 h')}${label('maintenant')}</div>`;
+/** The wind and pressure charts' periods: span in seconds, title, axis. */
+const PERIODS: Record<ChartPeriodId, { span: number; title: string; axis: [string, string] }> = {
+  '6h': { span: 6 * 3600, title: '6 dernières heures', axis: ['−6 h', '−3 h'] },
+  '1d': { span: 86400, title: '24 dernières heures', axis: ['−24 h', '−12 h'] },
+  '2d': { span: 2 * 86400, title: '2 derniers jours', axis: ['−2 j', '−1 j'] },
+  '7d': { span: 7 * 86400, title: '7 derniers jours', axis: ['−7 j', ''] },
+};
+/** The chart's axis: the start, the middle (none for the week, whose middle is three days and a half), now. */
+const axis = (p: { axis: [string, string] }) => html`<div class="mini-axis">${label(p.axis[0])}${label(p.axis[1])}${label('maintenant')}</div>`;
+/** The rain bars' periods: title, and the axis under many bars (each of the seven days has its own label). */
+const RAIN: Record<RainPeriodId, { title: string; axis?: [string, string, string] }> = {
+  '24h': { title: '24 dernières heures', axis: ['−24 h', '−12 h', 'maintenant'] },
+  '7d': { title: '7 derniers jours' },
+  '30d': { title: '30 derniers jours', axis: ['−30 j', '−15 j', 'aujourd’hui'] },
+};
 const curve = (paths: ChartPaths[], color: string) => paths.map(p => svg`
   <path d=${p.area} fill=${`color-mix(in oklab,${color} 16%,transparent)`}/>
   <path d=${p.line} fill="none" stroke=${color} stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round"/>`);
@@ -35,7 +49,11 @@ function comfortPanel(c: ComfortView, uid: string, station: boolean): TemplateRe
 }
 
 export function rainPanel(r: RainView): TemplateResult {
-  const top = Math.max(1, ...(r.days ?? []).map(d => d.value ?? 0));
+  const top = Math.max(1, ...(r.days ?? []).map(d => d.value ?? 0)), period = RAIN[r.period ?? '7d'], dense = (r.days?.length ?? 0) > 7;
+  // Over many bars, only the wettest one says its amount; each bar gives its own on hover.
+  const wettest = dense ? (r.days ?? []).reduce<RainDay | undefined>((a, d) => (d.value ?? 0) > (a?.value ?? 0) ? d : a, undefined) : undefined;
+  // Hover: « 14 h » over a day, « 7/10 » over a month, the date over a week.
+  const when = (d: RainDay) => r.period === '24h' ? d.label : r.period === '30d' ? `${d.label}/${d.date.slice(5, 7)}` : d.date;
   const now = r.rate !== undefined && r.rate > 0 ? chip({ theme: 'rain', icon: 'mdi:weather-rainy', value: `${nf(r.rate)} mm/h`, label: 'en ce moment', entity: r.rateEntity })
     // Only while it rains: « no rain » tells nothing the sky does not already say.
     : r.status ? chip({ theme: 'rain', icon: 'mdi:weather-rainy', label: r.status }) : nothing;
@@ -43,19 +61,19 @@ export function rainPanel(r: RainView): TemplateResult {
     <div class="metric-row"><div class="metric" data-entity=${r.entity}>
       ${r.text ? html`<div class="metric-main"><b class="word">${r.text}</b></div>`
         : html`<div class="metric-main"><b>${r.value === undefined ? '—' : nf(r.value, 1, true)}</b><span>${r.unit}</span></div>`}<small>${r.label}</small></div>${now}</div>
-    <div class="mini" title=${r.daysNote}><div class="mini-top">7 derniers jours · mm</div>
-      ${r.days ? html`<div class="bars" role="img" aria-label="Pluie des 7 derniers jours">${r.days.map(d => html`<div title=${`${d.date} : ${d.value === undefined ? 'indisponible' : `${d.partial ? 'au moins ' : ''}${nf(d.value)} mm`}`}>
-          <span>${d.value === undefined ? '—' : d.value ? `${d.partial ? '≥ ' : ''}${nf(d.value)}` : ''}</span>
+    <div class="mini" title=${r.daysNote}><div class="mini-top">${period.title} · ${r.total === undefined ? 'mm' : `${r.totalPartial ? '≥ ' : ''}${nf(r.total)} mm`}</div>
+      ${r.days ? html`<div class=${`bars${dense ? ' dense' : ''}`} style=${`--n:${r.days.length}`} role="img" aria-label=${`Pluie des ${period.title}`}>${r.days.map(d => html`<div title=${`${when(d)} : ${d.value === undefined ? 'indisponible' : `${d.partial ? 'au moins ' : ''}${nf(d.value)} mm`}`}>
+          <span>${d.value === undefined ? (dense ? '' : '—') : d.value && (!dense || d === wettest) ? `${d.partial ? '≥ ' : ''}${nf(d.value)}` : ''}</span>
           <i class=${d.value ? '' : 'zero'} style=${`height:${d.value ? Math.max(12, d.value / top * 74) : 5}%`}></i></div>`)}</div>
-        <div class="bars-axis">${r.days.map(d => label(d.label.replace('.', '')))}</div>`
+        ${period.axis ? html`<div class="mini-axis">${period.axis.map(t => label(t))}</div>` : html`<div class="bars-axis">${r.days.map(d => label(d.label.replace('.', '')))}</div>`}`
       : html`<p class="nw-empty">${r.empty}</p>`}</div>
     ${stats(r.stats)}
   </section>`;
 }
 
 function windPanel(w: WindView): TemplateResult {
-  const color = 'var(--nw-wind)', end = chartEnd(w.mean, w.gust);
-  const mean = curvePaths(w.mean, w.top, end), gust = curvePaths(w.gust, w.top, end);
+  const color = 'var(--nw-wind)', end = chartEnd(w.mean, w.gust), period = PERIODS[w.period ?? '6h'];
+  const mean = curvePaths(w.mean, w.top, end, 0, period.span), gust = curvePaths(w.gust, w.top, end, 0, period.span);
   return html`<section class="nw-panel" aria-label="Vent">${panelHead('mdi:weather-windy', 'wind', 'Vent', w.source)}
     <div class="metric-row"><div class="metric" data-entity=${w.entity}><div class="metric-main"><b>${w.value === undefined ? '—' : nf(w.value, 0)}</b><span>km/h</span></div>
       <small>${w.label}${w.description ? ` · ${w.description}` : ''}</small></div>
@@ -64,33 +82,24 @@ function windPanel(w: WindView): TemplateResult {
         <circle cx="36" cy="36" r="30" fill="color-mix(in oklab,var(--nw-wind) 10%,transparent)" stroke="var(--nw-line)"/>
         <text x="36" y="16" text-anchor="middle" font-size="10" font-weight="700" fill="var(--nw-fg2)">N</text>
         <path d="M36 16 44 46 36 40 28 46Z" fill="color-mix(in oklab,var(--nw-wind) 75%,var(--nw-fg))" transform=${`rotate(${(w.bearing + 180) % 360} 36 36)`}/></svg>`}</div>
-    <div class="mini"><div class="mini-top">6 dernières heures · km/h</div>
-      ${mean.length || gust.length ? html`<div class="mini-plot"><svg viewBox="0 0 100 50" preserveAspectRatio="none" role="img" aria-label="Vent des 6 dernières heures, moyennes et rafales par dix minutes">
+    <div class="mini"><div class="mini-top">${period.title} · km/h</div>
+      ${mean.length || gust.length ? html`<div class="mini-plot"><svg viewBox="0 0 100 50" preserveAspectRatio="none" role="img" aria-label=${`Vent des ${period.title}, moyennes et rafales`}>
           ${gust.map(p => svg`<path d=${p.line} fill="none" stroke="color-mix(in oklab,var(--nw-wind) 55%,transparent)" stroke-width="2" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/>`)}
-          ${curve(mean, color)}</svg>${pills(extremePills(w.mean, end, v => chartY(v, w.top), v => nf(v, 0)))}</div>${sixHours}
+          ${curve(mean, color)}</svg>${pills(extremePills(w.mean, end, v => chartY(v, w.top), v => nf(v, 0), period.span))}</div>${axis(period)}
         <div class="nw-legend">${legend(w.meanLabel, color)}${gust.length ? legend('Rafales', color, 'dash') : nothing}</div>`
       : html`<p class="nw-empty">${w.empty}</p>`}</div>
     ${stats(w.stats)}
   </section>`;
 }
 
-/** The pressure chart's periods: span in seconds, title, axis. */
-const PERIODS: Record<PressurePeriodId, { span: number; title: string; axis: [string, string] }> = {
-  '6h': { span: 6 * 3600, title: '6 dernières heures', axis: ['−6 h', '−3 h'] },
-  '1d': { span: 86400, title: '24 dernières heures', axis: ['−24 h', '−12 h'] },
-  '2d': { span: 2 * 86400, title: '2 derniers jours', axis: ['−2 j', '−1 j'] },
-  '7d': { span: 7 * 86400, title: '7 derniers jours', axis: ['−7 j', ''] },
-};
 
 function pressurePanel(p: PressureView): TemplateResult {
   const period = PERIODS[p.period ?? '6h'], end = chartEnd(p.series), series = curvePaths(p.series, p.top, end, p.low, period.span);
-  // The middle mark sits at the middle of the span; the week, whose middle is three days and a half, has none.
-  const axis = html`<div class="mini-axis">${label(period.axis[0])}${label(period.axis[1])}${label('maintenant')}</div>`;
   return html`<section class="nw-panel" aria-label="Pression">${panelHead('mdi:gauge', 'pressure', 'Pression', p.source)}
     <div class="metric-row"><div class="metric" data-entity=${entity(p.entity)}><div class="metric-main"><b>${p.value === undefined ? '—' : nf(p.value, 0)}</b><span>hPa</span></div>
       <small>${p.description}</small></div>${p.trend ? chip(p.trend) : nothing}</div>
     <div class="mini"><div class="mini-top">${period.title} · hPa</div>
-      ${series.length ? html`<div class="mini-plot"><svg viewBox="0 0 100 50" preserveAspectRatio="none" role="img" aria-label=${`Pression des ${period.title}`}>${curve(series, 'var(--nw-pressure)')}</svg>${pills(extremePills(p.series, end, v => chartY(v, p.top, p.low), v => nf(v, 0), period.span))}</div>${axis}`
+      ${series.length ? html`<div class="mini-plot"><svg viewBox="0 0 100 50" preserveAspectRatio="none" role="img" aria-label=${`Pression des ${period.title}`}>${curve(series, 'var(--nw-pressure)')}</svg>${pills(extremePills(p.series, end, v => chartY(v, p.top, p.low), v => nf(v, 0), period.span))}</div>${axis(period)}`
         : html`<p class="nw-empty">${p.empty}</p>`}</div>
     ${stats(p.stats)}
   </section>`;
@@ -132,7 +141,9 @@ export const todayStyles = css`
   .rail .thermo { position:absolute; top:50%; width:3px; height:18px; margin:-9px 0 0 -1.5px; border-radius:2px; background:var(--nw-bg); box-shadow:0 0 0 1px var(--nw-line); }
   .rail .feel { position:absolute; top:50%; box-sizing:border-box; width:20px; height:20px; margin:-10px 0 0 -10px; border-radius:50%; background:var(--nw-bg); border:4px solid var(--c); box-shadow:0 1px 4px #0002; }
   /* Rain of the last seven days: the value on each bar. */
-  .bars, .bars-axis { display:grid; grid-template-columns:repeat(7, 1fr); gap:6px; }
+  .bars, .bars-axis { display:grid; grid-template-columns:repeat(var(--n, 7), 1fr); gap:6px; }
+  .bars.dense { gap:2px; }
+  .bars.dense span { overflow:visible; white-space:nowrap; }
   .bars { align-items:end; height:66px; }
   .bars > div { display:flex; flex-direction:column; justify-content:flex-end; height:100%; gap:3px; }
   .bars span { font-size:var(--nw-fs-small); font-weight:700; text-align:center; line-height:1; min-height:12px; }

@@ -21,8 +21,8 @@ from .forecast import Day, Hour, daily_wind, day_offset, local_day
 from .lightning import Lightning
 from .local import LocalWeather
 from .season import MONTHS, Season, current_season
-from .series import (PRESSURE_PERIODS, ColumnStatus, Point, column_status, joined, pressure_chart_series, pressure_week_key, rain_days,
-                     wind_chart_series, weather_history_key)
+from .series import (PERIODS, RAIN_PERIODS, ColumnStatus, Point, column_status, joined, pressure_chart_series, rain_bars, rain_days,
+                     rain_state_key, rain_sum_key, wind_chart_series, weather_history_key, week_key)
 from .settings import Settings
 from .station import Derived, RainDay
 from .trends import Change
@@ -66,6 +66,15 @@ class ComfortView:
 
 
 @dataclass(frozen=True)
+class RainPeriod:
+    """Rain bars over 24 hours (one an hour) or 30 days (one a day), and their total."""
+    period: str
+    days: tuple[RainDay, ...]
+    total: float | None
+    partial: bool
+
+
+@dataclass(frozen=True)
 class RainView:
     source: str
     status: str | None
@@ -81,6 +90,17 @@ class RainView:
     days_note: str
     empty: str
     stats: tuple[Stat, ...]
+    periods: tuple[RainPeriod, ...] = ()
+    """The bars over 24 hours and 30 days, when the rain counter keeps statistics; `days` stay the seven days."""
+
+
+@dataclass(frozen=True)
+class WindPeriod:
+    """The wind chart over one of the periods the card offers: 6h, 1d, 2d or 7d."""
+    period: str
+    mean: tuple[Point, ...]
+    gust: tuple[Point, ...]
+    top: float
 
 
 @dataclass(frozen=True)
@@ -102,6 +122,7 @@ class WindView:
     mean_label: str
     empty: str
     stats: tuple[Stat, ...]
+    periods: tuple[WindPeriod, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -325,6 +346,27 @@ def _comfort(get: Getter, settings: Settings, w: LocalWeather) -> ComfortView | 
                        source, sources.get("temperature"), example)
 
 
+def _rain_periods(rain_history: Mapping[str, Sequence[Change]], entities: Sequence[str | None], live: Callable[[str], float | None],
+                  now: datetime, zone: ZoneInfo) -> tuple[RainPeriod, ...]:
+    """The 24-hour and 30-day bars from the counter's hourly running sum, carried on to now by the counter's own reading."""
+    entity = next((e for e in entities if e and rain_history.get(rain_sum_key(e))), None)
+    if entity is None:
+        return ()
+    sums = list(rain_history[rain_sum_key(entity)])
+    last_state = next(iter(rain_history.get(rain_state_key(entity), ())), None)
+    reading, base = live(entity), finite(sums[-1].state)
+    start = finite(last_state.state) if last_state else None
+    if reading is not None and base is not None and start is not None:
+        # The counter went on since the last hour of statistics; below its value there, it was reset (a daily counter at midnight).
+        sums.append(Change(now.timestamp(), str(base + (reading - start if reading >= start else reading))))
+    out = []
+    for period in RAIN_PERIODS:
+        bars = rain_bars(sums, now, zone, period)
+        known = [d.value for d in bars if d.value is not None]
+        out.append(RainPeriod(period, bars, round(sum(known), 1) if known else None, any(d.partial or d.value is None for d in bars[:-1])))
+    return tuple(out)
+
+
 AGO = {"6h": "Il y a 6 h", "1d": "Il y a 24 h", "2d": "Il y a 2 j", "7d": "Il y a 7 j"}
 
 
@@ -336,7 +378,7 @@ def _pressure_period(period: str, rows: Sequence[Change], unit: str | None, now:
     stats = []
     if len(values) > 1:
         # « Il y a… » only when the curve really starts near the beginning of the period.
-        if first is not None and first.time <= now.timestamp() - PRESSURE_PERIODS[period][0] * 5 / 6:
+        if first is not None and first.time <= now.timestamp() - PERIODS[period][0] * 5 / 6:
             stats.append(Stat(AGO[period], f"{french(first.value, 0)} hPa"))
         stats += [Stat("Min.", f"{french(min(values), 0)} hPa"), Stat("Max.", f"{french(max(values), 0)} hPa")]
     return PressurePeriod(period, series, math.floor(min(values)) - 1 if values else 0, math.ceil(max(values)) + 1 if values else 2, tuple(stats))
@@ -367,6 +409,11 @@ def _measures(get: Getter, settings: Settings, w: LocalWeather, hours: Sequence[
         if entity_id == settings.weather_entity:
             return history.get(weather_history_key(entity_id, attribute), ()), unit
         return history.get(entity_id or "", ()), unit_of(entity_id)
+
+    def week_of(entity_id: str | None, attribute: str, recent: Sequence[Change]) -> list[Change]:
+        """The week's hours, then the six detailed hours."""
+        key = weather_history_key(entity_id, attribute) if entity_id == settings.weather_entity else entity_id or ""
+        return joined(history.get(week_key(key), ()), recent)
 
     rain = None
     rain_metric = metrics.get("rain")
@@ -414,7 +461,8 @@ def _measures(get: Getter, settings: Settings, w: LocalWeather, hours: Sequence[
             rate_entity=settings.rain_rate_entity, days=days if any(d.value is not None for d in days) else None,
             days_note=f"{'Calculé depuis le compteur total' if counter else 'Maxima enregistrés'}{' · ≥ historique partiel' if any(d.partial for d in days) else ''}",
             empty="Historique de pluie indisponible" if settings.daily_rain_entity or counter else "Historique mesuré disponible avec un pluviomètre facultatif",
-            stats=tuple(stats))
+            stats=tuple(stats), periods=_rain_periods(rain_history, (settings.rain_total_entity if settings.station_history else None,
+                                                                     settings.daily_rain_entity), lambda e: read(e, Kind.RAIN), now, zone))
 
     wind = None
     wind_metric = metrics.get("wind")
@@ -432,9 +480,16 @@ def _measures(get: Getter, settings: Settings, w: LocalWeather, hours: Sequence[
             maximum = computed_max.value
         wind_rows, wind_unit = history_of(wind_entity, "wind_speed", "km/h")
         gust_rows, gust_unit = history_of(gust_entity, "wind_gust_speed", "km/h")
-        mean = wind_chart_series(wind_rows, wind_unit, now, value, "peak" if gust_only else "mean")
-        gusts = wind_chart_series(gust_rows, gust_unit, now, gust, "peak") if gust_entity and not gust_only else ()
-        top = max(20, math.ceil(max((p.value or 0 for p in (*mean, *gusts)), default=0) / 10) * 10)
+        wind_week, gust_week = week_of(wind_entity, "wind_speed", wind_rows), week_of(gust_entity, "wind_gust_speed", gust_rows)
+
+        def wind_period(period: str) -> WindPeriod:
+            rows, gusts_rows = (wind_rows, gust_rows) if period == "6h" else (wind_week, gust_week)
+            mean = wind_chart_series(rows, wind_unit, now, value, "peak" if gust_only else "mean", period)
+            gusts = wind_chart_series(gusts_rows, gust_unit, now, gust, "peak", period) if gust_entity and not gust_only else ()
+            return WindPeriod(period, mean, gusts, max(20, math.ceil(max((p.value or 0 for p in (*mean, *gusts)), default=0) / 10) * 10))
+
+        wind_periods = tuple(wind_period(period) for period in PERIODS)
+        mean, gusts, top = wind_periods[0].mean, wind_periods[0].gust, wind_periods[0].top
         bearing = wind_metric.bearing if wind_metric else None
         stats = []
         if gust is not None and not gust_only:
@@ -451,7 +506,7 @@ def _measures(get: Getter, settings: Settings, w: LocalWeather, hours: Sequence[
             bearing_entity=wind_metric.bearing_entity if wind_metric else None, mean=mean, gust=gusts, top=top,
             mean_label="Rafales" if gust_only else "Vent moyen",
             empty="Historique du service météo absent ou trop court dans Home Assistant" if wind_entity == settings.weather_entity
-                  else "Historique du vent indisponible ou insuffisant", stats=tuple(stats))
+                  else "Historique du vent indisponible ou insuffisant", stats=tuple(stats), periods=wind_periods)
 
     pressure = None
     pressure_metric = metrics.get("pressure")
@@ -459,9 +514,8 @@ def _measures(get: Getter, settings: Settings, w: LocalWeather, hours: Sequence[
         value = pressure_metric.value if pressure_metric and pressure_metric.value is not None else read(settings.pressure_entity, Kind.PRESSURE)
         entity = pressure_metric.entity if pressure_metric else settings.pressure_entity
         pressure_rows, pressure_unit = history_of(entity, "pressure", "hPa")
-        key = weather_history_key(entity, "pressure") if entity == settings.weather_entity else entity or ""
-        week = joined(history.get(pressure_week_key(key), ()), pressure_rows)
-        periods = tuple(_pressure_period(period, week if period != "6h" else pressure_rows, pressure_unit, now, value) for period in PRESSURE_PERIODS)
+        week = week_of(entity, "pressure", pressure_rows)
+        periods = tuple(_pressure_period(period, week if period != "6h" else pressure_rows, pressure_unit, now, value) for period in PERIODS)
         six = periods[0]
         change, minutes = w.pressure_trend.change, w.pressure_trend.minutes
         measured = pressure_metric is not None and pressure_metric.source == STATION

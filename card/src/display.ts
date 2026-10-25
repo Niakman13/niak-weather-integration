@@ -1,11 +1,23 @@
-import type { AirPanel, PressurePeriodId, PressureView, WeatherView } from './view';
+import type { AirPanel, ChartPeriodId, PressureView, RainPeriodId, RainView, WeatherView, WindView } from './view';
 import type { WeatherCardConfig } from './types';
 
 /** The view as this card shows it: the integration computes everything, the card's display settings leave out what they hide. */
 /** The pressure over the chosen period, when the integration sends it; six hours otherwise. */
-function pressureOver(p: PressureView, period: PressurePeriodId): PressureView {
+function pressureOver(p: PressureView, period: ChartPeriodId): PressureView {
   const chosen = p.periods?.find(x => x.period === period);
   return chosen ? { ...p, period, series: chosen.series, low: chosen.low, top: chosen.top, stats: chosen.stats } : { ...p, period: '6h' };
+}
+
+/** The wind over the chosen period, when the integration sends it; six hours otherwise. */
+function windOver(w: WindView, period: ChartPeriodId): WindView {
+  const chosen = w.periods?.find(x => x.period === period);
+  return chosen ? { ...w, period, mean: chosen.mean, gust: chosen.gust, top: chosen.top } : { ...w, period: '6h' };
+}
+
+/** The rain bars over the chosen period, when the counter keeps statistics; the seven days otherwise. */
+function rainOver(r: RainView, period: RainPeriodId): RainView {
+  const chosen = r.periods?.find(x => x.period === period);
+  return chosen ? { ...r, period, days: chosen.days, total: chosen.total, totalPartial: chosen.partial } : { ...r, period: '7d' };
 }
 
 export function displayed(v: WeatherView, config: WeatherCardConfig, tile: boolean): WeatherView {
@@ -21,6 +33,8 @@ export function displayed(v: WeatherView, config: WeatherCardConfig, tile: boole
     // A tile whose blocks are chosen keeps the bulletin: its moments come from it.
     bulletin: config.show_bulletin === false && !(tile && config.tile_blocks?.length) && !chosen ? undefined : v.bulletin,
     pressure: v.pressure && pressureOver(v.pressure, config.pressure_span ?? '6h'),
+    wind: v.wind && windOver(v.wind, config.wind_span ?? '6h'),
+    rain: v.rain && rainOver(v.rain, config.rain_span ?? '7d'),
     air: { today: details(v.air.today), tomorrow: config.show_atmo_tomorrow === false && !config.forecast_blocks ? [] : details(v.air.tomorrow) },
   };
 }

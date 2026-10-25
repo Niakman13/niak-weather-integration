@@ -190,3 +190,38 @@ def test_keeps_a_missing_hour_of_statistics_as_a_gap() -> None:
 def test_keeps_the_six_hour_pressure_chart_by_default() -> None:
     rows = [Change(NOW.timestamp() - 7 * 3600, "1012")]
     assert len(pressure_chart_series(rows, "hPa", NOW, 1012)) == len(pressure_chart_series(rows, "hPa", NOW, 1012, "6h")) == 37
+
+
+def test_gives_hourly_and_daily_rain_bars_from_the_running_sum() -> None:
+    from engine.series import rain_bars
+    end = NOW.timestamp()  # 16:00 UTC, 18:00 in Paris
+    hour = end - end % 3600
+    sums = [Change(hour - h * 3600, str(10 + (2 if h <= 3 else 0) + (1 if h <= 1 else 0))) for h in range(40, -1, -1)]
+    day = rain_bars(sums, NOW, PARIS, "24h")
+    assert len(day) == 24 and day[-1].label == "18 h"
+    # 2 mm between 4 and 3 hours ago, 1 mm between 2 hours and 1 hour ago.
+    assert [d.value for d in day[-5:]] == [2, 0, 1, 0, 0]
+    assert sum(d.value or 0 for d in day) == 3
+    month = rain_bars(sums, NOW, PARIS, "30d")
+    assert len(month) == 30 and month[-1].label == "5" and month[-1].value == 3
+    assert month[0].value is None
+
+
+def test_follows_a_wind_week_of_hourly_maxima_for_the_gusts() -> None:
+    from engine.series import hourly_changes
+    end = NOW.timestamp()
+    rows = [(end - (168 - i) * 3600, end - (167 - i) * 3600, 30.0 if i == 100 else 10.0) for i in range(168)]
+    peaks = wind_chart_series(hourly_changes(rows), "km/h", NOW, None, "peak", "7d")
+    assert max(p.value or 0 for p in peaks) == 30 and len(peaks) == 57
+
+
+def test_carries_the_rain_bars_to_now_across_a_daily_counter_reset() -> None:
+    from engine.series import rain_state_key, rain_sum_key
+    from engine.view import _rain_periods
+    end = NOW.timestamp() - 3600  # the last hour of statistics ended at 17:00 in Paris
+    history = {rain_sum_key("sensor.daily"): [Change(end - 3600, "40"), Change(end, "41")], rain_state_key("sensor.daily"): [Change(end, "6")]}
+    # The daily counter read 6 mm, then was reset: it now reads 0.5 mm.
+    day = dict((p.period, p) for p in _rain_periods(history, (None, "sensor.daily"), lambda _: 0.5, NOW, PARIS))["24h"]
+    # 1 mm in the 16 h statistics, then the half millimetre read since the reset, in the 17 h bar.
+    assert day.total == 1.5 and [d.value for d in day.days[-3:-1]] == [1, 0.5]
+    assert _rain_periods({}, (None, "sensor.daily"), lambda _: 0.5, NOW, PARIS) == ()

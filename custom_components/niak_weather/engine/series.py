@@ -1,4 +1,4 @@
-"""What the small history charts show: seven days of rain, six hours of wind, six hours to a week of pressure, and a word on what is happening now."""
+"""What the small history charts show: rain over a day, a week or a month, wind and pressure over six hours to a week, and a word on what is happening now."""
 from __future__ import annotations
 
 import math
@@ -8,7 +8,7 @@ from typing import Any, Literal, NamedTuple, Sequence
 from zoneinfo import ZoneInfo
 
 from .local import LocalWeather
-from .station import WEEKDAYS, RainDay
+from .station import WEEKDAYS, RainDay, counter_increase, midnight
 from .trends import Change, Direction
 from .units import Kind, measurement
 
@@ -16,18 +16,61 @@ SPAN, STEP = 6 * 3600, 600
 BRIEF_OUTAGE = 15 * 60
 """A sensor unavailable for less than this (Home Assistant restarting) is not a gap: the curve goes on, as in Home Assistant's history."""
 # A point needs readings over at least half of its step: five minutes of a ten-minute point.
-PRESSURE_PERIODS: dict[str, tuple[int, int]] = {"6h": (SPAN, STEP), "1d": (86400, 3600), "2d": (2 * 86400, 3600), "7d": (7 * 86400, 3 * 3600)}
-"""The pressure chart's periods, as chosen in the card: span and step, in seconds. Past six hours, one point an hour or every three hours."""
-WEEK = PRESSURE_PERIODS["7d"][0]
+PERIODS: dict[str, tuple[int, int]] = {"6h": (SPAN, STEP), "1d": (86400, 3600), "2d": (2 * 86400, 3600), "7d": (7 * 86400, 3 * 3600)}
+"""The wind and pressure charts' periods, as chosen in the card: span and step, in seconds. Past six hours, one point an hour or every three hours."""
+WEEK = PERIODS["7d"][0]
+RAIN_PERIODS = ("24h", "30d")
+"""The rain bars besides the seven days: one an hour over a day, one a day over thirty days."""
+RAIN_DAYS = 30
 
 
-def pressure_week_key(entity_id: str) -> str:
-    """A week of pressure, kept apart from the six hours of detailed history."""
+def week_key(entity_id: str) -> str:
+    """A week of a measure, kept apart from the six hours of detailed history."""
     return f"{entity_id}#week"
 
 
+def rain_sum_key(entity_id: str) -> str:
+    """The rain counter's hourly running sum from the statistics: it never resets, unlike a daily counter."""
+    return f"{entity_id}#sum"
+
+
+def rain_state_key(entity_id: str) -> str:
+    """The counter's own reading at the end of the last hour of statistics: what the current hour's rain starts from."""
+    return f"{entity_id}#last"
+
+
+def rain_bars(sums: Sequence[Change], now: datetime, zone: ZoneInfo, period: str) -> tuple[RainDay, ...]:
+    """Rain per hour over the last 24 hours, or per day over the last 30 days, from the running sum; the last bar is the one under way."""
+    points = [(c.time, finite_number(c.state)) for c in sums]
+    if not points:
+        return ()
+    end = now.timestamp()
+    if period == "24h":
+        hour = end - end % 3600
+        bounds = [(hour - (23 - i) * 3600, hour - (22 - i) * 3600) for i in range(24)]
+        labels = [f"{datetime.fromtimestamp(a, zone).hour} h" for a, _ in bounds]
+    else:
+        today = now.astimezone(zone).date()
+        days = [today - timedelta(days=RAIN_DAYS - 1 - i) for i in range(RAIN_DAYS)]
+        bounds = [(midnight(d, zone), midnight(d + timedelta(days=1), zone)) for d in days]
+        labels = [str(d.day) for d in days]
+    bars = []
+    for (a, b), label in zip(bounds, labels):
+        total = counter_increase(points, a, min(b, end))
+        bars.append(RainDay(datetime.fromtimestamp(a, zone).isoformat(timespec="minutes"), label, total.value, total.partial))
+    return tuple(bars)
+
+
+def finite_number(state: str) -> float | None:
+    try:
+        value = float(state)
+    except (TypeError, ValueError):
+        return None
+    return value if math.isfinite(value) else None
+
+
 def hourly_changes(rows: Sequence[tuple[float, float, float | None]]) -> list[Change]:
-    """Hourly means of the long-term statistics as changes: each mean holds for its hour, a missing hour is a gap."""
+    """Hourly values of the long-term statistics (means or maxima) as changes: each holds for its hour, a missing hour is a gap."""
     out: list[Change] = []
     for i, (start, end, mean) in enumerate(rows):
         out.append(Change(start, "unavailable" if mean is None else str(mean)))
@@ -104,14 +147,16 @@ def rain_days(rows: Sequence[Change], unit: str | None, now: datetime, zone: Zon
     return tuple(days)
 
 
-def wind_chart_series(rows: Sequence[Change], unit: str | None, now: datetime, current: float | None, mode: Literal["mean", "peak"]) -> tuple[Point, ...]:
-    """Ten-minute time-weighted means or gust peaks; a long outage remains a gap, a restart does not."""
-    return _chart_series(rows, unit, now, current, mode, Kind.WIND)
+def wind_chart_series(rows: Sequence[Change], unit: str | None, now: datetime, current: float | None, mode: Literal["mean", "peak"],
+                      period: str = "6h") -> tuple[Point, ...]:
+    """Time-weighted means or gust peaks, every ten minutes over six hours; a long outage remains a gap, a restart does not."""
+    span, step = PERIODS[period]
+    return _chart_series(rows, unit, now, current, mode, Kind.WIND, span, step)
 
 
 def pressure_chart_series(rows: Sequence[Change], unit: str | None, now: datetime, current: float | None = None,
                           period: str = "6h") -> tuple[Point, ...]:
-    span, step = PRESSURE_PERIODS[period]
+    span, step = PERIODS[period]
     return _chart_series(rows, unit, now, current, "mean", Kind.PRESSURE, span, step)
 
 

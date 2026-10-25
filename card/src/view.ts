@@ -73,6 +73,10 @@ export interface RainView {
   rate?: number; rateEntity?: string;
   days?: RainDay[]; daysNote: string; empty: string;
   stats: Stat[];
+  /** The period shown, seven days by default; over 24 hours or 30 days, `days` holds those bars and `total` their sum. */
+  period?: RainPeriodId; total?: number; totalPartial?: boolean;
+  /** The 24-hour and 30-day bars, from 2.8.1 on, when the rain counter keeps statistics. */
+  periods?: RainPeriod[];
 }
 export interface WindView {
   source: string; status?: string;
@@ -83,14 +87,22 @@ export interface WindView {
   /** Top of the chart's scale, shared by both curves. */
   top: number;
   meanLabel: string; empty: string; stats: Stat[];
+  /** The period shown, six hours by default: `mean`, `gust` and `top` are the ones of this period. */
+  period?: ChartPeriodId;
+  /** Every period, from 2.8.1 on. */
+  periods?: WindPeriod[];
 }
-/** How far back the pressure chart goes: six hours, a day, two days or a week. */
-export type PressurePeriodId = '6h' | '1d' | '2d' | '7d';
-export interface PressurePeriod { period: PressurePeriodId; series: Point[]; low: number; top: number; stats: Stat[] }
+/** How far back the wind and pressure charts go: six hours, a day, two days or a week. */
+export type ChartPeriodId = '6h' | '1d' | '2d' | '7d';
+/** The rain bars: one an hour over 24 hours, one a day over 7 or 30 days. */
+export type RainPeriodId = '24h' | '7d' | '30d';
+export interface RainPeriod { period: RainPeriodId; days: RainDay[]; total?: number; partial: boolean }
+export interface WindPeriod { period: ChartPeriodId; mean: Point[]; gust: Point[]; top: number }
+export interface PressurePeriod { period: ChartPeriodId; series: Point[]; low: number; top: number; stats: Stat[] }
 export interface PressureView {
   source: string; value?: number; entity?: string; description: string;
   /** The period shown, six hours by default: `series`, `low`, `top` and `stats` are the ones of this period. */
-  period?: PressurePeriodId;
+  period?: ChartPeriodId;
   trend?: Chip; series: Point[]; low: number; top: number; empty: string; stats: Stat[];
   /** Every period, from 2.8.1 on; an older integration sends six hours only. */
   periods?: PressurePeriod[];

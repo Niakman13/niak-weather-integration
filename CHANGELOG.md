@@ -1,3 +1,11 @@
+## 2.8.1 — Stable : l’heure, et pluie, vent et pression sur plusieurs jours
+
+- Barres de pluie au choix : 24 dernières heures (une par heure), 7 jours ou 30 jours (une par jour), avec le total de la période.
+- Courbes du vent et de la pression au choix : 6 heures, 24 heures, 2 jours ou 7 jours.
+- L’heure peut s’afficher dans le bandeau, en grand sous le titre ou au-dessus de « En ce moment ».
+
+Cette version stable reprend la bêta 2.8.1b1, avec en plus les périodes de la pluie et du vent.
+
 ## 2.8.1b1 — Bêta : l’heure et la pression sur plusieurs jours
 
 - La courbe de pression peut montrer les 6 dernières heures, 24 heures, 2 jours ou 7 jours : réglage « Courbe de pression » dans la section Aujourd’hui de la carte.
