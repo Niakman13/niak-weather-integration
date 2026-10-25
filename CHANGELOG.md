@@ -1,3 +1,8 @@
+## 2.8.3 — Stable : barres de pluie sur 24 h et 30 jours
+
+- Les barres de pluie sur 24 heures et 30 jours s’affichent même quand la station démarre après Niak Weather : elles restaient sur 7 jours.
+- Même correction pour les cumuls de la semaine, du mois et de l’année calculés depuis le compteur total, et pour les courbes du vent et de la pression sur plusieurs jours.
+
 ## 2.8.2 — Stable : UV avec une station Netatmo
 
 - Avec une station Netatmo, la case « Indice UV » est de nouveau proposée dans Réglages → Station, rubrique Soleil : on peut y choisir le capteur UV d’un autre appareil, comme OpenUV.

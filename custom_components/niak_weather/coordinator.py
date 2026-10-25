@@ -370,14 +370,13 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         self.history = {**{k: v for k, v in self.history.items() if not k.endswith("#week")}, **week}
 
     async def _hourly(self, entity_id: str, start: datetime, now: datetime, kind: str, statistic: str) -> list[Change] | None:
-        """Hourly means or maxima in the sensor's own unit, or None when it keeps no statistics."""
+        """Hourly means or maxima, or None when the sensor keeps no statistics. The sensor itself may not have started yet
+        (Niak Weather often starts before the station): the statistics are read without it, in the unit they are kept in."""
         state = self.hass.states.get(entity_id)
         unit = state.attributes.get("unit_of_measurement") if state is not None else None
-        if state is None or state.attributes.get("state_class") != "measurement" or not unit:
-            return None
 
         def during() -> list[dict[str, Any]]:
-            rows = statistics.statistics_during_period(self.hass, start, now, {entity_id}, "hour", {kind: unit}, {statistic})
+            rows = statistics.statistics_during_period(self.hass, start, now, {entity_id}, "hour", {kind: unit} if unit else None, {statistic})
             return list(rows.get(entity_id, []))
 
         try:
@@ -413,13 +412,15 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         the total counter first, else the daily one, whose resets the sum already follows."""
         s = self.settings
         for entity_id in (s.rain_total_entity if s.station_history else None, s.daily_rain_entity):
-            state = self.hass.states.get(entity_id) if entity_id else None
-            unit = state.attributes.get("unit_of_measurement") if state is not None else None
-            if state is None or state.attributes.get("state_class") != "total_increasing" or unit not in RAIN_UNITS:
+            if not entity_id:
+                continue
+            # The statistics' own description, not the sensor: at start-up the station may not be there yet.
+            unit = await self._sum_unit(entity_id)
+            if unit not in RAIN_UNITS:
                 continue
             start = now - timedelta(days=RAIN_DAYS + 1)
 
-            def during(entity_id: str = entity_id, unit: str = unit) -> list[dict[str, Any]]:
+            def during(entity_id: str = entity_id) -> list[dict[str, Any]]:
                 rows = statistics.statistics_during_period(self.hass, start, now, {entity_id}, "hour", None, {"sum", "state"})
                 return list(rows.get(entity_id, []))
 
@@ -431,18 +432,28 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
             rows = [r for r in rows if r.get("sum") is not None]
             if not rows:
                 continue
-            # Rows come in the unit the statistics keep, the sensor's own: the bars are in millimetres.
+            # Rows come in the unit the statistics keep: the bars are in millimetres.
             mm = (lambda v: measurement(v, unit, Kind.RAIN))
             last = rows[-1]
             return {rain_sum_key(entity_id): [Change(_seconds(r["end"]), str(mm(r["sum"]))) for r in rows],
                     rain_state_key(entity_id): [Change(_seconds(last["end"]), str(mm(last.get("state"))))]}
         return {}
 
+    async def _sum_unit(self, entity_id: str) -> str | None:
+        """The unit of a counter's long-term statistics, or None when it keeps no running sum."""
+        try:
+            metadata = await get_instance(self.hass).async_add_executor_job(lambda: statistics.get_metadata(self.hass, statistic_ids={entity_id}))
+        except Exception as err:  # noqa: BLE001 - statistics are optional
+            LOGGER.debug("Statistics metadata unavailable for %s: %s", entity_id, err)
+            return None
+        meta = metadata.get(entity_id)
+        return meta[1].get("unit_of_measurement") if meta and meta[1].get("has_sum") else None
+
     async def _rain_statistics(self, now: datetime) -> tuple[list[Statistic], str | None]:
         s = self.settings
         entity_id = s.rain_total_entity
-        state = self.hass.states.get(entity_id) if entity_id and s.station_history else None
-        if state is None or state.attributes.get("state_class") != "total_increasing":
+        # Its statistics say whether it is a counter (a running sum below): the sensor may not have started yet.
+        if not entity_id or not s.station_history:
             return [], None
         instance = get_instance(self.hass)
         zone = ZoneInfo(self.hass.config.time_zone)
