@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 from .brief import number
 from .conditions import condition_icon
 from .forecast import Hour, day_offset
+from .i18n import N_, t
 
 
 @dataclass(frozen=True)
@@ -22,20 +23,20 @@ class _Slot:
 
 
 SLOTS = (
-    _Slot(0, ("cette nuit", "cette nuit", "la nuit suivante"), ("Nuit", "Nuit", "Nuit sv."), "en début de nuit", "en fin de nuit"),
-    _Slot(1, ("ce matin", "demain matin", "après-demain matin"), ("Matin", "Dem. matin", "Matin"), "en début de matinée", "en fin de matinée"),
-    _Slot(2, ("cet après-midi", "demain après-midi", "après-demain après-midi"), ("Après-midi", "Dem. après-midi", "Après-midi"),
-          "en début d’après-midi", "en fin d’après-midi"),
-    _Slot(3, ("ce soir", "demain soir", "après-demain soir"), ("Soirée", "Dem. soir", "Soirée"), "en début de soirée", "en fin de soirée"),
+    _Slot(0, (N_("cette nuit"), N_("cette nuit"), N_("la nuit suivante")), (N_("Nuit"), N_("Nuit"), N_("Nuit sv.")), N_("en début de nuit"), N_("en fin de nuit")),
+    _Slot(1, (N_("ce matin"), N_("demain matin"), N_("après-demain matin")), (N_("Matin"), N_("Dem. matin"), N_("Matin")), N_("en début de matinée"), N_("en fin de matinée")),
+    _Slot(2, (N_("cet après-midi"), N_("demain après-midi"), N_("après-demain après-midi")), (N_("Après-midi"), N_("Dem. après-midi"), N_("Après-midi")),
+          N_("en début d’après-midi"), N_("en fin d’après-midi")),
+    _Slot(3, (N_("ce soir"), N_("demain soir"), N_("après-demain soir")), (N_("Soirée"), N_("Dem. soir"), N_("Soirée")), N_("en début de soirée"), N_("en fin de soirée")),
 )
 # Most severe first: a storm or rain in a period outweighs the hours around it.
 SEVERITY = ("lightning-rainy", "lightning", "hail", "snowy", "snowy-rainy", "pouring", "rainy", "fog", "windy", "windy-variant",
             "cloudy", "partlycloudy", "sunny", "clear-night")
-DAY = {"sunny": "ensoleillé", "clear-night": "ciel dégagé", "partlycloudy": "éclaircies", "cloudy": "ciel couvert", "fog": "brouillard",
-       "rainy": "pluie", "pouring": "fortes pluies", "lightning": "orages", "lightning-rainy": "orages et pluie", "hail": "grêle", "snowy": "neige",
-       "snowy-rainy": "pluie et neige", "windy": "venteux", "windy-variant": "venteux et nuageux", "exceptional": "conditions exceptionnelles"}
-NIGHT = {"sunny": "ciel dégagé", "clear-night": "ciel dégagé", "partlycloudy": "quelques nuages"}
-FROM = ("du nord", "du nord-est", "d’est", "du sud-est", "du sud", "du sud-ouest", "d’ouest", "du nord-ouest")
+DAY = {"sunny": N_("ensoleillé"), "clear-night": N_("ciel dégagé"), "partlycloudy": N_("éclaircies"), "cloudy": N_("ciel couvert"), "fog": N_("brouillard"),
+       "rainy": N_("pluie"), "pouring": N_("fortes pluies"), "lightning": N_("orages"), "lightning-rainy": N_("orages et pluie"), "hail": N_("grêle"), "snowy": N_("neige"),
+       "snowy-rainy": N_("pluie et neige"), "windy": N_("venteux"), "windy-variant": N_("venteux et nuageux"), "exceptional": N_("conditions exceptionnelles")}
+NIGHT = {"sunny": N_("ciel dégagé"), "clear-night": N_("ciel dégagé"), "partlycloudy": N_("quelques nuages")}
+FROM = (N_("du nord"), N_("du nord-est"), N_("d’est"), N_("du sud-est"), N_("du sud"), N_("du sud-ouest"), N_("d’ouest"), N_("du nord-ouest"))
 
 
 @dataclass(frozen=True)
@@ -101,14 +102,17 @@ def dominant(conditions: Sequence[str], rain: float) -> str:
 
 
 def phrase(condition: str, night: bool) -> str:
-    return (NIGHT.get(condition) if night else None) or DAY.get(condition) or "temps variable"
+    return t((NIGHT.get(condition) if night else None) or DAY.get(condition) or "temps variable")
 
 
 def wind_text(speed: float, gust: float | None = None, bearing: float | None = None) -> str:
-    strength = "faible" if speed < 10 else "modéré" if speed < 20 else "assez fort" if speed < 40 else "fort" if speed < 60 else "très fort"
-    side = "" if bearing is None else " " + FROM[_round(bearing / 45) % 8]
-    gusts = f", rafales à {number(gust, 0)} km/h" if gust is not None and gust >= 40 and gust >= speed + 10 else ""
-    return "vent faible" if speed < 10 else f"vent{side} {strength} ({number(speed, 0)} km/h){gusts}"
+    strength = t("modéré") if speed < 20 else t("assez fort") if speed < 40 else t("fort") if speed < 60 else t("très fort")
+    gusts = t(", rafales à {gust} km/h", gust=number(gust, 0)) if gust is not None and gust >= 40 and gust >= speed + 10 else ""
+    if speed < 10:
+        return t("vent faible")
+    if bearing is None:
+        return t("vent {strength} ({speed} km/h)", strength=strength, speed=number(speed, 0)) + gusts
+    return t("vent {side} {strength} ({speed} km/h)", side=t(FROM[_round(bearing / 45) % 8]), strength=strength, speed=number(speed, 0)) + gusts
 
 
 def build_bulletin(hours: Sequence[Hour], now: datetime, zone: ZoneInfo) -> Bulletin | None:
@@ -145,7 +149,7 @@ def build_bulletin(hours: Sequence[Hour], now: datetime, zone: ZoneInfo) -> Bull
         half = math.ceil(len(conditions) / 2)
         early, late = dominant(conditions[:half], 0), dominant(conditions[half:], 0)
         evolves = not _rainy(condition) and condition not in ("lightning", "lightning-rainy") and phrase(early, night) != phrase(late, night)
-        main = f"{phrase(early, night)}, puis {phrase(late, night)}" if evolves else phrase(condition, night)
+        main = t("{early}, puis {late}", early=phrase(early, night), late=phrase(late, night)) if evolves else phrase(condition, night)
         wind = _round(max(winds)) if winds else None
         gust = _round(max(gusts)) if gusts else None
         bearing = (math.degrees(math.atan2(x, y)) + 360) % 360 if x or y else None
@@ -153,15 +157,16 @@ def build_bulletin(hours: Sequence[Hour], now: datetime, zone: ZoneInfo) -> Bull
         tmax = _round(max(temps)) if temps else None
         bits = [_cap(main) + (f" ({number(rain, 1)} mm)" if rain >= 1 else "")]
         if tmin is not None:
-            bits.append(f"{number(tmin)} °C" if tmin == tmax else f"{number(tmin)} à {number(tmax or 0)} °C")
+            bits.append(f"{number(tmin)} °C" if tmin == tmax else t("{low} à {high} °C", low=number(tmin), high=number(tmax or 0)))
         if wind is not None:
             bits.append(_cap(wind_text(wind, gust, bearing)))
         d = min(g["day"], 2)
-        prefix = "demain " if g["day"] >= 1 else ""
-        periods.append(Period(key=f"{g['day']}-{slot.slot}", label=_cap(slot.names[d]), short=slot.short[d], condition=condition,
+        def tomorrow(moment: str) -> str:
+            return t("demain {moment}", moment=t(moment)) if g["day"] >= 1 else t(moment)
+        periods.append(Period(key=f"{g['day']}-{slot.slot}", label=_cap(t(slot.names[d])), short=t(slot.short[d]), condition=condition,
                               icon=condition_icon(condition, night), text=". ".join(bits) + ".", phrase=main,
                               early=early if evolves else condition, late=late if evolves else condition, night=night,
-                              during=prefix + slot.during, start=prefix + slot.start, tmin=tmin, tmax=tmax, rain=rain, wind=wind, gust=gust, bearing=bearing))
+                              during=tomorrow(slot.during), start=tomorrow(slot.start), tmin=tmin, tmax=tmax, rain=rain, wind=wind, gust=gust, bearing=bearing))
     return Bulletin(summary=narrate(hours, now, zone), periods=tuple(periods))
 
 
@@ -171,10 +176,10 @@ def build_bulletin(hours: Sequence[Hour], now: datetime, zone: ZoneInfo) -> Bull
 
 # Sky families, from the clearest. Rain, storms and snow are told by their hours, not by the sky.
 SKY = {"sunny": 0, "clear-night": 0, "windy": 0, "partlycloudy": 1, "cloudy": 2, "windy-variant": 2, "fog": 3}
-STEADY_DAY = ("grand soleil", "soleil et nuages", "ciel couvert", "brouillard")
-STEADY_NIGHT = ("ciel dégagé", "quelques nuages", "ciel couvert", "brouillard")
-SHORT_DAY = ("soleil", "quelques nuages", "ciel gris", "brouillard")
-WEEKDAYS = ("Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche")
+STEADY_DAY = (N_("grand soleil"), N_("soleil et nuages"), N_("ciel couvert"), N_("brouillard"))
+STEADY_NIGHT = (N_("ciel dégagé"), N_("quelques nuages"), N_("ciel couvert"), N_("brouillard"))
+SHORT_DAY = (N_("soleil"), N_("quelques nuages"), N_("ciel gris"), N_("brouillard"))
+WEEKDAYS = (N_("Lundi"), N_("Mardi"), N_("Mercredi"), N_("Jeudi"), N_("Vendredi"), N_("Samedi"), N_("Dimanche"))
 
 
 @dataclass(frozen=True)
@@ -195,8 +200,8 @@ class _Moment:
 def _moment(h: Hour, zone: ZoneInfo) -> _Moment:
     condition = h.condition.replace("_", "-")
     rain = max(0.0, h.precipitation or 0)
-    kind = ("orages" if condition in ("lightning", "lightning-rainy", "hail") else "neige" if condition in ("snowy", "snowy-rainy")
-            else "pluie")
+    kind = (N_("orages") if condition in ("lightning", "lightning-rainy", "hail") else N_("neige") if condition in ("snowy", "snowy-rainy")
+            else N_("pluie"))
     wet = rain >= 0.1 or _rainy(condition) or condition in ("lightning", "lightning-rainy", "snowy")
     return _Moment(hour=h.time.astimezone(zone).hour if h.time else 0, sky=SKY.get(condition), wet=wet, kind=kind, rain=rain,
                    temperature=h.temperature, wind=h.wind_speed, gust=h.wind_gust if h.wind_gust and h.wind_gust > 0 else None,
@@ -204,24 +209,24 @@ def _moment(h: Hour, zone: ZoneInfo) -> _Moment:
 
 
 def _when(hour: int) -> str:
-    return ("après minuit" if hour < 3 else "en fin de nuit" if hour < 6 else "au lever du jour" if hour < 8 else "en matinée" if hour < 11
-            else "vers midi" if hour < 13 else "en début d’après-midi" if hour < 16 else "en fin d’après-midi" if hour < 18
-            else "en début de soirée" if hour < 21 else "en fin de soirée")
+    return t("après minuit" if hour < 3 else "en fin de nuit" if hour < 6 else "au lever du jour" if hour < 8 else "en matinée" if hour < 11
+             else "vers midi" if hour < 13 else "en début d’après-midi" if hour < 16 else "en fin d’après-midi" if hour < 18
+             else "en début de soirée" if hour < 21 else "en fin de soirée")
 
 
 def _clock(hour: int) -> str:
     hour %= 24
-    return "minuit" if hour == 0 else "midi" if hour == 12 else f"{hour} h"
+    return t("minuit") if hour == 0 else t("midi") if hour == 12 else t("{hour} h", hour=hour)
 
 
 def _change(before: int, after: int, night: bool) -> str:
     if before == 3:
-        return ("le ciel se dégage" if night else "grand soleil") if after == 0 else "éclaircies" if after == 1 else "ciel gris"
+        return (t("le ciel se dégage") if night else t("grand soleil")) if after == 0 else t("éclaircies") if after == 1 else t("ciel gris")
     if after == 0:
-        return "le ciel se dégage" if night else "le soleil s’impose" if before == 1 else "le soleil revient"
+        return t("le ciel se dégage") if night else t("le soleil s’impose") if before == 1 else t("le soleil revient")
     if after == 1:
-        return "quelques nuages" if before == 0 else "éclaircies"
-    return "le ciel se couvre" if after == 2 else "brouillard"
+        return t("quelques nuages") if before == 0 else t("éclaircies")
+    return t("le ciel se couvre") if after == 2 else t("brouillard")
 
 
 def _sky(moments: Sequence[_Moment], night: bool) -> str:
@@ -248,11 +253,14 @@ def _sky(moments: Sequence[_Moment], night: bool) -> str:
         return ""
     first, last = runs[0], runs[-1]
     if first[0] == last[0]:
-        return (STEADY_NIGHT if night else STEADY_DAY)[first[0]]
-    start = (STEADY_NIGHT if night else SHORT_DAY)[first[0]]
+        return t((STEADY_NIGHT if night else STEADY_DAY)[first[0]])
+    start = t((STEADY_NIGHT if night else SHORT_DAY)[first[0]])
     before, after = _when(first[1]), _when(last[1])
     # Both in the same part of the day: « quelques nuages, puis le ciel se dégage en début de soirée », the part said once.
-    return f"{start}{'' if before == after else ' ' + before}, puis {_change(first[0], last[0], night)} {after}"
+    change = _change(first[0], last[0], night)
+    if before == after:
+        return t("{start}, puis {change} {after}", start=start, change=change, after=after)
+    return t("{start} {before}, puis {change} {after}", start=start, before=before, change=change, after=after)
 
 
 def _after_rain(moments: Sequence[_Moment], night: bool) -> str:
@@ -261,7 +269,7 @@ def _after_rain(moments: Sequence[_Moment], night: bool) -> str:
     if len(skies) < 2:
         return ""
     sky = max(set(skies), key=lambda s: (skies.count(s), -s))
-    return (("le ciel se dégage" if night else "le soleil revient"), "éclaircies", "ciel couvert", "brouillard")[sky]
+    return t(((N_("le ciel se dégage") if night else N_("le soleil revient")), N_("éclaircies"), N_("ciel couvert"), N_("brouillard"))[sky])
 
 
 def _episodes(moments: Sequence[_Moment]) -> list[list[_Moment]]:
@@ -289,35 +297,35 @@ def _rain(episodes: Sequence[Sequence[_Moment]], first: int, last: int, night: b
     # Snow is not told in millimetres of water, nor rain that is only ending.
     amount = f" ({number(total, 0 if total >= 10 else 1)} mm)" if total >= 1 and kind != "neige" and not (continues and len(episodes) == 1) else ""
     if len(episodes) > 2:
-        return f"{'averses' if kind == 'pluie' else kind} par moments{amount}"
+        return t("{what} par moments", what=t("averses" if kind == "pluie" else kind)) + amount
     parts: list[tuple[str, str]] = []
     for e in episodes:
         rain = sum(m.rain for m in e)
-        word = kind if kind != "pluie" else ("fortes pluies" if rain / len(e) >= 4 else "averses" if len(e) <= 2 and rain < 2
-                                             else "quelques gouttes" if rain < 0.3 else "pluie")
+        word = kind if kind != "pluie" else (N_("fortes pluies") if rain / len(e) >= 4 else N_("averses") if len(e) <= 2 and rain < 2
+                                             else N_("quelques gouttes") if rain < 0.3 else N_("pluie"))
         start, end = e[0].hour, (e[-1].hour + 1) % 24
         if e[0].hour == first and e[-1].hour == last:
-            parts.append((word, "toute la nuit" if night else "toute la journée"))
+            parts.append((word, t("toute la nuit") if night else t("toute la journée")))
         elif e[0].hour == first and continues:
             # Rain carried over from the part before: it stops, it does not start again under another name.
-            stops = {"orages": "les orages cessent", "neige": "la neige cesse"}.get(kind, "la pluie cesse")
-            parts.append((stops, f"vers {_clock(end)}"))
+            stops = {"orages": N_("les orages cessent"), "neige": N_("la neige cesse")}.get(kind, N_("la pluie cesse"))
+            parts.append((stops, t("vers {hour}", hour=_clock(end))))
         elif parts and parts[0][0].endswith(("cesse", "cessent")) and word == kind:
             # « Les orages cessent vers 9 h et reprennent à partir de midi », not « … et orages à partir de midi ».
-            again = "reprennent" if kind == "orages" else "reprend"
-            parts.append((again, f"à partir de {_clock(start)}" if e[-1].hour == last else f"vers {_clock(start)}" if len(e) <= 2
-                          else f"de {_clock(start)} à {_clock(end)}"))
+            again = N_("reprennent") if kind == "orages" else N_("reprend")
+            parts.append((again, t("à partir de {hour}", hour=_clock(start)) if e[-1].hour == last else t("vers {hour}", hour=_clock(start)) if len(e) <= 2
+                          else t("de {start} à {end}", start=_clock(start), end=_clock(end))))
         elif e[0].hour == first:
-            parts.append((word, f"jusqu’à {_clock(end)}"))
+            parts.append((word, t("jusqu’à {hour}", hour=_clock(end))))
         elif e[-1].hour == last:
-            parts.append((word, f"à partir de {_clock(start)}"))
+            parts.append((word, t("à partir de {hour}", hour=_clock(start))))
         elif len(e) <= 2:
-            parts.append((word, f"vers {_clock(start)}"))
+            parts.append((word, t("vers {hour}", hour=_clock(start))))
         else:
-            parts.append((word, f"de {_clock(start)} à {_clock(end)}"))
+            parts.append((word, t("de {start} à {end}", start=_clock(start), end=_clock(end))))
     if len({w for w, _ in parts}) == 1:
-        return f"{parts[0][0]} {' et '.join(t for _, t in parts)}{amount}"
-    return " et ".join(f"{w} {t}" for w, t in parts) + amount
+        return f"{t(parts[0][0])} {t(' et ').join(when for _, when in parts)}{amount}"
+    return t(" et ").join(f"{t(w)} {when}" for w, when in parts) + amount
 
 
 def _temperature(moments: Sequence[_Moment], night: bool, said: str = "") -> str:
@@ -329,19 +337,20 @@ def _temperature(moments: Sequence[_Moment], night: bool, said: str = "") -> str
         # A night the forecast does not follow until the morning has no minimum worth giving.
         if not any(3 <= h < 8 for _, h in temps):
             return ""
-        low = min(t for t, _ in temps)
-        hour = [h for t, h in temps if t == low][-1]
-        value, when = _degrees(low), "au petit matin" if 3 <= hour < 8 else _when(hour)
+        low = min(temperature for temperature, _ in temps)
+        hour = [h for temperature, h in temps if temperature == low][-1]
+        value, when = _degrees(low), t("au petit matin") if 3 <= hour < 8 else _when(hour)
         if when in said:
-            when = f"vers {_clock(hour)}"
+            when = t("vers {hour}", hour=_clock(hour))
         if low >= 20:
-            return f"nuit chaude, pas moins de {value} °C"
-        return (f"gel {when} ({value} °C)" if low <= 0 else f"froid {when} ({value} °C), gelée possible" if low <= 3
-                else f"frais {when} ({value} °C)" if low < 10 else f"{value} °C {when}")
-    high = max(t for t, _ in temps)
+            return t("nuit chaude, pas moins de {value} °C", value=value)
+        return (t("gel {when} ({value} °C)", when=when, value=value) if low <= 0 else t("froid {when} ({value} °C), gelée possible", when=when, value=value) if low <= 3
+                else t("frais {when} ({value} °C)", when=when, value=value) if low < 10 else t("{value} °C {when}", value=value, when=when))
+    high = max(temperature for temperature, _ in temps)
     value = _degrees(high)
-    return (f"très chaud, jusqu’à {value} °C" if high >= 35 else f"chaud, jusqu’à {value} °C" if high >= 30
-            else f"sans dégel, {value} °C au mieux" if high <= 0 else f"froid, pas plus de {value} °C" if high <= 5 else f"jusqu’à {value} °C")
+    return (t("très chaud, jusqu’à {value} °C", value=value) if high >= 35 else t("chaud, jusqu’à {value} °C", value=value) if high >= 30
+            else t("sans dégel, {value} °C au mieux", value=value) if high <= 0 else t("froid, pas plus de {value} °C", value=value) if high <= 5
+            else t("jusqu’à {value} °C", value=value))
 
 
 def _degrees(value: float) -> str:
@@ -354,11 +363,12 @@ def _wind(moments: Sequence[_Moment]) -> str:
     out = []
     if speed >= 30:
         windiest = max((m for m in moments if m.wind is not None), key=lambda m: m.wind or 0)
-        side = "" if windiest.bearing is None else " " + FROM[_round(windiest.bearing / 45) % 8]
-        out.append(f"vent {'fort' if speed >= 40 else 'assez fort'}{side}")
+        strength = t("fort") if speed >= 40 else t("assez fort")
+        out.append(t("vent {strength}", strength=strength) if windiest.bearing is None
+                   else t("vent {strength} {side}", strength=strength, side=t(FROM[_round(windiest.bearing / 45) % 8])))
     if gust >= 50:
-        out.append(f"rafales à {number(_round(gust), 0)} km/h")
-    return " et ".join(out)
+        out.append(t("rafales à {gust} km/h", gust=number(_round(gust), 0)))
+    return t(" et ").join(out)
 
 
 def _label(day: int, night: bool, moments: Sequence[_Moment], now: datetime, zone: ZoneInfo) -> str:
@@ -366,17 +376,17 @@ def _label(day: int, night: bool, moments: Sequence[_Moment], now: datetime, zon
         evening = any(m.hour >= 18 for m in moments)
         late = any(m.hour < 6 for m in moments)
         if day < 0 or not evening:
-            return "Cette nuit" if day <= 0 else "La nuit suivante"
+            return t("Cette nuit") if day <= 0 else t("La nuit suivante")
         if day == 0:
-            return "Ce soir et cette nuit" if late else "Ce soir"
-        return "Demain soir" if day == 1 else "Après-demain soir"
+            return t("Ce soir et cette nuit") if late else t("Ce soir")
+        return t("Demain soir") if day == 1 else t("Après-demain soir")
     morning, afternoon = any(m.hour < 12 for m in moments), any(m.hour >= 12 for m in moments)
     if day == 0:
-        whole = WEEKDAYS[now.astimezone(zone).weekday()] if now.astimezone(zone).hour < 5 else "Aujourd’hui"
-        return whole if morning and afternoon else "Ce matin" if morning else "Cet après-midi"
+        whole = t(WEEKDAYS[now.astimezone(zone).weekday()]) if now.astimezone(zone).hour < 5 else t("Aujourd’hui")
+        return whole if morning and afternoon else t("Ce matin") if morning else t("Cet après-midi")
     if day == 1:
-        return "Demain" if morning and afternoon else "Demain matin" if morning else "Demain après-midi"
-    return "Après-demain"
+        return t("Demain") if morning and afternoon else t("Demain matin") if morning else t("Demain après-midi")
+    return t("Après-demain")
 
 
 def narrate(hours: Sequence[Hour], now: datetime, zone: ZoneInfo, parts: int = 2) -> str:
@@ -400,18 +410,18 @@ def narrate(hours: Sequence[Hour], now: datetime, zone: ZoneInfo, parts: int = 2
         wet_before = moments[-1].wet
         if episodes and episodes[0][0] is moments[0]:
             sky = _after_rain([m for m in moments[moments.index(episodes[0][-1]) + 1:] if not m.wet], night)
-            weather = rain + (f", puis {sky}" if sky else "")
+            weather = rain + (t(", puis {sky}", sky=sky) if sky else "")
         else:
             sky = _sky([m for m in moments if not m.wet], night)
             weather = ", ".join(x for x in (sky, rain) if x)
         wind = _wind(moments)
         # The same wind twice is said once: it keeps blowing, or it drops.
-        told = "vent toujours fort" if wind and windy_before else "le vent faiblit" if windy_before else wind
+        told = t("vent toujours fort") if wind and windy_before else t("le vent faiblit") if windy_before else wind
         windy_before = bool(wind)
         facts = [x for x in (_temperature(moments, night, weather), told) if x]
         if dry_everywhere and i == len(usable) - 1:
-            facts.append("sans pluie")
-        text = " ; ".join(x for x in (weather, ", ".join(facts)) if x)
+            facts.append(t("sans pluie"))
+        text = t(" ; ").join(x for x in (weather, ", ".join(facts)) if x)
         if text:
-            sentences.append(f"{_label(day, night, moments, now, zone)}, {text}.")
+            sentences.append(t("{when}, {text}.", when=_label(day, night, moments, now, zone), text=text))
     return " ".join(sentences)

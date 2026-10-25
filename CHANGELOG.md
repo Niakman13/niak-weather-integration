@@ -1,3 +1,14 @@
+## 2.9.0b1 — Bêta : Niak Weather en anglais
+
+**La carte parle la langue de Home Assistant : français, ou anglais pour toutes les autres langues.**
+
+### Nouveautés
+
+- La carte, le bulletin du jour, les événements, les mesures et les prévisions s’affichent en anglais quand Home Assistant n’est pas en français.
+- Chaque utilisateur voit la carte dans la langue de son profil Home Assistant.
+- Les nombres et les heures s’écrivent à la manière de la langue choisie : 8.5 et 14:00 en anglais.
+- Les capteurs et le panneau de réglages restent en français pour l’instant.
+
 ## 2.8.3 — Stable : barres de pluie sur 24 h et 30 jours
 
 - Les barres de pluie sur 24 heures et 30 jours s’affichent même quand la station démarre après Niak Weather : elles restaient sur 7 jours.

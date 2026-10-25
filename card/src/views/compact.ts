@@ -1,6 +1,7 @@
 // The small cards: « Mini » (one line), « Prévisions » (the hours and the days alone), « Pluie » and « Alerte » (only when there is one).
 // A tap on Mini and Alerte opens the full card, like a long press on the tile.
 import { css, html, nothing, type TemplateResult } from 'lit';
+import { colon, hourText, t } from '../i18n';
 import type { TickerPoint, WeatherView } from '../view';
 import { alertBubble, alertPill, bubble, chip, label, nf } from '../ui/parts';
 import { hoursChart, week } from './forecasts';
@@ -10,9 +11,9 @@ import type { PressTarget } from './tile';
 /** One line: the sky and the temperature now, the place, and the most serious alert. */
 export function renderMini(v: WeatherView, holdTarget: PressTarget): TemplateResult {
   const n = v.now, alert = v.alerts.find(a => a.official) ?? v.alerts[0];
-  const place = `Météo${v.location ? ` à ${v.location}` : ''}`;
+  const place = v.location ? t('Météo à {place}', { place: v.location }) : t('Météo');
   return html`<div class=${`nw-mini${holdTarget === 'none' ? ' still' : ''}`} role=${holdTarget === 'none' ? 'group' : 'button'} tabindex=${holdTarget === 'none' ? -1 : 0}
-      aria-label=${holdTarget === 'none' ? place : `${place} : appui pour ${holdTarget === 'page' ? 'la page météo' : 'la carte complète'}`}>
+      aria-label=${holdTarget === 'none' ? place : colon(place, holdTarget === 'page' ? t('appui pour la page météo') : t('appui pour la carte complète'))}>
     <ha-icon class="mini-icon" icon=${n.icon}></ha-icon>
     <span class="mini-temp">${n.temperature === undefined ? '—' : nf(n.temperature)}<small>°C</small></span>
     <span class="mini-text"><b>${n.label}</b>${v.location ? html`<span>${v.location}</span>` : nothing}</span>
@@ -29,9 +30,9 @@ export function alertItems(v: WeatherView): { alerts: WeatherView['alerts']; poi
 export function renderAlert(v: WeatherView, editing: boolean): TemplateResult | typeof nothing {
   const { alerts, points } = alertItems(v);
   if (!alerts.length && !points.length) return editing
-    ? html`<div class="nw-alertcard quiet-card"><ha-icon icon="mdi:shield-check-outline"></ha-icon><span><b>Aucune alerte en ce moment.</b> Cette carte reste cachée tant que tout est calme.</span></div>`
+    ? html`<div class="nw-alertcard quiet-card"><ha-icon icon="mdi:shield-check-outline"></ha-icon><span><b>${t('Aucune alerte en ce moment.')}</b> ${t('Cette carte reste cachée tant que tout est calme.')}</span></div>`
     : nothing;
-  return html`<div class="nw-alertcard" role="button" tabindex="0" aria-label="Alertes météo : appui pour la carte complète">
+  return html`<div class="nw-alertcard" role="button" tabindex="0" aria-label=${t('Alertes météo : appui pour la carte complète')}>
     ${v.location ? html`<span class="place">${v.location}</span>` : nothing}
     ${alerts.map(a => alertBubble(a))}${points.map(p => bubble(p))}
   </div>`;
@@ -44,11 +45,11 @@ export function renderForecastCard(v: WeatherView, tab: 'hours' | 'days', onTab:
   const select = (t: 'hours' | 'days') => (e: Event) => { e.stopPropagation(); onTab(t); };
   const body = shown === 'hours' ? hoursChart(v.hours, v.provider, entity, uid) : week(v.days, v.provider, entity);
   return html`<div class="nw-forecastcard">
-    <div class="fcard-head"><span class="fcard-title"><b>Prévisions</b>${v.location ? html`<span>${v.location}</span>` : nothing}</span>
-      ${hasHours && hasDays ? html`<span class="seg" role="group" aria-label="Prévisions affichées">
-        <button type="button" aria-pressed=${shown === 'hours'} @click=${select('hours')}>Heures</button>
-        <button type="button" aria-pressed=${shown === 'days'} @click=${select('days')}>Jours</button></span>` : nothing}</div>
-    ${body === nothing ? html`<p class="nw-empty">Prévisions indisponibles pour le moment.</p>` : body}
+    <div class="fcard-head"><span class="fcard-title"><b>${t('Prévisions')}</b>${v.location ? html`<span>${v.location}</span>` : nothing}</span>
+      ${hasHours && hasDays ? html`<span class="seg" role="group" aria-label=${t('Prévisions affichées')}>
+        <button type="button" aria-pressed=${shown === 'hours'} @click=${select('hours')}>${t('Heures')}</button>
+        <button type="button" aria-pressed=${shown === 'days'} @click=${select('days')}>${t('Jours')}</button></span>` : nothing}</div>
+    ${body === nothing ? html`<p class="nw-empty">${t('Prévisions indisponibles pour le moment.')}</p>` : body}
   </div>`;
 }
 
@@ -56,20 +57,20 @@ export function renderForecastCard(v: WeatherView, tab: 'hours' | 'days', onTab:
 export function rainAhead(v: WeatherView): { hour: number; six: number; next?: string } {
   const hours = v.hours, sum = (n: number) => hours.slice(0, n).reduce((t, h) => t + (h.precipitation ?? 0), 0);
   const first = hours.find(h => h.precipitation >= .3);
-  return { hour: sum(1), six: sum(6), next: first ? (first.hour === 0 ? 'minuit' : first.hour === 12 ? 'midi' : `${first.hour} h`) : undefined };
+  return { hour: sum(1), six: sum(6), next: first ? hourText(first.hour) : undefined };
 }
 
 /** « Pluie »: what is coming first, then what fell (the full card's rain panel, without its frame). */
 export function renderRain(v: WeatherView): TemplateResult {
   const ahead = rainAhead(v), soon = v.hours.length > 0;
-  const coming = !soon ? html`<p class="nw-empty">Prévisions indisponibles pour le moment.</p>`
-    : ahead.six < .1 ? html`<div class="nw-chips">${chip({ theme: 'calm', icon: 'mdi:weather-partly-cloudy', label: ahead.next ? `Pas de pluie avant ${ahead.next}` : 'Pas de pluie prévue d’ici 18 h' })}</div>`
-    : html`<div class="nw-chips">${chip({ theme: 'rain', icon: 'mdi:timer-sand', value: `${nf(ahead.hour)} mm`, label: 'dans l’heure' })}
-        ${chip({ theme: 'rain', icon: 'mdi:weather-pouring', value: `${nf(ahead.six)} mm`, label: 'sur 6 h' })}
-        ${ahead.next && ahead.hour < .1 ? chip({ theme: 'rain', icon: 'mdi:clock-outline', label: `à partir de ${ahead.next}` }) : nothing}</div>`;
+  const coming = !soon ? html`<p class="nw-empty">${t('Prévisions indisponibles pour le moment.')}</p>`
+    : ahead.six < .1 ? html`<div class="nw-chips">${chip({ theme: 'calm', icon: 'mdi:weather-partly-cloudy', label: ahead.next ? t('Pas de pluie avant {hour}', { hour: ahead.next }) : t('Pas de pluie prévue d’ici 18 h') })}</div>`
+    : html`<div class="nw-chips">${chip({ theme: 'rain', icon: 'mdi:timer-sand', value: `${nf(ahead.hour)} mm`, label: t('dans l’heure') })}
+        ${chip({ theme: 'rain', icon: 'mdi:weather-pouring', value: `${nf(ahead.six)} mm`, label: t('sur 6 h') })}
+        ${ahead.next && ahead.hour < .1 ? chip({ theme: 'rain', icon: 'mdi:clock-outline', label: t('à partir de {hour}', { hour: ahead.next }) }) : nothing}</div>`;
   return html`<div class="nw-raincard">
-    <div class="fcard-head"><span class="fcard-title"><b>Pluie</b>${v.location ? html`<span>${v.location}</span>` : nothing}</span></div>
-    <div class="rain-ahead">${label('À venir')}${coming}</div>
+    <div class="fcard-head"><span class="fcard-title"><b>${t('Pluie')}</b>${v.location ? html`<span>${v.location}</span>` : nothing}</span></div>
+    <div class="rain-ahead">${label(t('À venir'))}${coming}</div>
     ${v.rain ? rainPanel(v.rain) : nothing}
   </div>`;
 }

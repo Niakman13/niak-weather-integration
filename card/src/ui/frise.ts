@@ -1,6 +1,7 @@
 // The banner's timeline, drawn: a sentence that scrolls through the points over a track cut by the forecast sky,
 // the points as dated labels above it. The labels are placed after measuring, so they never overlap; when they cannot all fit, they keep only their icons.
 import { css, html, LitElement, nothing, type PropertyValues } from 'lit';
+import { colon, t } from '../i18n';
 import { property, state } from 'lit/decorators.js';
 import { define } from './define';
 import { buildFrise, type Frise, type FriseGroup, type FriseItem } from '../frise';
@@ -138,7 +139,7 @@ export class NiakFrise extends LitElement {
           const active = g.items.includes(this.index), lead = items[active ? this.index : g.items[0]];
           return html`<button type="button" class=${`pin${active ? ' on' : ''}${g.alert ? ' al' : ''}`} data-x=${g.x}
             style=${`left:${(g.x * 100).toFixed(2)}%;${tone(lead)}${g.alert ? `;--al:var(--nw-level${g.alert})` : ''}`}
-            aria-label=${g.items.map(n => `${when(items[n])} : ${items[n].text}`).join(' ; ')} @click=${() => this.pick(g)} @pointerdown=${stop}>
+            aria-label=${g.items.map(n => colon(when(items[n]), items[n].text)).join(t(' ; '))} @click=${() => this.pick(g)} @pointerdown=${stop}>
             <span class="chip"><span class="stack">${g.items.map((n, j) => html`<span class=${`mini${n === this.index || (!active && !j) ? ' cur' : ''}`} style=${tone(items[n])}>
               <ha-icon icon=${items[n].icon}></ha-icon></span>`)}</span><span class="clock">${g.clock}</span>${g.items.length > 1 ? html`<span class="count">${g.items.length}</span>` : nothing}</span>
             <span class="stem"></span></button>`;
@@ -148,7 +149,7 @@ export class NiakFrise extends LitElement {
         <span class="needle"></span>
       </div>
       ${segments.length ? html`<div class="hours" aria-hidden="true">${marks.map(m => html`<span class=${m.edge ?? ''} style=${`left:${(m.x * 100).toFixed(2)}%`}>${m.text}</span>`)}</div>` : nothing}
-      <ul class="sr">${items.map(i => html`<li>${when(i)} : ${i.text}</li>`)}</ul>
+      <ul class="sr">${items.map(i => html`<li>${colon(when(i), i.text)}</li>`)}</ul>
     </div>`;
   }
 

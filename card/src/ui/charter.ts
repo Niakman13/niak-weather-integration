@@ -171,7 +171,7 @@ export const pieces = css`
     white-space:normal; text-align:left; letter-spacing:0; text-transform:none; text-shadow:none; }
   .nw-pop > b { display:block; margin-bottom:4px; }
   .nw-pop .ex { margin-top:8px; padding-top:8px; border-top:1px solid var(--nw-line); font-size:var(--nw-fs-small); color:var(--nw-fg2); }
-  .nw-pop .ex::before { content:'Exemple'; display:block; font-size:var(--nw-fs-label); font-weight:700; letter-spacing:var(--nw-label-spacing); text-transform:uppercase; margin-bottom:2px; }
+  .nw-pop .ex::before { content:var(--nw-example-word, 'Exemple'); display:block; font-size:var(--nw-fs-label); font-weight:700; letter-spacing:var(--nw-label-spacing); text-transform:uppercase; margin-bottom:2px; }
   .nw-pop a { color:var(--nw-accent); }
 `;
 

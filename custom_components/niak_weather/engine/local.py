@@ -14,6 +14,7 @@ from .forecast import Hour, parse_time
 from .moisture import comfort_word, dew_point, frost_point, humidex, humidex_feel, humidity_feel
 from .settings import Settings
 from .trends import Change, Trend, trend
+from .i18n import N_, t
 from .units import Kind, finite, fr, measurement
 
 
@@ -49,8 +50,8 @@ RAIN_TITLES = ("", "Bruine", "Il pleut", "Grosse averse", "Déluge")
 SECTORS = ("Nord", "Nord-Nord-Est", "Nord-Est", "Est-Nord-Est", "Est", "Est-Sud-Est", "Sud-Est", "Sud-Sud-Est",
            "Sud", "Sud-Sud-Ouest", "Sud-Ouest", "Ouest-Sud-Ouest", "Ouest", "Ouest-Nord-Ouest", "Nord-Ouest", "Nord-Nord-Ouest")
 ROSES = ("N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO")
-BEAUFORT = ("calme", "très légère brise", "légère brise", "petite brise", "jolie brise", "bonne brise", "vent frais",
-            "grand frais", "coup de vent", "fort coup de vent", "tempête", "violente tempête", "ouragan")
+BEAUFORT = (N_("calme"), N_("très légère brise"), N_("légère brise"), N_("petite brise"), N_("jolie brise"), N_("bonne brise"), N_("vent frais"),
+            N_("grand frais"), N_("coup de vent"), N_("fort coup de vent"), N_("tempête"), N_("violente tempête"), N_("ouragan"))
 BEAUFORT_LIMITS = (1, 6, 12, 20, 29, 39, 50, 62, 75, 89, 103, 118)
 
 
@@ -240,7 +241,7 @@ def build_local(get: Getter, settings: Settings, hours: Sequence[Hour], history:
                 word=comfort_word(feel_value), humidity_word=humidity_feel(dew, humidity, feel_value),
                 humidex_word=humidex_feel(humidex_value) if humidex_value is not None else "", phrase="")
     wind_info = Wind(speed=wind, gust=value("wind_gust"), max_today=value("max_gust"), effective=v.effective_wind, bearing=bearing,
-                     beaufort=beaufort, beaufort_text=BEAUFORT[beaufort] if beaufort is not None else "",
+                     beaufort=beaufort, beaufort_text=t(BEAUFORT[beaufort]) if beaufort is not None else "",
                      rose=ROSES[sector_index] if sector_index is not None else "", sector=sector,
                      from_name=("de l’" if sector[:1] in ("E", "O") else "du ") + sector if sector else "",
                      trend=trend(history.get(settings.wind_speed_entity or "", ()), wind, now_seconds, Kind.WIND, unit_of(settings.wind_speed_entity)))
@@ -248,7 +249,7 @@ def build_local(get: Getter, settings: Settings, hours: Sequence[Hour], history:
                 month=value("rain_month"), year=value("rain_year"), event=value("rain_event"),
                 narrative=rain_narrative(value("rain_today"), value("rain_week"), value("rain_month")),
                 next_hours=v.next_rain_hours, next_amount=v.next_rain_amount)
-    uv_text = "" if uv is None or uv < 0 else "faible" if uv < 3 else "modéré" if uv < 6 else "fort" if uv < 8 else "très fort" if uv < 11 else "extrême"
+    uv_text = "" if uv is None or uv < 0 else t("faible") if uv < 3 else t("modéré") if uv < 6 else t("fort") if uv < 8 else t("très fort") if uv < 11 else t("extrême")
     # The verdict only sees fog with the station's own moisture, and never under rain measured or announced.
     observed_fog = v.observed and v.condition == "fog"
     local = LocalWeather(

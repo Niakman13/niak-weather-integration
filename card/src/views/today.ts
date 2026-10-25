@@ -1,5 +1,6 @@
 // « Aujourd'hui »: the feel, then rain, wind and pressure measured at home, each in the same panel model.
 import { css, html, nothing, svg, type TemplateResult } from 'lit';
+import { colon, fr, t } from '../i18n';
 import type { ChartPeriodId, ComfortView, PressureView, RainDay, RainPeriodId, RainView, Stat, WeatherView, WindView } from '../view';
 import type { TodayBlock } from '../types';
 import { chartEnd, chartY, curvePaths, extremePills, type ChartPaths, type ChartPill } from '../ui/charts';
@@ -9,18 +10,18 @@ const pills = (list: ChartPill[]) => list.map(p => html`<span class=${`pill${p.y
 const stats = (list: Stat[]) => list.length ? html`<div class="stats">${list.map(s => html`<div data-entity=${entity(s.entity)}>${label(s.label)}<b>${s.value}</b></div>`)}</div>` : nothing;
 /** The wind and pressure charts' periods: span in seconds, title, axis. */
 const PERIODS: Record<ChartPeriodId, { span: number; title: string; axis: [string, string] }> = {
-  '6h': { span: 6 * 3600, title: '6 dernières heures', axis: ['−6 h', '−3 h'] },
-  '1d': { span: 86400, title: '24 dernières heures', axis: ['−24 h', '−12 h'] },
-  '2d': { span: 2 * 86400, title: '2 derniers jours', axis: ['−2 j', '−1 j'] },
-  '7d': { span: 7 * 86400, title: '7 derniers jours', axis: ['−7 j', ''] },
+  '6h': { span: 6 * 3600, title: fr('6 dernières heures'), axis: ['−6 h', '−3 h'] },
+  '1d': { span: 86400, title: fr('24 dernières heures'), axis: ['−24 h', '−12 h'] },
+  '2d': { span: 2 * 86400, title: fr('2 derniers jours'), axis: [fr('−2 j'), fr('−1 j')] },
+  '7d': { span: 7 * 86400, title: fr('7 derniers jours'), axis: [fr('−7 j'), ''] },
 };
 /** The chart's axis: the start, the middle (none for the week, whose middle is three days and a half), now. */
-const axis = (p: { axis: [string, string] }) => html`<div class="mini-axis">${label(p.axis[0])}${label(p.axis[1])}${label('maintenant')}</div>`;
+const axis = (p: { axis: [string, string] }) => html`<div class="mini-axis">${label(t(p.axis[0]))}${label(t(p.axis[1]))}${label(t('maintenant'))}</div>`;
 /** The rain bars' periods: title, and the axis under many bars (each of the seven days has its own label). */
 const RAIN: Record<RainPeriodId, { title: string; axis?: [string, string, string] }> = {
-  '24h': { title: '24 dernières heures', axis: ['−24 h', '−12 h', 'maintenant'] },
-  '7d': { title: '7 derniers jours' },
-  '30d': { title: '30 derniers jours', axis: ['−30 j', '−15 j', 'aujourd’hui'] },
+  '24h': { title: fr('24 dernières heures'), axis: ['−24 h', '−12 h', fr('maintenant')] },
+  '7d': { title: fr('7 derniers jours') },
+  '30d': { title: fr('30 derniers jours'), axis: [fr('−30 j'), fr('−15 j'), fr('aujourd’hui')] },
 };
 const curve = (paths: ChartPaths[], color: string) => paths.map(p => svg`
   <path d=${p.area} fill=${`color-mix(in oklab,${color} 16%,transparent)`}/>
@@ -28,23 +29,23 @@ const curve = (paths: ChartPaths[], color: string) => paths.map(p => svg`
 
 function comfortPanel(c: ComfortView, uid: string, station: boolean): TemplateResult {
   const P = (t: number) => Math.min(100, Math.max(0, (t + 5) / 50 * 100));
-  const reference = station ? 'au thermomètre' : 'à la température du bulletin';
-  const gap = c.gap === undefined || Math.abs(c.gap) < .1 ? '' : `${c.gap > 0 ? '+' : '−'}${nf(Math.abs(c.gap))} °C par rapport ${reference}`;
+  const gap = c.gap === undefined || Math.abs(c.gap) < .1 ? '' : t(station ? '{gap} °C par rapport au thermomètre' : '{gap} °C par rapport à la température du bulletin',
+    { gap: `${c.gap > 0 ? '+' : '−'}${nf(Math.abs(c.gap))}` });
   const explain = info(`${uid}-feel`, {
-    title: 'Ressenti',
-    text: html`C’est la température que le corps perçoit. L’humidité et le soleil la font monter, le vent la fait baisser.
-      C’est une estimation, pas un indice officiel. <a href="https://github.com/Niakman13/niak-weather#expliquer-le-ressenti" target="_blank" rel="noopener noreferrer">En savoir plus</a>`,
-    example: c.example ? `En ce moment : ${c.example}.` : '25 °C au thermomètre dans un air très humide se ressentent comme 30 °C.',
+    title: t('Ressenti'),
+    text: html`${t('C’est la température que le corps perçoit. L’humidité et le soleil la font monter, le vent la fait baisser.')}
+      ${t('C’est une estimation, pas un indice officiel.')} <a href="https://github.com/Niakman13/niak-weather#expliquer-le-ressenti" target="_blank" rel="noopener noreferrer">${t('En savoir plus')}</a>`,
+    example: c.example ? t('En ce moment : {example}.', { example: c.example }) : t('25 °C au thermomètre dans un air très humide se ressentent comme 30 °C.'),
   });
-  return html`<section class="nw-panel" aria-label="Ressenti">${panelHead('mdi:thermometer', 'heat', 'Ressenti', c.source, explain)}
+  return html`<section class="nw-panel" aria-label=${t('Ressenti')}>${panelHead('mdi:thermometer', 'heat', t('Ressenti'), c.source, explain)}
     <div class="metric-row">
       <div class="metric" data-entity=${entity(c.entity)}><div class="metric-main"><b>${nf(c.feels)}</b><span>°C</span></div>
         <small>${[c.word ? html`<b>${c.word}</b>` : '', c.humidity, gap].filter(Boolean).map((x, i) => html`${i ? ' · ' : ''}${x}`)}</small></div>
       ${c.factors.length ? html`<div class="nw-chips factors">${c.factors.map(chip)}</div>` : nothing}
     </div>
     <div class="rail-line"><span>−5°</span><div class="rail">
-      ${c.temperature === undefined ? nothing : html`<i class="thermo" style=${`left:${P(c.temperature)}%`} title=${`${station ? 'Thermomètre' : 'Bulletin'} ${nf(c.temperature)} °C`}></i>`}
-      <i class="feel" style=${`left:${P(c.feels)}%;--c:${tempColor(c.feels)}`} title=${`Ressenti ${nf(c.feels)} °C`}></i></div><span>45°</span></div>
+      ${c.temperature === undefined ? nothing : html`<i class="thermo" style=${`left:${P(c.temperature)}%`} title=${t(station ? 'Thermomètre {t} °C' : 'Bulletin {t} °C', { t: nf(c.temperature) })}></i>`}
+      <i class="feel" style=${`left:${P(c.feels)}%;--c:${tempColor(c.feels)}`} title=${t('Ressenti {t} °C', { t: nf(c.feels) })}></i></div><span>45°</span></div>
   </section>`;
 }
 
@@ -54,18 +55,18 @@ export function rainPanel(r: RainView): TemplateResult {
   const wettest = dense ? (r.days ?? []).reduce<RainDay | undefined>((a, d) => (d.value ?? 0) > (a?.value ?? 0) ? d : a, undefined) : undefined;
   // Hover: « 14 h » over a day, « 7/10 » over a month, the date over a week.
   const when = (d: RainDay) => r.period === '24h' ? d.label : r.period === '30d' ? `${d.label}/${d.date.slice(5, 7)}` : d.date;
-  const now = r.rate !== undefined && r.rate > 0 ? chip({ theme: 'rain', icon: 'mdi:weather-rainy', value: `${nf(r.rate)} mm/h`, label: 'en ce moment', entity: r.rateEntity })
+  const now = r.rate !== undefined && r.rate > 0 ? chip({ theme: 'rain', icon: 'mdi:weather-rainy', value: `${nf(r.rate)} mm/h`, label: t('en ce moment'), entity: r.rateEntity })
     // Only while it rains: « no rain » tells nothing the sky does not already say.
     : r.status ? chip({ theme: 'rain', icon: 'mdi:weather-rainy', label: r.status }) : nothing;
-  return html`<section class="nw-panel" aria-label="Pluie">${panelHead('mdi:weather-rainy', 'rain', 'Pluie', r.source)}
+  return html`<section class="nw-panel" aria-label=${t('Pluie')}>${panelHead('mdi:weather-rainy', 'rain', t('Pluie'), r.source)}
     <div class="metric-row"><div class="metric" data-entity=${r.entity}>
       ${r.text ? html`<div class="metric-main"><b class="word">${r.text}</b></div>`
         : html`<div class="metric-main"><b>${r.value === undefined ? '—' : nf(r.value, 1, true)}</b><span>${r.unit}</span></div>`}<small>${r.label}</small></div>${now}</div>
-    <div class="mini" title=${r.daysNote}><div class="mini-top">${period.title} · ${r.total === undefined ? 'mm' : `${r.totalPartial ? '≥ ' : ''}${nf(r.total)} mm`}</div>
-      ${r.days ? html`<div class=${`bars${dense ? ' dense' : ''}`} style=${`--n:${r.days.length}`} role="img" aria-label=${`Pluie des ${period.title}`}>${r.days.map(d => html`<div title=${`${when(d)} : ${d.value === undefined ? 'indisponible' : `${d.partial ? 'au moins ' : ''}${nf(d.value)} mm`}`}>
+    <div class="mini" title=${r.daysNote}><div class="mini-top">${t(period.title)} · ${r.total === undefined ? 'mm' : `${r.totalPartial ? '≥ ' : ''}${nf(r.total)} mm`}</div>
+      ${r.days ? html`<div class=${`bars${dense ? ' dense' : ''}`} style=${`--n:${r.days.length}`} role="img" aria-label=${t('Pluie des {period}', { period: t(period.title) })}>${r.days.map(d => html`<div title=${colon(when(d), d.value === undefined ? t('indisponible') : d.partial ? t('au moins {mm} mm', { mm: nf(d.value) }) : `${nf(d.value)} mm`)}>
           <span>${d.value === undefined ? (dense ? '' : '—') : d.value && (!dense || d === wettest) ? `${d.partial ? '≥ ' : ''}${nf(d.value)}` : ''}</span>
           <i class=${d.value ? '' : 'zero'} style=${`height:${d.value ? Math.max(12, d.value / top * 74) : 5}%`}></i></div>`)}</div>
-        ${period.axis ? html`<div class="mini-axis">${period.axis.map(t => label(t))}</div>` : html`<div class="bars-axis">${r.days.map(d => label(d.label.replace('.', '')))}</div>`}`
+        ${period.axis ? html`<div class="mini-axis">${period.axis.map(x => label(t(x)))}</div>` : html`<div class="bars-axis">${r.days.map(d => label(d.label.replace('.', '')))}</div>`}`
       : html`<p class="nw-empty">${r.empty}</p>`}</div>
     ${stats(r.stats)}
   </section>`;
@@ -74,7 +75,7 @@ export function rainPanel(r: RainView): TemplateResult {
 function windPanel(w: WindView): TemplateResult {
   const color = 'var(--nw-wind)', end = chartEnd(w.mean, w.gust), period = PERIODS[w.period ?? '6h'];
   const mean = curvePaths(w.mean, w.top, end, 0, period.span), gust = curvePaths(w.gust, w.top, end, 0, period.span);
-  return html`<section class="nw-panel" aria-label="Vent">${panelHead('mdi:weather-windy', 'wind', 'Vent', w.source)}
+  return html`<section class="nw-panel" aria-label=${t('Vent')}>${panelHead('mdi:weather-windy', 'wind', t('Vent'), w.source)}
     <div class="metric-row"><div class="metric" data-entity=${w.entity}><div class="metric-main"><b>${w.value === undefined ? '—' : nf(w.value, 0)}</b><span>km/h</span></div>
       <small>${w.label}${w.description ? ` · ${w.description}` : ''}</small></div>
       ${w.status ? chip({ theme: 'wind', icon: 'mdi:weather-windy', label: w.status }) : nothing}
@@ -82,11 +83,11 @@ function windPanel(w: WindView): TemplateResult {
         <circle cx="36" cy="36" r="30" fill="color-mix(in oklab,var(--nw-wind) 10%,transparent)" stroke="var(--nw-line)"/>
         <text x="36" y="16" text-anchor="middle" font-size="10" font-weight="700" fill="var(--nw-fg2)">N</text>
         <path d="M36 16 44 46 36 40 28 46Z" fill="color-mix(in oklab,var(--nw-wind) 75%,var(--nw-fg))" transform=${`rotate(${(w.bearing + 180) % 360} 36 36)`}/></svg>`}</div>
-    <div class="mini"><div class="mini-top">${period.title} · km/h</div>
-      ${mean.length || gust.length ? html`<div class="mini-plot"><svg viewBox="0 0 100 50" preserveAspectRatio="none" role="img" aria-label=${`Vent des ${period.title}, moyennes et rafales`}>
+    <div class="mini"><div class="mini-top">${t(period.title)} · km/h</div>
+      ${mean.length || gust.length ? html`<div class="mini-plot"><svg viewBox="0 0 100 50" preserveAspectRatio="none" role="img" aria-label=${t('Vent des {period}, moyennes et rafales', { period: t(period.title) })}>
           ${gust.map(p => svg`<path d=${p.line} fill="none" stroke="color-mix(in oklab,var(--nw-wind) 55%,transparent)" stroke-width="2" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/>`)}
           ${curve(mean, color)}</svg>${pills(extremePills(w.mean, end, v => chartY(v, w.top), v => nf(v, 0), period.span))}</div>${axis(period)}
-        <div class="nw-legend">${legend(w.meanLabel, color)}${gust.length ? legend('Rafales', color, 'dash') : nothing}</div>`
+        <div class="nw-legend">${legend(w.meanLabel, color)}${gust.length ? legend(t('Rafales'), color, 'dash') : nothing}</div>`
       : html`<p class="nw-empty">${w.empty}</p>`}</div>
     ${stats(w.stats)}
   </section>`;
@@ -95,11 +96,11 @@ function windPanel(w: WindView): TemplateResult {
 
 function pressurePanel(p: PressureView): TemplateResult {
   const period = PERIODS[p.period ?? '6h'], end = chartEnd(p.series), series = curvePaths(p.series, p.top, end, p.low, period.span);
-  return html`<section class="nw-panel" aria-label="Pression">${panelHead('mdi:gauge', 'pressure', 'Pression', p.source)}
+  return html`<section class="nw-panel" aria-label=${t('Pression')}>${panelHead('mdi:gauge', 'pressure', t('Pression'), p.source)}
     <div class="metric-row"><div class="metric" data-entity=${entity(p.entity)}><div class="metric-main"><b>${p.value === undefined ? '—' : nf(p.value, 0)}</b><span>hPa</span></div>
       <small>${p.description}</small></div>${p.trend ? chip(p.trend) : nothing}</div>
-    <div class="mini"><div class="mini-top">${period.title} · hPa</div>
-      ${series.length ? html`<div class="mini-plot"><svg viewBox="0 0 100 50" preserveAspectRatio="none" role="img" aria-label=${`Pression des ${period.title}`}>${curve(series, 'var(--nw-pressure)')}</svg>${pills(extremePills(p.series, end, v => chartY(v, p.top, p.low), v => nf(v, 0), period.span))}</div>${axis(period)}`
+    <div class="mini"><div class="mini-top">${t(period.title)} · hPa</div>
+      ${series.length ? html`<div class="mini-plot"><svg viewBox="0 0 100 50" preserveAspectRatio="none" role="img" aria-label=${t('Pression des {period}', { period: t(period.title) })}>${curve(series, 'var(--nw-pressure)')}</svg>${pills(extremePills(p.series, end, v => chartY(v, p.top, p.low), v => nf(v, 0), period.span))}</div>${axis(period)}`
         : html`<p class="nw-empty">${p.empty}</p>`}</div>
     ${stats(p.stats)}
   </section>`;

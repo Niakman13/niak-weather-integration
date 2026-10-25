@@ -10,11 +10,11 @@ const integration = process.env.NIAK_INTEGRATION ?? fileURLToPath(new URL('../..
 const cli = join(integration, 'scripts', 'view_cli.py');
 
 /** The view message (`{ version, view }`) of a scenario at a given moment. */
-export function demoView(scenario, now) {
+export function demoView(scenario, now, language = 'fr') {
   if (!existsSync(cli)) return Promise.reject(new Error(`Moteur de l’intégration introuvable : ${cli}. La carte doit rester dans le dossier card/ de l’intégration, ou NIAK_INTEGRATION doit l’indiquer.`));
   return new Promise((resolve, reject) => {
     const child = execFile('python3', [cli], { maxBuffer: 16e6 }, (error, stdout, stderr) => error ? reject(new Error(stderr || error.message)) : resolve(stdout));
-    child.stdin.end(JSON.stringify(scenarioData(scenario, new Date(now))));
+    child.stdin.end(JSON.stringify({ ...scenarioData(scenario, new Date(now)), language }));
   });
 }
 
@@ -23,9 +23,9 @@ export async function serveDemoView(req, res) {
   let body = '';
   for await (const chunk of req) body += chunk;
   try {
-    const { scenario, now } = JSON.parse(body);
+    const { scenario, now, language } = JSON.parse(body);
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.end(await demoView(scenario, now));
+    res.end(await demoView(scenario, now, language));
   } catch (error) {
     res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end(String(error?.message ?? error));

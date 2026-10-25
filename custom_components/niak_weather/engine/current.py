@@ -8,6 +8,7 @@ from typing import Any, Callable, Sequence
 
 from .conditions import CONDITIONS
 from .forecast import Hour
+from .i18n import N_, t
 from .lightning import Lightning
 from .local import LocalWeather
 from .nuances import sky_detail
@@ -15,12 +16,17 @@ from .settings import Settings
 from .units import Kind, finite, french, measurement
 
 Getter = Callable[[str], Any]
-STATION = "Station locale"
-NO_RAIN_MEASURED = "Pas de pluie mesurée · ciel du bulletin"
+STATION = N_("Station locale")
+NO_RAIN_MEASURED = N_("Pas de pluie mesurée · ciel du bulletin")
 DARK_SKIES = ("lightning", "lightning-rainy", "pouring", "hail")
-RAIN_LABELS = {"rainy": "Pluie", "pouring": "Fortes pluies", "lightning-rainy": "Pluie orageuse", "snowy": "Neige", "snowy-rainy": "Pluie et neige",
-               "hail": "Grêle", "sunny": "Temps sec", "clear-night": "Temps sec", "partlycloudy": "Temps sec", "cloudy": "Temps sec",
-               "fog": "Brouillard", "windy": "Temps sec", "windy-variant": "Temps sec", "lightning": "Orage"}
+RAIN_LABELS = {"rainy": N_("Pluie"), "pouring": N_("Fortes pluies"), "lightning-rainy": N_("Pluie orageuse"), "snowy": N_("Neige"), "snowy-rainy": N_("Pluie et neige"),
+               "hail": N_("Grêle"), "sunny": N_("Temps sec"), "clear-night": N_("Temps sec"), "partlycloudy": N_("Temps sec"), "cloudy": N_("Temps sec"),
+               "fog": N_("Brouillard"), "windy": N_("Temps sec"), "windy-variant": N_("Temps sec"), "lightning": N_("Orage")}
+
+
+def station_label() -> str:
+    """The source label, without changing the stable STATION sentinel."""
+    return t(STATION)
 
 
 def available(state: Any) -> bool:
@@ -37,7 +43,7 @@ def weather_source_label(get: Getter, settings: Settings) -> str:
     attribution = (weather.attributes.get("attribution") or "") if weather else ""
     if re.search(r"m[eé]t[eé]o.?france", f"{attribution} {settings.weather_entity}", re.IGNORECASE):
         return "Météo-France"
-    return settings.forecast_source or "Bulletin météo"
+    return settings.forecast_source or t("Bulletin météo")
 
 
 def meaningful_comfort(get: Getter, settings: Settings, w: LocalWeather) -> bool:
@@ -85,13 +91,13 @@ def current_weather(get: Getter, settings: Settings, w: LocalWeather, temperatur
     if condition not in CONDITIONS:
         condition = "unknown"
     condition_entity = None if condition == "unknown" else settings.weather_entity
-    source = "État du ciel indisponible" if condition == "unknown" else "Ciel · bulletin météo"
+    source = t("État du ciel indisponible") if condition == "unknown" else t("Ciel · bulletin météo")
     rate = w.rain.rate
     # A rain gauge measures liquid water, not snow, hail, fog or lightning.
     if rate is not None and rate >= 0.3 and condition not in ("snowy", "snowy-rainy", "hail"):
         condition = "lightning-rainy" if condition in ("lightning", "lightning-rainy") else "pouring" if rate >= 4 else "rainy"
         condition_entity = settings.rain_rate_entity or settings.weather_entity
-        source = "Pluie mesurée · orage du bulletin" if condition == "lightning-rainy" else "Pluie mesurée ici"
+        source = t("Pluie mesurée · orage du bulletin") if condition == "lightning-rainy" else t("Pluie mesurée ici")
     # A working gauge can contradict the bulletin's rain, but cannot establish sunshine, cloud cover, or the absence of snow or lightning.
     if settings.rain_rate_entity and rate == 0 and condition in ("rainy", "pouring", "lightning-rainy"):
         condition = "lightning" if condition == "lightning-rainy" else "cloudy"
@@ -100,7 +106,7 @@ def current_weather(get: Getter, settings: Settings, w: LocalWeather, temperatur
     if lightning is not None and lightning.overhead and condition not in ("lightning", "lightning-rainy", "hail", "snowy", "snowy-rainy"):
         raining = condition in ("rainy", "pouring") or (rate is not None and rate >= 0.3)
         condition = "lightning-rainy" if raining else "lightning"
-        source, condition_entity = f"Éclairs à {french(max(1.0, lightning.recent_nearest or 0), 0)} km · Blitzortung", settings.lightning_entity
+        source, condition_entity = t("Éclairs à {distance} km · Blitzortung", distance=french(max(1.0, lightning.recent_nearest or 0), 0)), settings.lightning_entity
 
     sun = get(settings.sun_entity or "sun.sun")
     elevation_sensor = _state(get, settings.sun_elevation_entity)
@@ -127,13 +133,14 @@ def current_weather(get: Getter, settings: Settings, w: LocalWeather, temperatur
         measurement(weather.attributes.get("temperature"), weather.attributes.get("temperature_unit"), Kind.TEMPERATURE) if available(weather) else None)
     original = _state(get, original_condition)
     description = str(original.state) if available(original) else None
-    label, icon = CONDITIONS.get(condition, ("Météo indisponible", "mdi:weather-cloudy-alert"))
+    label, icon = CONDITIONS.get(condition, (N_("Météo indisponible"), "mdi:weather-cloudy-alert"))
+    label = t(label)
     if source == NO_RAIN_MEASURED and condition == "cloudy":
-        label = "Nuageux, sans pluie mesurée"
+        label = t("Nuageux, sans pluie mesurée")
     return CurrentWeather(
         condition=condition, label=label, icon=icon, phase=phase, temperature=temperature, feels=w.feel.value if w.available else None,
         temperature_entity=settings.temperature_entity if local is not None else settings.weather_entity, condition_entity=condition_entity,
-        source=source, temperature_source=STATION if local is not None else weather_source_label(get, settings), wind=w.wind.speed,
+        source=t(source) if source == NO_RAIN_MEASURED else source, temperature_source=station_label() if local is not None else weather_source_label(get, settings), wind=w.wind.speed,
         trend=temperature_trend if temperature_trend is not None and abs(temperature_trend) >= 0.1 else None, dark_sky=condition in DARK_SKIES,
         detail=sky_detail(condition, description, rate if rate is not None else hour_rain, temperature))
 
@@ -187,46 +194,47 @@ def current_metrics(get: Getter, settings: Settings, w: LocalWeather, hours: Seq
 
     temperature = read(settings.temperature_entity, "temperature", "temperature_unit", Kind.TEMPERATURE)
     if temperature.value is not None or settings.temperature_entity:
-        result.append(Metric("temperature", "Température", "mdi:thermometer", "°C",
-                             "Mesurée chez vous" if temperature.source == STATION else "Température du bulletin", temperature.source, temperature.entity,
-                             temperature.value, detail=f"Ressenti {french(w.feel.value)} °C" if meaningful_comfort(get, settings, w) else None,
+        result.append(Metric("temperature", t("Température"), "mdi:thermometer", "°C",
+                             t("Mesurée chez vous") if temperature.source == STATION else t("Température du bulletin"), station_label() if temperature.source == STATION else temperature.source, temperature.entity,
+                             temperature.value, detail=t("Ressenti {value} °C", value=french(w.feel.value)) if meaningful_comfort(get, settings, w) else None,
                              fallback=temperature.fallback))
 
     wind = read(settings.wind_speed_entity, "wind_speed", "wind_speed_unit", Kind.WIND)
     gust = read(settings.wind_gust_entity, "wind_gust_speed", "wind_speed_unit", Kind.WIND)
     if wind.value is not None or gust.value is not None or settings.wind_speed_entity or settings.wind_gust_entity:
-        detail = "" if gust.value is None else f"Rafales {french(gust.value, 0)} km/h" + (f" · {gust.source}" if gust.source != wind.source else "")
+        detail = "" if gust.value is None else t("Rafales {value} km/h", value=french(gust.value, 0)) + (f" · {station_label() if gust.source == STATION else gust.source}" if gust.source != wind.source else "")
         local_bearing = local(settings.wind_bearing_entity)
-        result.append(Metric("wind", "Vent", "mdi:weather-windy", "km/h", (w.wind.beaufort_text or "Mesuré chez vous") if wind.source == STATION else "Vent du bulletin",
-                             wind.source, wind.entity, wind.value, detail=detail, fallback=wind.fallback,
+        result.append(Metric("wind", t("Vent"), "mdi:weather-windy", "km/h", (w.wind.beaufort_text or t("Mesuré chez vous")) if wind.source == STATION else t("Vent du bulletin"),
+                             station_label() if wind.source == STATION else wind.source, wind.entity, wind.value, detail=detail, fallback=wind.fallback,
                              bearing=local_bearing if local_bearing is not None else finite(bulletin.get("wind_bearing")),
-                             bearing_source=STATION if local_bearing is not None else provider,
+                             bearing_source=station_label() if local_bearing is not None else provider,
                              bearing_entity=settings.wind_bearing_entity if local_bearing is not None else settings.weather_entity, gust=gust))
 
     daily, rate = local(settings.daily_rain_entity, Kind.RAIN), local(settings.rain_rate_entity, Kind.RAIN)
     if daily is not None or rate is not None:
-        result.append(Metric("rain", "Pluie", "mdi:weather-rainy", "mm" if daily is not None else "mm/h", "Depuis minuit" if daily is not None else "Intensité mesurée",
-                             STATION, (settings.daily_rain_entity if daily is not None else settings.rain_rate_entity) or "", daily if daily is not None else rate,
-                             detail="Intensité indisponible" if rate is None else "Pas de pluie mesurée en ce moment" if rate == 0 else f"{french(rate)} mm/h en ce moment"))
+        result.append(Metric("rain", t("Pluie"), "mdi:weather-rainy", "mm" if daily is not None else "mm/h", t("Depuis minuit") if daily is not None else t("Intensité mesurée"),
+                             station_label(), (settings.daily_rain_entity if daily is not None else settings.rain_rate_entity) or "", daily if daily is not None else rate,
+                             detail=t("Intensité indisponible") if rate is None else t("Pas de pluie mesurée en ce moment") if rate == 0 else t("{value} mm/h en ce moment", value=french(rate))))
     else:
-        label = RAIN_LABELS.get(weather.state.replace("_", "-")) if available(weather) else None
+        raw_label = RAIN_LABELS.get(weather.state.replace("_", "-")) if available(weather) else None
+        label = t(raw_label) if raw_label else None
         moment = now or datetime.now().astimezone()
         upcoming = sorted((h for h in hours if h.time is not None and moment <= h.time <= moment + timedelta(minutes=90)), key=lambda h: h.time)
         expected = upcoming[0].precipitation if upcoming else None
         has_bulletin, forecast_only = bool(label) or expected is not None, expected is not None and not label
         if has_bulletin or settings.daily_rain_entity or settings.rain_rate_entity:
-            result.append(Metric("rain", "Pluie", "mdi:weather-rainy", "mm" if forecast_only else "", "État annoncé dans le bulletin" if label else "Prochain créneau prévu",
-                                 (f"{provider} · Prévision" if forecast_only else provider) if has_bulletin else STATION,
+            result.append(Metric("rain", t("Pluie"), "mdi:weather-rainy", "mm" if forecast_only else "", t("État annoncé dans le bulletin") if label else t("Prochain créneau prévu"),
+                                 (t("{provider} · Prévision", provider=provider) if forecast_only else provider) if has_bulletin else station_label(),
                                  settings.weather_entity if has_bulletin else settings.daily_rain_entity or settings.rain_rate_entity or settings.weather_entity,
                                  None if label else expected, text=label,
-                                 detail=f"{french(expected)} mm prévus sur le prochain créneau" if expected is not None else None,
+                                 detail=t("{value} mm prévus sur le prochain créneau", value=french(expected)) if expected is not None else None,
                                  fallback=has_bulletin and bool(settings.daily_rain_entity or settings.rain_rate_entity)))
 
     pressure = read(settings.pressure_entity, "pressure", "pressure_unit", Kind.PRESSURE)
     if pressure.value is not None or settings.pressure_entity:
         measured, change, minutes = pressure.source == STATION, w.pressure_trend.change, w.pressure_trend.minutes
         span = f"{french(minutes, 0)} min" if minutes and minutes < 150 else "3 h"
-        detail = None if not measured else "Tendance en cours de mesure" if change is None else f"{'+' if change > 0 else ''}{french(change)} hPa sur {span}"
-        result.append(Metric("pressure", "Pression", "mdi:gauge", "hPa", (w.pressure_trend.text or "Mesurée chez vous") if measured else "Pression du bulletin",
-                             pressure.source, pressure.entity, pressure.value, detail=detail, fallback=pressure.fallback))
+        detail = None if not measured else t("Tendance en cours de mesure") if change is None else t("{change} hPa sur {span}", change=f"{'+' if change > 0 else ''}{french(change)}", span=span)
+        result.append(Metric("pressure", t("Pression"), "mdi:gauge", "hPa", (w.pressure_trend.text or t("Mesurée chez vous")) if measured else t("Pression du bulletin"),
+                             station_label() if pressure.source == STATION else pressure.source, pressure.entity, pressure.value, detail=detail, fallback=pressure.fallback))
     return result

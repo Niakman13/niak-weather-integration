@@ -29,6 +29,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import AIR_INTERVAL, DEBOUNCE_SECONDS, DOMAIN, FORECAST_INTERVAL, FORECAST_RETRY, HISTORY_INTERVAL, LOGGER, RAIN_INTERVAL, TICK
 from .engine import lightning, open_meteo, waqi
+from .engine.i18n import localized
 from .engine.brief import Brief
 from .engine.catalogue import Item
 from .engine.compute import compute
@@ -127,6 +128,7 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         self._stop_listeners: set[Callable[[], None]] = set()
         self._retries = 0
         self._unlisten_started: Callable[[], None] | None = None
+        self._localized_views: dict[str, tuple[datetime, dict[str, Any]]] = {}
 
     async def async_start(self) -> None:
         """First fetches, then listen to the sensors and keep each source fresh."""
@@ -221,9 +223,13 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
             sensor = hass.states.get(settings.lightning_entity)
             self.strikes = lightning.keep(self.strikes, now.timestamp())
             strikes = lightning.read(self.strikes, now.timestamp(), sensor is not None and sensor.state != STATE_UNAVAILABLE)
-        result = compute(get, settings, self.hours, self.days, self.history, self.rain_history, self.statistics, self.statistics_unit,
-                         now, zone, hass.config.latitude, hass.config.elevation or 0, self.platforms,
-                         original_condition(er.async_get(hass), settings.weather_entity), strikes)
+        # Sensors and events keep their established French values. A card is
+        # rendered separately in its dashboard user's language by view_for().
+        with localized("fr"):
+            result = compute(get, settings, self.hours, self.days, self.history, self.rain_history, self.statistics, self.statistics_unit,
+                             now, zone, hass.config.latitude, hass.config.elevation or 0, self.platforms,
+                             original_condition(er.async_get(hass), settings.weather_entity), strikes)
+        self._localized_views.clear()
         events = self.watch.update(result.catalogue, now)
         if events:
             self._store.async_delay_save(self.watch.as_dict, 10)
@@ -233,6 +239,37 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         radar = hass.states.get(radar_rain(er.async_get(hass), settings.weather_entity) or "")
         ahead = rain_ahead(radar.attributes if radar else None, self.hours, now)
         return Snapshot(result.local, result.brief, result.derived, to_json(result.view), result.catalogue, self.watch.states(), now, ahead)
+
+    def view_for(self, language: str | None) -> dict[str, Any] | None:
+        """Return the current card view in one dashboard user's language.
+
+        The coordinator is shared by every dashboard user, but each browser may
+        have its own language. This recomputes only the display projection; it
+        never changes alerts, sensors, stored state, or automation values.
+        """
+        snapshot = self.data
+        if snapshot is None:
+            return None
+        code = (language or "").lower().replace("_", "-").split("-")[0] or "fr"
+        # French is the view computed with the sensors: nothing to compute again.
+        if code == "fr":
+            return snapshot.view
+        cached = self._localized_views.get(code)
+        if cached is not None and cached[0] == snapshot.computed:
+            return cached[1]
+        zone = ZoneInfo(self.hass.config.time_zone)
+        settings, get = waqi.overlay(self.settings, self.hass.states.get, self.air_forecast, snapshot.computed, zone)
+        strikes = None
+        if settings.lightning_entity:
+            sensor = self.hass.states.get(settings.lightning_entity)
+            strikes = lightning.read(self.strikes, snapshot.computed.timestamp(), sensor is not None and sensor.state != STATE_UNAVAILABLE)
+        with localized(code):
+            result = compute(get, settings, self.hours, self.days, self.history, self.rain_history, self.statistics, self.statistics_unit,
+                             snapshot.computed, zone, self.hass.config.latitude, self.hass.config.elevation or 0, self.platforms,
+                             original_condition(er.async_get(self.hass), settings.weather_entity), strikes)
+            view = to_json(result.view)
+        self._localized_views[code] = (snapshot.computed, view)
+        return view
 
     # ---- Sources ----
 

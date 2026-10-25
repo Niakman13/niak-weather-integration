@@ -8,11 +8,12 @@ from datetime import date, datetime, timedelta
 from typing import Any, Callable, Mapping, Sequence
 from zoneinfo import ZoneInfo
 
+from .i18n import N_, t
 from .settings import Settings
 from .trends import Change
 from .units import Kind, finite, measurement
 
-WEEKDAYS = ("lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim.")
+WEEKDAYS = (N_("lun."), N_("mar."), N_("mer."), N_("jeu."), N_("ven."), N_("sam."), N_("dim."))
 
 
 @dataclass(frozen=True)
@@ -147,8 +148,8 @@ def derive_station(get: Callable[[str], Any], settings: Settings, statistics: Se
     days = []
     for i in range(7):
         day = today - timedelta(days=6 - i)
-        t = total(midnight(day, zone), min(end, midnight(day + timedelta(days=1), zone)))
-        days.append(RainDay(day.isoformat(), "Auj." if i == 6 else WEEKDAYS[day.weekday()], t.value, t.partial))
+        rain = total(midnight(day, zone), min(end, midnight(day + timedelta(days=1), zone)))
+        days.append(RainDay(day.isoformat(), t("Auj.") if i == 6 else t(WEEKDAYS[day.weekday()]), rain.value, rain.partial))
 
     trend = None
     if not settings.temperature_trend_entity and settings.temperature_entity:

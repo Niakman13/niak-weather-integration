@@ -5,12 +5,13 @@ Keep native degrees alongside Niak's presentation severity (0-3). No network acc
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
+from .i18n import N_, t
 
-TYPES = {"wind": "Vent", "thunderstorms": "Orages", "rain": "Pluie", "snow": "Neige",
-         "slippery roads": "Verglas", "frost": "Gel", "thaw": "Dégel", "heat waves": "Canicule",
-         "avalanches": "Avalanches", "earthquakes": "Séismes", "forest fires": "Feux de forêt",
-         "flood": "Crues", "drought": "Sécheresse", "unknown": "Danger non précisé"}
-DEGREES = ("Aucun danger", "Danger nul ou faible", "Danger limité", "Danger marqué", "Fort danger", "Très fort danger")
+TYPES = {"wind": N_("Vent"), "thunderstorms": N_("Orages"), "rain": N_("Pluie"), "snow": N_("Neige"),
+         "slippery roads": N_("Verglas"), "frost": N_("Gel"), "thaw": N_("Dégel"), "heat waves": N_("Canicule"),
+         "avalanches": N_("Avalanches"), "earthquakes": N_("Séismes"), "forest fires": N_("Feux de forêt"),
+         "flood": N_("Crues"), "drought": N_("Sécheresse"), "unknown": N_("Danger non précisé")}
+DEGREES = (N_("Aucun danger"), N_("Danger nul ou faible"), N_("Danger limité"), N_("Danger marqué"), N_("Fort danger"), N_("Très fort danger"))
 SEVERITIES = (0, 0, 1, 2, 3, 3)
 
 

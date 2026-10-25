@@ -4,6 +4,7 @@ import { define } from './define';
 import type { AlertPoint, TickerPoint } from '../view';
 import { bubbles } from './charter';
 import { alertBubble, bubble } from './parts';
+import { colon } from '../i18n';
 
 /** A point of the scrolling bubble: a brief point, or an alert that had no room of its own. */
 export type TickerItem = TickerPoint | (AlertPoint & { alert: true });
@@ -51,7 +52,7 @@ export class NiakTicker extends LitElement {
     if (!point) return nothing;
     const out = this.leaving ? 'out' : '';
     return html`<div aria-hidden="true">${'official' in point ? alertBubble(point, out) : bubble(point, out)}</div>
-      <ul class="sr">${this.points.map(p => html`<li>${p.label ? `${p.label} : ` : ''}${p.text}</li>`)}</ul>`;
+      <ul class="sr">${this.points.map(p => html`<li>${p.label ? colon(p.label, p.text) : p.text}</li>`)}</ul>`;
   }
   static styles = [bubbles, css`
     :host { display:block; min-width:0; }

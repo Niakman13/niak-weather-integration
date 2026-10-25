@@ -142,7 +142,7 @@ export function scenarioHass(s) {
   const connection = {
     subscribeMessage: async (callback) => {
       try {
-        const response = await fetch('/demo/view', { method: 'POST', body: JSON.stringify({ scenario: s, now: new Date().toISOString() }) });
+        const response = await fetch('/demo/view', { method: 'POST', body: JSON.stringify({ scenario: s, now: new Date().toISOString(), language: new URLSearchParams(location.search).get('lang') ?? 'fr' }) });
         if (!response.ok) throw new Error(await response.text());
         callback(await response.json());
         return async () => {};
@@ -150,7 +150,9 @@ export function scenarioHass(s) {
     },
   };
   const callWS = async m => m.type === 'niak_weather/entries' ? [{ entry_id: 'demo', title: 'Gardanne' }] : {};
-  return { states: scenarioStates(s), language: 'fr', locale: { language: 'fr' }, connection, callWS, ready: first };
+  // ?lang=en shows the card in another language than French.
+  const language = new URLSearchParams(location.search).get('lang') ?? 'fr';
+  return { states: scenarioStates(s), language, locale: { language }, connection, callWS, ready: first };
 }
 
 /** Les réglages d'affichage de la carte pour un scénario. */

@@ -15,13 +15,19 @@ from . import atmo, polleninfo, swiss, water, waqi
 from .forecast import Day, Hour
 from .lightning import Lightning
 from .local import LocalWeather
+from .i18n import N_, t
 from .settings import Settings
 from .units import finite, french
 
 GROUPS = ("official", "now", "future", "environment")
 COLORS = ("61,155,233", "190,140,35", "230,125,45", "215,70,75")
-COLOR_NAMES = ("verte", "jaune", "orange", "rouge")
-LEVELS = ("Synthèse", "À surveiller", "Attention renforcée", "Vigilance rouge officielle")
+COLOR_NAMES = (N_("verte"), N_("jaune"), N_("orange"), N_("rouge"))
+LEVELS = (N_("Synthèse"), N_("À surveiller"), N_("Attention renforcée"), N_("Vigilance rouge officielle"))
+# Each level of an official vigilance, as the banner says it.
+VIGILANCE_NAMES = (N_("Vigilance verte"), N_("Vigilance jaune"), N_("Vigilance orange"), N_("Vigilance rouge"))
+# Météo-France's phenomena: their own French names, said in the user's language.
+PHENOMENA = (N_("Vent violent"), N_("Pluie-inondation"), N_("Orages"), N_("Inondation"), N_("Crues"), N_("Neige-verglas"), N_("Canicule"),
+             N_("Grand-froid"), N_("Avalanches"), N_("Vagues-submersion"))
 _KNOWN_COLORS = {"vert": 0, "green": 0, "jaune": 1, "yellow": 1, "orange": 2, "rouge": 3, "red": 3}
 
 
@@ -69,7 +75,7 @@ def _round_half_up(value: float) -> int:
 
 
 def _timing(hours: float) -> str:
-    return "dans l’heure" if hours < 1 else f"dans environ {_round_half_up(hours)} h"
+    return t("dans l’heure") if hours < 1 else t("dans environ {hours} h", hours=_round_half_up(hours))
 
 
 def known_color(value: Any) -> int | None:
@@ -85,9 +91,9 @@ def clock(when: datetime, now: datetime, zone: ZoneInfo) -> str:
     """« 20 h », « midi », « minuit » within the next 24 hours; « demain » or the day's name beyond."""
     local = when.astimezone(zone)
     if when - now < timedelta(hours=24):
-        return "minuit" if local.hour == 0 else "midi" if local.hour == 12 else f"{local.hour} h"
+        return t("minuit") if local.hour == 0 else t("midi") if local.hour == 12 else t("{hour} h", hour=local.hour)
     days = (local.date() - now.astimezone(zone).date()).days
-    return "demain" if days == 1 else ("lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche")[local.weekday()]
+    return t("demain") if days == 1 else t((N_("lundi"), N_("mardi"), N_("mercredi"), N_("jeudi"), N_("vendredi"), N_("samedi"), N_("dimanche"))[local.weekday()])
 
 
 @dataclass(frozen=True)
@@ -114,10 +120,10 @@ class Vigilance:
         """One text for every format: « Vigilance jaune · vent violent »; a phenomenon below the overall level says its own colour."""
         if self.source == "MétéoSuisse":
             degree = max((w.degree for w in self.warnings), default=1)
-            details = ", ".join(f"{w.name.lower()} ({w.degree}/5)" for w in self.warnings)
-            return f"MétéoSuisse · {swiss.DEGREES[degree]} ({degree}/5)" + (f" · {details}" if details else "")
-        names = [f"{k.lower()}{'' if c == self.level else f' ({COLOR_NAMES[c]})'}" for k, c in self.phenomena]
-        return f"Vigilance {COLOR_NAMES[self.level]}{' · ' + ', '.join(names) if names else ''}"
+            details = ", ".join(f"{t(w.name).lower()} ({w.degree}/5)" for w in self.warnings)
+            return f"MétéoSuisse · {t(swiss.DEGREES[degree])} ({degree}/5)" + (f" · {details}" if details else "")
+        names = [f"{t(k).lower()}{'' if c == self.level else f' ({t(COLOR_NAMES[c])})'}" for k, c in self.phenomena]
+        return f"{t(VIGILANCE_NAMES[self.level])}{' · ' + ', '.join(names) if names else ''}"
 
 
 def read_vigilance(settings: Settings, get: Callable[[str], Any], now: datetime, platforms: Mapping[str, str] | None = None) -> Vigilance | None:
@@ -162,61 +168,76 @@ def build_brief(w: LocalWeather, settings: Settings, get: Callable[[str], Any], 
     def when(t: datetime | None) -> dict[str, Any]:
         return {} if t is None else {"at": t.timestamp(), "clock": clock(t, now, zone)}
 
-    current = "Ressenti indisponible." if feels is None else f"{number(feels)} °C ressentis"
+    current = t("Ressenti indisponible.") if feels is None else t("{value} °C ressentis", value=number(feels))
     if feels is not None and temp is not None:
-        delta = feels - temp
-        current += (f", proche {'du thermomètre' if station else 'de la température météo'}." if abs(delta) < 0.6 else
-                    f", {number(abs(delta))} °C {'de plus' if delta > 0 else 'de moins'} que {'le thermomètre' if station else 'la température météo'}.")
+        delta, gap = feels - temp, number(abs(feels - temp))
+        if abs(delta) < 0.6:
+            current += t(", proche du thermomètre.") if station else t(", proche de la température météo.")
+        elif delta > 0:
+            current += t(", {gap} °C de plus que le thermomètre.", gap=gap) if station else t(", {gap} °C de plus que la température météo.", gap=gap)
+        else:
+            current += t(", {gap} °C de moins que le thermomètre.", gap=gap) if station else t(", {gap} °C de moins que la température météo.", gap=gap)
         e = w.feel.effects
-        effect = sorted(((e.wind, "le vent"), (e.sun, "le soleil"), (e.rain, "la pluie"), (e.night, "le ciel nocturne")), key=lambda x: -abs(x[0]))[0]
+        effect = sorted(((e.wind, "wind"), (e.sun, "sun"), (e.rain, "rain"), (e.night, "night")), key=lambda x: -abs(x[0]))[0]
+        warmer = {"wind": N_(" Le vent accentue la chaleur."), "sun": N_(" Le soleil accentue la chaleur."), "rain": N_(" La pluie accentue la chaleur."),
+                  "night": N_(" Le ciel nocturne accentue la chaleur.")}
+        cooler = {"wind": N_(" Le vent accentue la fraîcheur."), "sun": N_(" Le soleil accentue la fraîcheur."), "rain": N_(" La pluie accentue la fraîcheur."),
+                  "night": N_(" Le ciel nocturne accentue la fraîcheur.")}
         if abs(delta) >= 0.6:
             if abs(effect[0]) >= 0.6:
-                current += f" {effect[1][0].upper() + effect[1][1:]} {'accentue la chaleur' if effect[0] > 0 else 'accentue la fraîcheur'}."
+                current += t((warmer if effect[0] > 0 else cooler)[effect[1]])
             elif w.humidex is not None and w.humidex - temp >= 0.6:
-                current += " L’humidité accentue la chaleur."
+                current += t(" L’humidité accentue la chaleur.")
     if feels is not None and not w.humidity_source and w.humidex is None:
-        caveats.append("Humidité inconnue : le ressenti n’en tient pas compte.")
+        caveats.append(t("Humidité inconnue : le ressenti n’en tient pas compte."))
     if feels is not None and (feels >= 34 or feels <= 2):
         add(Signal("temperature", "now", 2 if feels >= 38 or feels <= -3 else 1,
-                   f"Forte chaleur : {number(feels)} °C ressentis" if feels >= 34 else f"{'Grand froid' if feels <= -3 else 'Froid'} : {number(feels)} °C ressentis",
-                   "Ressenti calculé par la carte. Ce n’est pas une vigilance officielle.", "mdi:thermometer-high" if feels >= 34 else "mdi:thermometer-low", src("temperature")))
+                   t("Forte chaleur : {value} °C ressentis", value=number(feels)) if feels >= 34
+                   else t("Grand froid : {value} °C ressentis", value=number(feels)) if feels <= -3 else t("Froid : {value} °C ressentis", value=number(feels)),
+                   t("Ressenti calculé par la carte. Ce n’est pas une vigilance officielle."), "mdi:thermometer-high" if feels >= 34 else "mdi:thermometer-low", src("temperature")))
     if temp is not None and feels is not None and abs(feels - temp) > 4 and not any(s.key == "temperature" for s in signals):
         add(Signal("comfort-gap", "now", 0,
-                   f"Ressenti : {number(abs(feels - temp))} °C de {'plus' if feels > temp else 'moins'} {'qu’au thermomètre' if station else 'que la température annoncée'}",
-                   "Plus de 4 °C d’écart entre le ressenti calculé et la température.", "mdi:thermometer-high" if feels > temp else "mdi:thermometer-low", src("temperature")))
+                   (t("Ressenti : {gap} °C de plus qu’au thermomètre", gap=number(abs(feels - temp))) if station
+                    else t("Ressenti : {gap} °C de plus que la température annoncée", gap=number(abs(feels - temp)))) if feels > temp
+                   else (t("Ressenti : {gap} °C de moins qu’au thermomètre", gap=number(abs(feels - temp))) if station
+                         else t("Ressenti : {gap} °C de moins que la température annoncée", gap=number(abs(feels - temp)))),
+                   t("Plus de 4 °C d’écart entre le ressenti calculé et la température."), "mdi:thermometer-high" if feels > temp else "mdi:thermometer-low", src("temperature")))
     if (wind or 0) >= 30 or (gust or 0) >= 40:
         add(Signal("wind", "now", 2 if (wind or 0) >= 50 or (gust or 0) >= 60 else 1,
-                   f"Vent {'très fort' if max(wind or 0, gust or 0) >= 60 else 'fort'}" + (f", rafales à {_round_half_up(gust)} km/h" if gust is not None else f" : {_round_half_up(wind or 0)} km/h"),
-                   "Mesuré par votre station : vent moyen dès 30 km/h ou rafales dès 40 km/h.", "mdi:weather-windy", src("wind_gust" if gust is not None else "wind_speed")))
+                   (t("Vent très fort") if max(wind or 0, gust or 0) >= 60 else t("Vent fort"))
+                   + (t(", rafales à {gust} km/h", gust=_round_half_up(gust)) if gust is not None else t(" : {wind} km/h", wind=_round_half_up(wind or 0))),
+                   t("Mesuré par votre station : vent moyen dès 30 km/h ou rafales dès 40 km/h."), "mdi:weather-windy", src("wind_gust" if gust is not None else "wind_speed")))
     elif wind is not None and wind >= 0:
-        add(Signal("wind-soft", "now", 0, f"Vent {'faible' if wind < 15 else 'modéré'} : {_round_half_up(wind)} km/h", "Vent moyen mesuré en ce moment.",
+        add(Signal("wind-soft", "now", 0, t("Vent faible : {wind} km/h", wind=_round_half_up(wind)) if wind < 15 else t("Vent modéré : {wind} km/h", wind=_round_half_up(wind)),
+                   t("Vent moyen mesuré en ce moment."),
                    "mdi:weather-windy", src("wind_speed")))
     if rain is not None and rain >= 0.3:
-        add(Signal("rain-now", "now", 2 if rain >= 4 else 1 if rain >= 1 else 0, f"{'Forte pluie' if rain >= 4 else 'Il pleut'} : {number(rain)} mm/h",
-                   "Pluie mesurée par votre station en ce moment.", "mdi:weather-pouring", src("rain_rate")))
+        add(Signal("rain-now", "now", 2 if rain >= 4 else 1 if rain >= 1 else 0, t("Forte pluie : {rate} mm/h", rate=number(rain)) if rain >= 4 else t("Il pleut : {rate} mm/h", rate=number(rain)),
+                   t("Pluie mesurée par votre station en ce moment."), "mdi:weather-pouring", src("rain_rate")))
     if (wind or 0) >= 30 and (rain or 0) >= 1:
-        add(Signal("wind-rain", "now", 2, "Pluie et vent fort en même temps", "Au moins 1 mm/h de pluie et 30 km/h de vent moyen en même temps.",
+        add(Signal("wind-rain", "now", 2, t("Pluie et vent fort en même temps"), t("Au moins 1 mm/h de pluie et 30 km/h de vent moyen en même temps."),
                    "mdi:weather-pouring", src("rain_rate")))
     if w.condition == "fog" and w.observed:
-        add(Signal("fog", "now", 1, "Brouillard possible", "Estimé avec l’humidité et le point de rosée. La visibilité n’est pas mesurée.", "mdi:weather-fog", src("humidity")))
+        add(Signal("fog", "now", 1, t("Brouillard possible"), t("Estimé avec l’humidité et le point de rosée. La visibilité n’est pas mesurée."), "mdi:weather-fog", src("humidity")))
     if (w.uv or 0) >= 6:
-        add(Signal("uv", "now", 2 if (w.uv or 0) >= 8 else 1, f"UV élevés : indice {number(w.uv or 0)}", "Indice UV de vos capteurs.", "mdi:weather-sunny-alert", src("uv")))
+        add(Signal("uv", "now", 2 if (w.uv or 0) >= 8 else 1, t("UV élevés : indice {uv}", uv=number(w.uv or 0)), t("Indice UV de vos capteurs."), "mdi:weather-sunny-alert", src("uv")))
     if lightning is not None and lightning.nearest is not None:
         # Strikes seen now by Blitzortung: within 30 km the storm is here (one gesture to give); farther, only worth knowing.
         add(Signal("storm-near" if lightning.near else "storm-far", "now", lightning.level, lightning.text,
-                   lightning.explanation + (" Débranchez les appareils sensibles et rentrez ce qui craint." if lightning.near else ""),
+                   lightning.explanation + (t(" Débranchez les appareils sensibles et rentrez ce qui craint.") if lightning.near else ""),
                    "mdi:weather-lightning", settings.lightning_entity, short=lightning.text))
     restriction = water.read(get, settings)
     if restriction is not None and restriction.level >= water.ALERT:
         add(Signal("water", "now", 2 if restriction.level >= 4 else 1,
-                   f"Restrictions d’eau : {restriction.label.lower()}" + (", arrosage restreint" if restriction.watering else ""),
-                   f"Arrêté préfectoral relayé par Vigieau{f' : {len(restriction.usages)} usages concernés' if restriction.usages else ''}. "
-                   "Ouvrez le capteur pour le détail.", "mdi:water-off" if restriction.level >= 4 else "mdi:water-alert", restriction.entity_id))
+                   t("Restrictions d’eau : {level}", level=restriction.label.lower()) + (t(", arrosage restreint") if restriction.watering else ""),
+                   (t("Arrêté préfectoral relayé par Vigieau : {count} usages concernés.", count=len(restriction.usages)) if restriction.usages
+                    else t("Arrêté préfectoral relayé par Vigieau.")) + " " + t("Ouvrez le capteur pour le détail."), "mdi:water-off" if restriction.level >= 4 else "mdi:water-alert", restriction.entity_id))
     p = w.pressure_trend
     if p.direction is not None and str(p.direction) in ("hausse", "baisse") and p.change is not None:
         add(Signal("pressure", "now", 0,
-                   f"La pression {'monte : +' if str(p.direction) == 'hausse' else 'baisse : −'}{number(abs(p.change))} hPa en {number((p.minutes or 180) / 60)} h",
-                   "Calculé avec l’historique de la station. Cela ne suffit pas à prévoir la pluie.", "mdi:gauge", src("pressure")))
+                   (t("La pression monte : +{change} hPa en {hours} h", change=number(abs(p.change)), hours=number((p.minutes or 180) / 60)) if str(p.direction) == "hausse"
+                    else t("La pression baisse : −{change} hPa en {hours} h", change=number(abs(p.change)), hours=number((p.minutes or 180) / 60))),
+                   t("Calculé avec l’historique de la station. Cela ne suffit pas à prévoir la pluie."), "mdi:gauge", src("pressure")))
 
     # Forecast points by their time, never by their position; past and undated hours are left out.
     points = [_Point((h.time - now).total_seconds() / 3600, h) for h in hours if h.time is not None]
@@ -227,24 +248,26 @@ def build_brief(w: LocalWeather, settings: Settings, get: Callable[[str], Any], 
     if rains and total >= 1:
         peak = max(x.hour.precipitation or 0 for x in rains)
         heavy = peak >= 5 or total >= 20
-        amount = f"{'au moins ' if any(x.hour.precipitation is None for x in upcoming) else ''}{number(total)} mm prévus"
+        amount = (t("au moins {mm} mm prévus", mm=number(total)) if any(x.hour.precipitation is None for x in upcoming)
+                  else t("{mm} mm prévus", mm=number(total)))
+        what = t("Fortes pluies") if heavy else t("Pluie")
         add(Signal("rain-future", "future", 2 if heavy else 1 if total >= 5 else 0,
-                   f"{'Fortes pluies' if heavy else 'Pluie'} {_timing(rains[0].hours)} : {amount}",
-                   "Total prévu sur les 6 prochaines heures.", "mdi:weather-pouring", settings.weather_entity, **when(rains[0].hour.time),
-                   short=f"{'Fortes pluies' if heavy else 'Pluie'} : {amount}"))
+                   t("{what} {when} : {amount}", what=what, when=_timing(rains[0].hours), amount=amount),
+                   t("Total prévu sur les 6 prochaines heures."), "mdi:weather-pouring", settings.weather_entity, **when(rains[0].hour.time),
+                   short=t("{what} : {amount}", what=what, amount=amount)))
     storm = next((x for x in upcoming if x.hour.condition.replace("_", "-") in ("lightning", "lightning-rainy", "hail")), None)
     # A storm already seen within 30 km says more than the forecast of one.
     if storm and not (lightning is not None and lightning.near):
-        add(Signal("storm", "future", 2, f"Orage ou grêle {_timing(storm.hours)}", "Annoncé par le fournisseur météo pour les 6 prochaines heures.",
-                   "mdi:weather-lightning", settings.weather_entity, **when(storm.hour.time), short="Orage ou grêle"))
+        add(Signal("storm", "future", 2, t("Orage ou grêle {when}", when=_timing(storm.hours)), t("Annoncé par le fournisseur météo pour les 6 prochaines heures."),
+                   "mdi:weather-lightning", settings.weather_entity, **when(storm.hour.time), short=t("Orage ou grêle")))
     cold = next((x for x in upcoming if x.hour.temperature is not None and x.hour.temperature <= 0), None)
     if cold:
-        add(Signal("freeze-future", "future", 1, f"Gel {_timing(cold.hours)} : {number(cold.hour.temperature or 0)} °C prévus", "Prévision du fournisseur météo.",
+        add(Signal("freeze-future", "future", 1, t("Gel {when} : {t} °C prévus", when=_timing(cold.hours), t=number(cold.hour.temperature or 0)), t("Prévision du fournisseur météo."),
                    "mdi:snowflake", settings.weather_entity, **when(cold.hour.time),
-                   short=f"Gel : {number(cold.hour.temperature or 0)} °C prévus"))
+                   short=t("Gel : {t} °C prévus", t=number(cold.hour.temperature or 0))))
 
     def at(offset: float) -> str:
-        return f"vers {(now + timedelta(hours=offset)).astimezone(zone).hour} h"
+        return t("vers {hour} h", hour=(now + timedelta(hours=offset)).astimezone(zone).hour)
 
     # Tonight: the forecast minimum of the next 18 h against the frost and dew points.
     night = [x for x in points if 0 <= x.hours <= 18 and x.hour.temperature is not None]
@@ -252,11 +275,11 @@ def build_brief(w: LocalWeather, settings: Settings, get: Callable[[str], Any], 
     low_t = low.hour.temperature if low else None
     if low and low_t is not None and low_t <= 3:
         # The ground cools 2–3 °C below the sheltered thermometer on a calm night: frost can form with +3 °C forecast.
-        what = "Gel" if low_t <= 0 else "Gelée blanche possible" if w.frost_point is not None and w.frost_point >= low_t - 3 else "Gel au sol possible"
-        text = f"{what} {at(low.hours)} : {number(low_t)} °C prévus"
-        add(Signal("frost-night", "future", 1, text, "Minimum prévu dans les 18 h. Au sol, il fait 2 à 3 °C de moins que sous abri. Pensez aux plantes et au pare-brise.",
+        what = t("Gel") if low_t <= 0 else t("Gelée blanche possible") if w.frost_point is not None and w.frost_point >= low_t - 3 else t("Gel au sol possible")
+        text = t("{what} {when} : {t} °C prévus", what=what, when=at(low.hours), t=number(low_t))
+        add(Signal("frost-night", "future", 1, text, t("Minimum prévu dans les 18 h. Au sol, il fait 2 à 3 °C de moins que sous abri. Pensez aux plantes et au pare-brise."),
                    "mdi:snowflake-alert", settings.weather_entity, **when(low.hour.time),
-                   short=f"{what} : {number(low_t)} °C prévus"))
+                   short=t("{what} : {t} °C prévus", what=what, t=number(low_t))))
         # The night's minimum says more than the first freezing hour: keep one frost line.
         signals[:] = [s for s in signals if s.key != "freeze-future"]
     if low and low_t is not None:
@@ -264,9 +287,9 @@ def build_brief(w: LocalWeather, settings: Settings, get: Callable[[str], Any], 
         night_calm = low.hour.wind_speed < 8 if low.hour.wind_speed is not None else (wind or 0) < 8
         saturated = low.hour.humidity >= 95 if low.hour.humidity is not None else w.dew_point is not None and low_t <= w.dew_point
         if w.condition != "fog" and night_calm and (low.hour.precipitation or 0) < 0.3 and saturated and low_t > 0:
-            add(Signal("fog-later", "future", 0, f"Brouillard possible {at(low.hours)}",
-                       "Au plus froid de la nuit, l’air prévu est saturé d’humidité, sans vent ni pluie. C’est une estimation de la carte, pas une prévision de brouillard du fournisseur.",
-                       "mdi:weather-fog", settings.weather_entity, **when(low.hour.time), short="Brouillard possible"))
+            add(Signal("fog-later", "future", 0, t("Brouillard possible {when}", when=at(low.hours)),
+                       t("Au plus froid de la nuit, l’air prévu est saturé d’humidité, sans vent ni pluie. C’est une estimation de la carte, pas une prévision de brouillard du fournisseur."),
+                       "mdi:weather-fog", settings.weather_entity, **when(low.hour.time), short=t("Brouillard possible")))
     valid = [x.hour.temperature for x in upcoming if x.hour.temperature is not None]
     if temp is not None and valid and not cold:
         top, bottom = max(valid), min(valid)
@@ -274,19 +297,19 @@ def build_brief(w: LocalWeather, settings: Settings, get: Callable[[str], Any], 
             rising = top - temp >= 3
             peak = next(x for x in upcoming if x.hour.temperature == (top if rising else bottom))
             add(Signal("temperature-future", "future", 0,
-                       f"Montée jusqu’à {number(top)} °C dans les 6 h" if rising else f"Baisse jusqu’à {number(bottom)} °C dans les 6 h",
-                       "Comparé à la température actuelle, sur les 6 prochaines heures.", "mdi:thermometer", settings.weather_entity, **when(peak.hour.time),
-                       short=f"Montée jusqu’à {number(top)} °C" if rising else f"Baisse jusqu’à {number(bottom)} °C"))
+                       t("Montée jusqu’à {t} °C dans les 6 h", t=number(top)) if rising else t("Baisse jusqu’à {t} °C dans les 6 h", t=number(bottom)),
+                       t("Comparé à la température actuelle, sur les 6 prochaines heures."), "mdi:thermometer", settings.weather_entity, **when(peak.hour.time),
+                       short=t("Montée jusqu’à {t} °C", t=number(top)) if rising else t("Baisse jusqu’à {t} °C", t=number(bottom))))
     tomorrow = now.astimezone(zone).date() + timedelta(days=1)
     heavy_day = next((d for d in days if d.time.astimezone(zone).date() == tomorrow and d.precipitation is not None and d.precipitation >= 20), None)
     if heavy_day:
-        add(Signal("rain-tomorrow", "future", 0, f"Forte pluie demain : {number(heavy_day.precipitation or 0)} mm", "Prévision du fournisseur météo pour demain, dès 20 mm.",
-                   "mdi:weather-pouring", settings.weather_entity, heavy_day.time.timestamp(), "demain",
-                   short=f"Forte pluie : {number(heavy_day.precipitation or 0)} mm"))
+        add(Signal("rain-tomorrow", "future", 0, t("Forte pluie demain : {mm} mm", mm=number(heavy_day.precipitation or 0)), t("Prévision du fournisseur météo pour demain, dès 20 mm."),
+                   "mdi:weather-pouring", settings.weather_entity, heavy_day.time.timestamp(), t("demain"),
+                   short=t("Forte pluie : {mm} mm", mm=number(heavy_day.precipitation or 0))))
     if not upcoming:
-        caveats.append("Prévisions des 6 prochaines heures indisponibles.")
+        caveats.append(t("Prévisions des 6 prochaines heures indisponibles."))
     elif any(x.hour.precipitation is None for x in upcoming):
-        caveats.append("Certaines quantités de pluie manquent : le total peut être plus élevé.")
+        caveats.append(t("Certaines quantités de pluie manquent : le total peut être plus élevé."))
 
     with_pollen = settings.pollen_source not in ("none", "legacy")
     for next_day in (False, True):
@@ -299,84 +322,96 @@ def build_brief(w: LocalWeather, settings: Settings, get: Callable[[str], Any], 
             return out
         air = group(("air", *atmo.POLLUTANT_METRICS))
         pollens = group(("pollen", *atmo.POLLEN_METRICS)) if with_pollen else []
-        when = "demain" if next_day else "aujourd’hui"
+        when = t("demain") if next_day else t("aujourd’hui")
         noon = datetime.combine(now.astimezone(zone).date() + timedelta(days=1), datetime.min.time(), zone).replace(hour=12)
-        dated = {"at": noon.timestamp(), "clock": "demain"} if next_day else {}
+        dated = {"at": noon.timestamp(), "clock": t("demain")} if next_day else {}
         for kind, readings in (("air", air), ("pollen", pollens)):
             fresh = sorted((x for x in readings if not x[1].stale and (x[1].value or 0) <= 6), key=lambda x: -(x[1].value or 0))
             # WAQI measures today's air at a station; Open-Meteo forecasts tomorrow's: both said on Atmo's scale.
             origin = waqi.source(settings, readings[0][1].entity_id) if kind == "air" and readings else None
             if any(x[1].stale for x in readings):
-                caveats.append(f"{origin or 'Atmo'} {'air' if kind == 'air' else 'pollens'} {when} : données trop anciennes, non utilisées.")
+                caveats.append(t("{source} air {when} : données trop anciennes, non utilisées.", source=origin or "Atmo", when=when) if kind == "air"
+                               else t("{source} pollens {when} : données trop anciennes, non utilisées.", source=origin or "Atmo", when=when))
             if any(not x[1].updated for x in fresh):
-                caveats.append(f"{origin or 'Atmo'} {'air' if kind == 'air' else 'pollens'} : date de publication inconnue.")
+                caveats.append(t("{source} air : date de publication inconnue.", source=origin or "Atmo") if kind == "air"
+                               else t("{source} pollens : date de publication inconnue.", source=origin or "Atmo"))
             if fresh:
                 metric, r = fresh[0]
                 v = r.value or 0
                 serious, watch = (4, 3) if kind == "air" else (5, 4)
                 detail = f" ({_lower_first(atmo.short_label(metric))})" if metric != kind else ""
-                said = f"{'Air extérieur : ' if kind == 'air' else 'Pollens : niveau '}{r.label.lower()}"
+                said = (t("Air extérieur : {level}", level=r.label.lower()) if kind == "air" else t("Pollens : niveau {level}", level=r.label.lower()))
+                zone_text = t(", zone {zone}", zone=r.zone) if r.zone else ""
+                not_here = t("Ce n’est pas une mesure faite chez vous.")
+                if origin is None:
+                    why = (t("Indice Atmo {index} sur 6{zone}.", index=int(v), zone=zone_text) + " "
+                           + (t("Publié le {date}.", date=r.updated) if r.updated else t("Date de publication inconnue.")) + " " + not_here)
+                elif origin == waqi.NAME:
+                    why = (t("Mesure WAQI{zone}, ramenée au niveau {index} sur 6.", zone=f", {r.zone}" if r.zone else "", index=int(v)) + " "
+                           + (t("Relevée le {date}.", date=r.updated) if r.updated else t("Heure de mesure inconnue.")) + " " + not_here)
+                else:
+                    why = (t("Prévision Open-Meteo (modèle européen Copernicus), niveau {index} sur 6.", index=int(v)) + " "
+                           + (t("Calculée le {date}.", date=r.updated) + " " if r.updated else " ") + not_here)
                 add(Signal(f"{kind}-{str(next_day).lower()}", "environment", 2 if v >= serious else 1 if v >= watch else 0,
-                           f"{said} {when}{detail}",
-                           (f"Indice Atmo {int(v)} sur 6{', zone ' + r.zone if r.zone else ''}. {'Publié le ' + r.updated + '.' if r.updated else 'Date de publication inconnue.'} Ce n’est pas une mesure faite chez vous."
-                            if origin is None else
-                            f"Mesure WAQI{', ' + r.zone if r.zone else ''}, ramenée au niveau {int(v)} sur 6. {'Relevée le ' + r.updated + '.' if r.updated else 'Heure de mesure inconnue.'} Ce n’est pas une mesure faite chez vous."
-                            if origin == waqi.NAME else
-                            f"Prévision Open-Meteo (modèle européen Copernicus), niveau {int(v)} sur 6. {'Calculée le ' + r.updated + '.' if r.updated else ''} Ce n’est pas une mesure faite chez vous."),
+                           f"{said} {when}{detail}", why,
                            "mdi:air-filter" if kind == "air" else "mdi:flower-pollen", r.entity_id, **dated, short=f"{said}{detail}", index=v))
             event = next((x for x in readings if x[1].value == 7 and not x[1].stale), None)
             if event:
-                add(Signal(f"atmo-event-{str(next_day).lower()}", "environment", 1, f"Événement signalé par Atmo {when}",
-                           "Atmo signale un événement particulier (code 7). Ce n’est pas un niveau de pollution.", "mdi:information-outline", event[1].entity_id,
-                           **dated, short="Événement signalé par Atmo"))
+                add(Signal(f"atmo-event-{str(next_day).lower()}", "environment", 1, t("Événement signalé par Atmo {when}", when=when),
+                           t("Atmo signale un événement particulier (code 7). Ce n’est pas un niveau de pollution."), "mdi:information-outline", event[1].entity_id,
+                           **dated, short=t("Événement signalé par Atmo")))
     if settings.pollen_source not in ("none", "atmo") and not settings.atmo_pollens:
         for pollen in settings.pollens:
             state = get(pollen.entity_id)
             level = polleninfo.usable_level(get, settings, pollen, now=now, zone=zone)
             if level is not None and 3 <= level <= 4:
                 label = polleninfo.name(pollen, state)
-                scale = "1 à 4" if polleninfo.provider(settings) == polleninfo.KLEENEX else "0 à 4"
-                add(Signal(f"legacy-{pollen.entity_id}", "environment", 2 if level == 4 else 1, f"{label} : pollens {'très élevés' if level == 4 else 'élevés'}",
-                           f"Niveau {polleninfo.provider_name(settings)}, sur une échelle de {scale}. Ce n’est pas une mesure faite chez vous.", "mdi:flower-pollen", pollen.entity_id,
-                           short=f"Pollens : {label.lower()} {'très élevés' if level == 4 else 'élevés'}", index=level))
+                scale = N_("1 à 4") if polleninfo.provider(settings) == polleninfo.KLEENEX else N_("0 à 4")
+                add(Signal(f"legacy-{pollen.entity_id}", "environment", 2 if level == 4 else 1,
+                           t("{name} : pollens très élevés", name=label) if level == 4 else t("{name} : pollens élevés", name=label),
+                           t("Niveau {provider}, sur une échelle de {scale}. Ce n’est pas une mesure faite chez vous.", provider=polleninfo.provider_name(settings), scale=t(scale)),
+                           "mdi:flower-pollen", pollen.entity_id,
+                           short=t("Pollens : {name} très élevés", name=label.lower()) if level == 4 else t("Pollens : {name} élevés", name=label.lower()), index=level))
     if settings.vigilance_entity:
         official = read_vigilance(settings, get, now, platforms)
         if official is None:
-            caveats.append("Vigilance indisponible ou trop ancienne : consultez le service officiel de votre région.")
+            caveats.append(t("Vigilance indisponible ou trop ancienne : consultez le service officiel de votre région."))
         elif official.level > 0:
             add(Signal("official", "official", official.level, official.text,
-                       f"Vigilance officielle {official.source}. Ouvrez le capteur pour lire les consignes.", "mdi:alert-outline", settings.vigilance_entity))
+                       t("Vigilance officielle {source}. Ouvrez le capteur pour lire les consignes.", source=official.source), "mdi:alert-outline", settings.vigilance_entity))
 
     severity = max((s.severity for s in signals), default=0)
     signals.sort(key=lambda s: (-s.severity, GROUPS.index(s.group), s.key))
 
     def phrases(g: str) -> str:
-        return " ; ".join([s.text for s in signals if s.group == g][:2])
+        return t(" ; ").join([s.text for s in signals if s.group == g][:2])
 
-    lines = [f"Maintenant : {current}{' ' + phrases('now') + '.' if phrases('now') else ''}"]
+    lines = [t("Maintenant : {text}", text=current + (" " + phrases("now") + "." if phrases("now") else ""))]
     if phrases("future"):
-        lines.append(f"À venir : {phrases('future')}.")
+        lines.append(t("À venir : {text}.", text=phrases("future")))
     elif not upcoming:
-        lines.append("À venir : prévisions indisponibles.")
+        lines.append(t("À venir : prévisions indisponibles."))
     if phrases("environment"):
-        lines.append(f"Air et pollens : {phrases('environment')}.")
+        lines.append(t("Air et pollens : {text}.", text=phrases("environment")))
     if phrases("official"):
         lines.append(phrases("official") + ".")
     omitted = sum(1 for g in ("now", "future", "environment") for s in [x for x in signals if x.group == g][2:] if s.severity > 0)
     if omitted:
-        lines.append(f"{omitted} autre{'s' if omitted > 1 else ''} point{'s' if omitted > 1 else ''} à consulter dans les explications.")
+        lines.append(t("{count} autres points à consulter dans les explications.", count=omitted) if omitted > 1
+                     else t("1 autre point à consulter dans les explications."))
     available = feels is not None or bool(signals) or bool(upcoming)
     official_signal = next((s for s in signals if s.key == "official"), None)
-    themes = {"wind": "Vent", "wind-rain": "Pluie et vent", "rain-now": "Pluie", "rain-future": "Pluie", "storm": "Orage", "storm-near": "Orage",
-              "water": "Restrictions d’eau",
-              "temperature": "Chaleur" if feels is not None and feels >= 34 else "Froid", "freeze-future": "Froid", "frost-night": "Gel", "fog": "Brouillard", "uv": "UV"}
+    themes = {"wind": N_("Vent"), "wind-rain": N_("Pluie et vent"), "rain-now": N_("Pluie"), "rain-future": N_("Pluie"), "storm": N_("Orage"), "storm-near": N_("Orage"),
+              "water": N_("Restrictions d’eau"),
+              "temperature": N_("Chaleur") if feels is not None and feels >= 34 else N_("Froid"), "freeze-future": N_("Froid"), "frost-night": N_("Gel"),
+              "fog": N_("Brouillard"), "uv": N_("UV")}
     topics: list[str] = []
     for s in signals:
         if s.severity > 0 and s.group != "official":
-            topic = themes.get(s.key) or ("Air extérieur" if s.key.startswith("air-") or s.key.startswith("atmo-event") else "Pollens" if s.group == "environment" else "Météo")
+            topic = t(themes.get(s.key) or (N_("Air extérieur") if s.key.startswith("air-") or s.key.startswith("atmo-event") else N_("Pollens") if s.group == "environment" else N_("Météo")))
             if topic not in topics:
                 topics.append(topic)
-    title = official_signal.text if official_signal and official_signal.severity == severity else " · ".join(topics[:3]) if topics else "Votre météo en bref"
-    return Brief(title=title, label="Données insuffisantes" if not available else "Synthèse partielle" if severity == 0 and caveats else LEVELS[severity],
+    title = official_signal.text if official_signal and official_signal.severity == severity else " · ".join(topics[:3]) if topics else t("Votre météo en bref")
+    return Brief(title=title, label=t("Données insuffisantes") if not available else t("Synthèse partielle") if severity == 0 and caveats else t(LEVELS[severity]),
                  color=COLORS[severity] if available else "150,150,150", icon=next((s.icon for s in signals if s.severity > 0), "mdi:weather-partly-cloudy"),
                  summary="\n".join(lines), signals=tuple(signals), caveats=tuple(dict.fromkeys(caveats)), available=available, severity=severity)

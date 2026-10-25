@@ -2,9 +2,10 @@
 import { html, nothing, svg, type TemplateResult } from 'lit';
 import type { AlertPoint, Chip, TickerPoint } from '../view';
 import { numberFormat } from '../intl-cache';
+import { currentLocale, t } from '../i18n';
 
-/** French number, at most `digits` decimals (exactly `digits` when `fixed`). */
-export const nf = (v: number, digits = 1, fixed = false) => numberFormat('fr-FR', { maximumFractionDigits: digits, minimumFractionDigits: fixed ? digits : 0 }).format(v);
+/** A number in the user's language, at most `digits` decimals (exactly `digits` when `fixed`). */
+export const nf = (v: number, digits = 1, fixed = false) => numberFormat(currentLocale(), { maximumFractionDigits: digits, minimumFractionDigits: fixed ? digits : 0 }).format(v);
 /** A number stays with its unit at the end of a line: « (6 °C) » is never cut after the 6. */
 export const unbroken = (text: string) => text.replace(/(\d) (°C|km\/h|mm|%|hPa)/g, '$1\u00a0$2');
 /** The colour of a meaning token, for `--c`. */
@@ -40,9 +41,17 @@ export function alertPill(a: AlertPoint): TemplateResult {
     <span class="dot"><ha-icon icon=${a.icon}></ha-icon></span><span>${a.label ? html`<b>${a.label}<span class="sep"> · </span></b>` : nothing}${a.text}</span></p>`;
 }
 
-const ROSE = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSO', 'SO', 'OSO', 'O', 'ONO', 'NO', 'NNO'];
-/** Where the wind comes from, as a point of the compass (« SO »). */
-export const rose = (deg: number) => ROSE[Math.round(((deg % 360 + 360) % 360) / 22.5) % 16];
+/** The sixteen points of the compass, in the user's language (« SO » in French, « SW » in English). */
+/** Where the wind comes from, as a point of the compass. */
+export const rose = (deg: number) => t('N NNE NE ENE E ESE SE SSE S SSO SO OSO O ONO NO NNO').split(' ')[Math.round(((deg % 360 + 360) % 360) / 22.5) % 16];
+
+/** The wind of a forecast in words: « Vent du SO 12 km/h, rafales 30 km/h »; `upTo` for a day's strongest wind (« jusqu’à 30 km/h »). */
+export function windTip(speed: string | number, bearing?: number, gust?: string | number, upTo = false): string {
+  const from = bearing === undefined ? '' : rose(bearing);
+  const wind = upTo ? (from ? t('Vent du {from} jusqu’à {speed} km/h', { from, speed }) : t('Vent jusqu’à {speed} km/h', { speed }))
+    : from ? t('Vent du {from} {speed} km/h', { from, speed }) : t('Vent {speed} km/h', { speed });
+  return gust === undefined ? wind : `${wind}${t(', rafales {gust} km/h', { gust })}`;
+}
 
 /** An arrow pointing where the wind goes (the bearing is where it comes from). */
 export const windArrow = (bearing: number) => svg`<svg viewBox="0 0 10 10" aria-hidden="true" style=${`transform:rotate(${Math.round(bearing + 180)}deg)`}><path d="M5 0 9 10 5 7.5 1 10Z"/></svg>`;
@@ -50,8 +59,8 @@ export const windArrow = (bearing: number) => svg`<svg viewBox="0 0 10 10" aria-
 export interface Explanation { title: string; text: unknown; example?: unknown }
 /** The « i » button and its explanation bubble. `id` must be unique in the card. */
 export function info(id: string, e: Explanation): TemplateResult {
-  return html`<button class="nw-info" type="button" popovertarget=${id} aria-label=${`Qu’est-ce que : ${e.title} ?`} @click=${stop}><ha-icon icon="mdi:information-variant"></ha-icon></button>
-    <div class="nw-pop" id=${id} popover @toggle=${place} @click=${stop}><b>${e.title}</b>${e.text}${e.example ? html`<div class="ex">${e.example}</div>` : nothing}</div>`;
+  return html`<button class="nw-info" type="button" popovertarget=${id} aria-label=${t('Qu’est-ce que : {title} ?', { title: e.title })} @click=${stop}><ha-icon icon="mdi:information-variant"></ha-icon></button>
+    <div class="nw-pop" id=${id} popover style=${`--nw-example-word:"${t('Exemple')}"`} @toggle=${place} @click=${stop}><b>${e.title}</b>${e.text}${e.example ? html`<div class="ex">${e.example}</div>` : nothing}</div>`;
 }
 const stop = (event: Event) => event.stopPropagation();
 /** Opens the bubble under its button, without leaving the screen. */

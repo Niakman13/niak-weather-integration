@@ -1,5 +1,6 @@
 // The full card: the banner, then « Aujourd'hui » and « Prévisions », each folded or unfolded with a tap on its title.
 import { css, html, nothing, type TemplateResult } from 'lit';
+import { t } from '../i18n';
 import type { WeatherView } from '../view';
 import type { BannerBlock } from '../types';
 import type { Sections } from '../config';
@@ -42,9 +43,9 @@ export function renderFull(v: WeatherView, o: FullOptions): TemplateResult {
     : b === 'moments' ? moments(v) : forecastStrip(v, o.tab, o.onTab);
   return html`<div class="nw-full">
     ${hero ? renderHero(v, o.sky, o.uid, banner, draw, o.clock) : nothing}
-    ${today.length ? section('today', 'Aujourd’hui', v.comfort ? 'Mesures et ressenti' : 'Conditions actuelles', o,
+    ${today.length ? section('today', t('Aujourd’hui'), v.comfort ? t('Mesures et ressenti') : t('Conditions actuelles'), o,
       () => renderToday(v, o.uid, o.station, renderAir(v.air.today), today)) : nothing}
-    ${forecasts.length ? section('predictions', 'Prévisions', v.forecastSource, o,
+    ${forecasts.length ? section('predictions', t('Prévisions'), v.forecastSource, o,
       () => renderForecasts(v, o.entity, o.uid, renderAir(v.air.tomorrow), forecasts)) : nothing}
   </div>`;
 }

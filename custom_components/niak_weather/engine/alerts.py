@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .brief import Brief, Signal
+from .i18n import t
 
 DISPLAY_ORDER = ("official", "now", "future", "environment")
 
@@ -43,12 +44,12 @@ class AlertPoint:
 
 def label(s: Signal) -> str:
     if s.key == "water":
-        return "Eau"
+        return t("Eau")
     if s.group == "now":
-        return "Maintenant"
+        return t("Maintenant")
     if s.group == "future":
-        return "À venir"
-    return "Pollens" if s.key.startswith("pollen") or s.key.startswith("legacy") else "Air"
+        return t("À venir")
+    return t("Pollens") if s.key.startswith("pollen") or s.key.startswith("legacy") else t("Air")
 
 
 def theme_of(s: Signal) -> str | None:
@@ -134,7 +135,7 @@ def vigilance_parts(text: str) -> tuple[str | None, str]:
         _, level, detail = parts
         return f"MétéoSuisse · {level}", detail[0].upper() + detail[1:] if detail else ""
     level, _, detail = text.partition(" · ")
-    if level in ("Vigilance jaune", "Vigilance orange", "Vigilance rouge") and detail:
+    if level in (t("Vigilance jaune"), t("Vigilance orange"), t("Vigilance rouge")) and detail:
         return level, detail[0].upper() + detail[1:]
     return None, text
 

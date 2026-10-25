@@ -1,7 +1,8 @@
 // « Prévisions »: the next 18 hours as a curve, the next 7 days as a table.
 import { css, html, nothing, svg, type TemplateResult } from 'lit';
+import { colon, hourMark, t } from '../i18n';
 import type { DayForecast, Slot, WeatherView } from '../view';
-import { label, legend, nf, panelHead, rose, tempColor, windArrow } from '../ui/parts';
+import { label, legend, nf, panelHead, tempColor, windArrow, windTip } from '../ui/parts';
 
 export function hoursChart(hours: Slot[], source: string, entity: string, uid: string): TemplateResult | typeof nothing {
   const points = hours.map((h, i) => ({ h, i })).filter(p => p.h.temperature !== undefined);
@@ -21,14 +22,14 @@ export function hoursChart(hours: Slot[], source: string, entity: string, uid: s
     return html`<span class=${`pill${y < 30 ? ' low' : ''}`} style=${`left:${Math.min(94, Math.max(6, X(p.i)))}%;top:${y}%`}>${nf(p.h.temperature!, 0)}°</span>`; };
   // Unique names: a gradient must never be looked up in another copy of the chart.
   const stroke = `${uid}-fs`, fill = `${uid}-fa`;
-  return html`<section class="nw-panel" aria-label="18 prochaines heures">${panelHead('mdi:chart-bell-curve-cumulative', 'wind', '18 prochaines heures', source)}
+  return html`<section class="nw-panel" aria-label=${t('18 prochaines heures')}>${panelHead('mdi:chart-bell-curve-cumulative', 'wind', t('18 prochaines heures'), source)}
     <div class="fc" data-entity=${entity}>
-      <div class="fc-marks">${midnight < 0 || X(midnight) > 22 ? html`<span style="left:0">Maintenant</span>` : nothing}${midnight > 0 ? html`<span class="next" style=${`left:${X(midnight)}%`}>Demain</span>` : nothing}</div>
-      <div class="fc-plot" role="img" aria-label=${`Températures de ${nf(min.h.temperature!, 0)} à ${nf(max.h.temperature!, 0)} °C${rain ? `, pluie jusqu’à ${nf(Math.max(...hours.map(h => h.precipitation)))} mm par heure` : ', pas de pluie prévue'}`}>
+      <div class="fc-marks">${midnight < 0 || X(midnight) > 22 ? html`<span style="left:0">${t('Maintenant')}</span>` : nothing}${midnight > 0 ? html`<span class="next" style=${`left:${X(midnight)}%`}>${t('Demain')}</span>` : nothing}</div>
+      <div class="fc-plot" role="img" aria-label=${`${t('Températures de {low} à {high} °C', { low: nf(min.h.temperature!, 0), high: nf(max.h.temperature!, 0) })}${rain ? t(', pluie jusqu’à {mm} mm par heure', { mm: nf(Math.max(...hours.map(h => h.precipitation))) }) : t(', pas de pluie prévue')}`}>
         ${nights.map(([a, b]) => { const left = Math.max(0, X(a) - step / 2), right = Math.min(100, X(b) + step / 2);
           return html`<i class="fc-night" style=${`left:${left}%;width:${right - left}%`}></i>`; })}
         ${midnight > 0 ? html`<i class="fc-divider" style=${`left:${X(midnight)}%`}></i>` : nothing}
-        ${hours.map((h, i) => h.precipitation >= .1 ? html`<i class="fc-bar" title=${`${h.hour} h : ${nf(h.precipitation)} mm`} style=${`left:calc(${X(i)}% - 5px);height:${Math.max(6, h.precipitation / peak * 42)}%`}></i>` : nothing)}
+        ${hours.map((h, i) => h.precipitation >= .1 ? html`<i class="fc-bar" title=${colon(hourMark(h.hour), `${nf(h.precipitation)} mm`)} style=${`left:calc(${X(i)}% - 5px);height:${Math.max(6, h.precipitation / peak * 42)}%`}></i>` : nothing)}
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><defs>
           <linearGradient id=${stroke} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--nw-heat)"/><stop offset="1" stop-color="var(--nw-cold)"/></linearGradient>
           <linearGradient id=${fill} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--nw-heat)" stop-opacity=".28"/><stop offset="1" stop-color="var(--nw-cold)" stop-opacity="0"/></linearGradient></defs>
@@ -37,11 +38,11 @@ export function hoursChart(hours: Slot[], source: string, entity: string, uid: s
         ${pill(max)}${min.i !== max.i && nf(min.h.temperature!, 0) !== nf(max.h.temperature!, 0) ? pill(min) : nothing}
       </div>
       <div class="fc-hours">${ticks.map(i => { const h = hours[i];
-        return html`<div style=${`left:${X(i)}%`} title=${h.conditionLabel}>${label(`${h.hour} h`)}<ha-icon icon=${h.icon}></ha-icon><b>${nf(h.temperature!, 0)}°</b>
-          ${h.wind === undefined ? nothing : html`<span class="fc-wind" title=${`Vent ${h.bearing === undefined ? '' : `du ${rose(h.bearing)} `}${nf(h.wind, 0)} km/h${h.gust !== undefined && h.gust > h.wind ? `, rafales ${nf(h.gust, 0)} km/h` : ''}`}>${h.bearing === undefined ? nothing : windArrow(h.bearing)}${nf(h.wind, 0)}</span>`}</div>`; })}</div>
+        return html`<div style=${`left:${X(i)}%`} title=${h.conditionLabel}>${label(hourMark(h.hour))}<ha-icon icon=${h.icon}></ha-icon><b>${nf(h.temperature!, 0)}°</b>
+          ${h.wind === undefined ? nothing : html`<span class="fc-wind" title=${windTip(nf(h.wind, 0), h.bearing, h.gust !== undefined && h.gust > h.wind ? nf(h.gust, 0) : undefined)}>${h.bearing === undefined ? nothing : windArrow(h.bearing)}${nf(h.wind, 0)}</span>`}</div>`; })}</div>
     </div>
-    <div class="nw-legend">${legend('Température', 'linear-gradient(90deg,var(--nw-cold),var(--nw-heat))')}${rain ? legend('Pluie', 'var(--nw-rain)', 'sq') : nothing}
-      ${nights.length ? legend('Nuit', 'color-mix(in oklab,var(--nw-wind) 30%,transparent)', 'sq') : nothing}${wind ? html`<span>${windArrow(200)}Vent km/h</span>` : nothing}</div>
+    <div class="nw-legend">${legend(t('Température'), 'linear-gradient(90deg,var(--nw-cold),var(--nw-heat))')}${rain ? legend(t('Pluie'), 'var(--nw-rain)', 'sq') : nothing}
+      ${nights.length ? legend(t('Nuit'), 'color-mix(in oklab,var(--nw-wind) 30%,transparent)', 'sq') : nothing}${wind ? html`<span>${windArrow(200)}${t('Vent km/h')}</span>` : nothing}</div>
   </section>`;
 }
 
@@ -49,16 +50,16 @@ export function week(days: DayForecast[], source: string, entity: string): Templ
   if (!days.length) return nothing;
   const lows = days.flatMap(d => d.low ?? d.high ?? []), highs = days.flatMap(d => d.high ?? d.low ?? []);
   const lo = Math.min(...lows), hi = Math.max(...highs, lo + 1), P = (t: number) => (t - lo) / (hi - lo) * 100;
-  return html`<section class="nw-panel" aria-label="7 prochains jours">${panelHead('mdi:calendar-week', 'wind', `${days.length} prochains jours`, source)}
-    <div class="wk" data-entity=${entity} role="group" aria-label="Températures minimales et maximales en °C, pluie en mm, vent maximal en km/h">
-      <span></span><span></span>${label('Min')}<span></span>${label('Max')}${label('Pluie')}${label('Vent')}
+  return html`<section class="nw-panel" aria-label=${t('{n} prochains jours', { n: days.length })}>${panelHead('mdi:calendar-week', 'wind', t('{n} prochains jours', { n: days.length }), source)}
+    <div class="wk" data-entity=${entity} role="group" aria-label=${t('Températures minimales et maximales en °C, pluie en mm, vent maximal en km/h')}>
+      <span></span><span></span>${label(t('Min'))}<span></span>${label(t('Max'))}${label(t('Pluie'))}${label(t('Vent'))}
       ${days.map((d, i) => html`${i ? html`<i class="rule"></i>` : nothing}<span class=${`day${d.today ? ' today' : ''}`}>${d.label}</span>
         <ha-icon icon=${d.icon} title=${d.conditionLabel}></ha-icon>
         <span class="lo">${d.low === undefined ? '' : `${d.low}°`}</span>
         <span class="track">${d.low !== undefined && d.high !== undefined ? html`<i style=${`left:${P(d.low)}%;width:${Math.max(2, P(d.high) - P(d.low))}%;background:linear-gradient(90deg,${tempColor(d.low)},${tempColor(d.high)})`}></i>` : nothing}</span>
         <span class="hi">${d.high === undefined ? '—' : `${d.high}°`}</span>
         <span class="rain">${d.rain >= .1 ? `${nf(d.rain)} mm` : ''}</span>
-        <span class="wind" title=${d.wind === undefined ? '' : `Vent ${d.bearing === undefined ? '' : `du ${rose(d.bearing)} `}jusqu’à ${d.wind} km/h${d.gust !== undefined && d.gust > d.wind ? `, rafales ${d.gust} km/h` : ''}`}>${d.wind === undefined ? '' : html`${d.bearing === undefined ? nothing : windArrow(d.bearing)}${d.wind}`}</span>`)}
+        <span class="wind" title=${d.wind === undefined ? '' : windTip(d.wind, d.bearing, d.gust !== undefined && d.gust > d.wind ? d.gust : undefined, true)}>${d.wind === undefined ? '' : html`${d.bearing === undefined ? nothing : windArrow(d.bearing)}${d.wind}`}</span>`)}
     </div>
   </section>`;
 }
@@ -70,7 +71,7 @@ export function renderForecasts(v: WeatherView, entity: string, uid: string, air
     .filter(p => p !== nothing);
   const wanted = blocks.some(b => b !== 'air');
   return html`${panels.length ? html`<div class=${`panels${panels.length === 1 ? ' single' : ''}`}>${panels}</div>`
-    : wanted ? html`<p class="nw-empty">Prévisions indisponibles pour le moment.</p>` : nothing}${blocks.includes('air') ? air : nothing}`;
+    : wanted ? html`<p class="nw-empty">${t('Prévisions indisponibles pour le moment.')}</p>` : nothing}${blocks.includes('air') ? air : nothing}`;
 }
 
 export const forecastStyles = css`

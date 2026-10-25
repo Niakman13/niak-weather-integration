@@ -1,6 +1,7 @@
 // Air and pollens from Atmo France (index 1 to 6), Polleninformation or IRM KMI (0 to 4): the same panel for today (in « Aujourd'hui »)
 // and tomorrow (in « Prévisions »).
 import { css, html, nothing, svg, type TemplateResult } from 'lit';
+import { t } from '../i18n';
 import type { AirItem, AirPanel, AtmoReading } from '../view';
 import { chip, label, nf, panelHead } from '../ui/parts';
 
@@ -24,9 +25,9 @@ function disc(r: AtmoReading | undefined, scale: number): TemplateResult {
 /** What a detail line says: its level, or its concentration as published. */
 function detail(item: AirItem): string {
   const r = item.reading, c = item.concentration;
-  const concentration = (x: AtmoReading) => x.value === undefined ? 'concentration indisponible' : `${nf(x.value, 2)}${x.unit ? ` ${x.unit}` : ''}`;
+  const concentration = (x: AtmoReading) => x.value === undefined ? t('concentration indisponible') : `${nf(x.value, 2)}${x.unit ? ` ${x.unit}` : ''}`;
   const value = r.unit !== undefined ? concentration(r) : `${r.label}${c ? ` · ${concentration(c)}` : ''}`;
-  return `${value}${r.stale ? ' · données anciennes' : ''}`;
+  return `${value}${r.stale ? ` · ${t('données anciennes')}` : ''}`;
 }
 
 function panel(p: AirPanel): TemplateResult {
@@ -36,20 +37,20 @@ function panel(p: AirPanel): TemplateResult {
   const worse = p.worse ? known(p.worse.reading, scale) ?? 0 : 0;
   const absentForecast = !air && atmo && p.tomorrow && !r?.stale && r?.unavailableReason === 'no_index';
   const ambiguousZero = !air && atmo && p.details.some(d => d.concentration?.value === 0 && known(d.reading, scale) === undefined);
-  const word = absentForecast ? 'Prévision non disponible' : !r ? 'Indice non configuré' : r.stale ? 'Données anciennes' : r.value === 7 ? 'Événement signalé' : r.label;
-  return html`<section class="nw-panel" aria-label=${`${air ? 'Air extérieur' : 'Pollens'} ${p.tomorrow ? 'demain' : 'aujourd’hui'}`}>
-    ${panelHead(air ? 'mdi:air-filter' : 'mdi:flower-pollen-outline', 'calm', air ? 'Air extérieur' : 'Pollens', source)}
-    <p class="nw-sub">${p.tomorrow ? 'Demain' : 'Aujourd’hui'}${p.zone ? ` · ${p.zone}` : ''}</p>
+  const word = absentForecast ? t('Prévision non disponible') : !r ? t('Indice non configuré') : r.stale ? t('Données anciennes') : r.value === 7 ? t('Événement signalé') : r.label;
+  return html`<section class="nw-panel" aria-label=${air ? t(p.tomorrow ? 'Air extérieur demain' : 'Air extérieur aujourd’hui') : t(p.tomorrow ? 'Pollens demain' : 'Pollens aujourd’hui')}>
+    ${panelHead(air ? 'mdi:air-filter' : 'mdi:flower-pollen-outline', 'calm', air ? t('Air extérieur') : t('Pollens'), source)}
+    <p class="nw-sub">${p.tomorrow ? t('Demain') : t('Aujourd’hui')}${p.zone ? ` · ${p.zone}` : ''}</p>
     <div class="aq" data-entity=${r?.entityId ?? nothing} role=${r ? 'button' : nothing} tabindex=${r ? 0 : nothing}>${disc(r, scale)}
-      <div class="txt">${label(p.tomorrow ? 'Indice de demain' : 'Indice du jour')}<strong>${word}</strong>
-        <small>${value !== undefined ? `Niveau ${value} sur ${scale}` : r?.value === 7 && atmo ? 'Code 7 · hors échelle' : absentForecast ? 'Indice pollen non fourni' : 'Niveau indisponible'}</small></div></div>
-    ${absentForecast ? html`<p class="availability-note">Atmo France ne fournit pas d’indice pollen exploitable pour demain à cet endroit.</p>` : nothing}
+      <div class="txt">${label(p.tomorrow ? t('Indice de demain') : t('Indice du jour'))}<strong>${word}</strong>
+        <small>${value !== undefined ? t('Niveau {value} sur {scale}', { value, scale }) : r?.value === 7 && atmo ? t('Code 7 · hors échelle') : absentForecast ? t('Indice pollen non fourni') : t('Niveau indisponible')}</small></div></div>
+    ${absentForecast ? html`<p class="availability-note">${t('Atmo France ne fournit pas d’indice pollen exploitable pour demain à cet endroit.')}</p>` : nothing}
     ${p.worse ? html`<div class="nw-chips">${chip({ theme: `level${Math.min(3, Math.max(1, worse - (atmo ? 2 : 1)))}` as 'level1', icon: 'mdi:alert-circle-outline',
       value: p.worse.label, label: p.worse.reading.label.toLowerCase(), entity: p.worse.reading.entityId })}</div>` : nothing}
-    ${p.details.length || p.updated ? html`<details class="nw-details"><summary><ha-icon icon="mdi:chevron-right"></ha-icon>${air ? 'Détail des polluants' : 'Détail des pollens'}</summary>
+    ${p.details.length || p.updated ? html`<details class="nw-details"><summary><ha-icon icon="mdi:chevron-right"></ha-icon>${air ? t('Détail des polluants') : t('Détail des pollens')}</summary>
       ${p.details.length ? html`<ul>${p.details.map(d => html`<li data-entity=${d.reading.entityId}><span>${d.label}</span><b>${detail(d)}</b></li>`)}</ul>` : nothing}
-      ${ambiguousZero ? html`<p>Une concentration à 0 peut être une valeur réelle ou remplacer une donnée manquante chez Atmo France. Elle ne permet pas, à elle seule, de conclure à une absence de pollen.</p>` : nothing}
-      ${p.updated ? html`<p>${atmo && !p.source ? 'Publication Atmo' : `Mise à jour ${source}`} : ${p.updated}.${p.stale ? ' Certaines données sont anciennes : à vérifier dans l’intégration.' : ''}</p>` : nothing}</details>` : nothing}
+      ${ambiguousZero ? html`<p>${t('Une concentration à 0 peut être une valeur réelle ou remplacer une donnée manquante chez Atmo France. Elle ne permet pas, à elle seule, de conclure à une absence de pollen.')}</p>` : nothing}
+      ${p.updated ? html`<p>${atmo && !p.source ? t('Publication Atmo : {date}.', { date: p.updated }) : t('Mise à jour {source} : {date}.', { source, date: p.updated })}${p.stale ? ` ${t('Certaines données sont anciennes : à vérifier dans l’intégration.')}` : ''}</p>` : nothing}</details>` : nothing}
   </section>`;
 }
 

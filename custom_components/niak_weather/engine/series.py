@@ -8,6 +8,7 @@ from typing import Any, Literal, NamedTuple, Sequence
 from zoneinfo import ZoneInfo
 
 from .local import LocalWeather
+from .i18n import t
 from .station import WEEKDAYS, RainDay, counter_increase, midnight
 from .trends import Change, Direction
 from .units import Kind, measurement
@@ -143,7 +144,7 @@ def rain_days(rows: Sequence[Change], unit: str | None, now: datetime, zone: Zon
         value = None if ends_in_outage and highest == 0 else highest
         reset_inside = any(values[j] < values[j - 1] for j in range(1, len(values)))
         partial = value is not None and (reset_inside or ends_in_outage or (previous is None and bool(daily)))
-        days.append(RainDay(key.isoformat(), "Auj." if i == 6 else WEEKDAYS[key.weekday()], value, partial))
+        days.append(RainDay(key.isoformat(), t("Auj.") if i == 6 else t(WEEKDAYS[key.weekday()]), value, partial))
     return tuple(days)
 
 
@@ -210,8 +211,8 @@ def column_status(w: LocalWeather | None) -> ColumnStatus:
         return ColumnStatus()
     rate, change, direction = w.rain.rate, w.wind.trend.change, w.pressure_trend.direction
     return ColumnStatus(
-        rain=None if rate is None or rate < 0.3 else "Forte pluie en cours" if rate >= 4 else "Pluie en cours",
+        rain=None if rate is None or rate < 0.3 else t("Forte pluie en cours") if rate >= 4 else t("Pluie en cours"),
         # Over one hour: a few km/h is noise, 8 km/h is felt.
-        wind=None if change is None else "Le vent s’intensifie" if change >= 8 else "Le vent faiblit" if change <= -8 else None,
-        pressure="La pression baisse" if direction is Direction.FALLING else "La pression monte" if direction is Direction.RISING else None,
+        wind=None if change is None else t("Le vent s’intensifie") if change >= 8 else t("Le vent faiblit") if change <= -8 else None,
+        pressure=t("La pression baisse") if direction is Direction.FALLING else t("La pression monte") if direction is Direction.RISING else None,
     )

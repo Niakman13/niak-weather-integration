@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import NamedTuple, Sequence
 
+from .i18n import N_, t
 from .units import Kind, measurement
 
 
@@ -48,11 +49,11 @@ def trend(history: Sequence[Change], value: float | None, now: float, kind: Kind
     direction = Direction.RISING if change >= limit else Direction.FALLING if change <= -limit else Direction.STEADY
     size = abs(change)
     if not pressure:
-        text = {"hausse": "le vent se lève", "baisse": "le vent faiblit"}.get(direction, "vent régulier")
+        text = t({"hausse": N_("le vent se lève"), "baisse": N_("le vent faiblit")}.get(direction, N_("vent régulier")))
     elif size < 1:
-        text = "temps installé"
+        text = t("temps installé")
     elif direction is Direction.FALLING:
-        text = "chute rapide" if size >= 6 else "le temps se gâte" if size >= 3 else "légère baisse"
+        text = t("chute rapide") if size >= 6 else t("le temps se gâte") if size >= 3 else t("légère baisse")
     else:
-        text = "ça se dégage" if size >= 6 else "amélioration" if size >= 3 else "légère hausse"
+        text = t("ça se dégage") if size >= 6 else t("amélioration") if size >= 3 else t("légère hausse")
     return Trend(change, minutes, direction, text)

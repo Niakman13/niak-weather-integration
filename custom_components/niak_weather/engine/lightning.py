@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Any, Iterable, Sequence
 
 from .trends import Change
+from .i18n import N_, t
 from .units import finite, french
 
 KEEP = 3600
@@ -25,7 +26,7 @@ OVERHEAD_KM = 10
 """Closer than this within ten minutes, the sky shown is a storm."""
 TREND_KM = 5
 """How much the typical distance must change between two ten-minute spans to say the storm comes closer or moves away."""
-DIRECTIONS = ("au nord", "au nord-est", "à l’est", "au sud-est", "au sud", "au sud-ouest", "à l’ouest", "au nord-ouest")
+DIRECTIONS = (N_("au nord"), N_("au nord-est"), N_("à l’est"), N_("au sud-est"), N_("au sud"), N_("au sud-ouest"), N_("à l’ouest"), N_("au nord-ouest"))
 APPROACHING, LEAVING = "approche", "eloigne"
 
 
@@ -133,23 +134,26 @@ class Lightning:
 
     @property
     def movement(self) -> str:
-        return {APPROACHING: "il se rapproche", LEAVING: "il s’éloigne"}.get(self.trend or "", "")
+        return t({APPROACHING: N_("il se rapproche"), LEAVING: N_("il s’éloigne")}.get(self.trend or "", "")) if self.trend in (APPROACHING, LEAVING) else ""
 
     @property
     def text(self) -> str:
         """« Orage à 8 km au sud-ouest, il se rapproche », « Orage au loin : 45 km au nord »; "" without a strike."""
         if self.nearest is None:
             return ""
-        km = f"{french(max(1.0, self.nearest), 0)} km"
-        where = f" {self.direction}" if self.direction else ""
-        text = f"Orage à {km}{where}" if self.near else f"Orage au loin : {km}{where}"
+        km = french(max(1.0, self.nearest), 0)
+        where = t(self.direction) if self.direction else ""
+        if self.near:
+            text = t("Orage à {km} km {where}", km=km, where=where) if where else t("Orage à {km} km", km=km)
+        else:
+            text = t("Orage au loin : {km} km {where}", km=km, where=where) if where else t("Orage au loin : {km} km", km=km)
         return text + (f", {self.movement}" if self.movement else "")
 
     @property
     def explanation(self) -> str:
-        near = f", dont {self.near_count} à moins de {NEAR_KM} km" if self.near_count and self.near_count < self.count else ""
-        return (f"{self.count} éclair{'s' if self.count > 1 else ''} en 20 min{near}, détectés par le réseau Blitzortung. "
-                "C’est une mesure, pas une prévision.")
+        near = t(", dont {count} à moins de {km} km", count=self.near_count, km=NEAR_KM) if self.near_count and self.near_count < self.count else ""
+        strikes = t("{count} éclairs en 20 min", count=self.count) if self.count > 1 else t("{count} éclair en 20 min", count=self.count)
+        return t("{strikes}{near}, détectés par le réseau Blitzortung.", strikes=strikes, near=near) + " " + t("C’est une mesure, pas une prévision.")
 
     def extra(self) -> dict[str, Any]:
         """The attributes the Orage sensor and the API give: distance, direction, trend, strikes."""

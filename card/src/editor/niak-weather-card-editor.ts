@@ -3,37 +3,38 @@ import { property, state } from 'lit/decorators.js';
 import { define } from '../ui/define';
 import { cleanConfig, sections } from '../config';
 import type { HomeAssistant, WeatherCardConfig } from '../types';
+import { fr, setLanguage, t } from '../i18n';
 
 /** The card's editor: which place, then how to show it. The sources are set in the integration. */
 const defaults: Partial<WeatherCardConfig> = { format: 'full', show_synthesis: true, show_bulletin: true, show_today: true, show_predictions: true,
   collapse_today: false, collapse_predictions: false, smart_brief: true, weather_animations: true, weather_animation_quality: 'standard',
   show_atmo_details: true, show_atmo_tomorrow: true, glass_effect: true, tile_blocks: ['bulletin', 'events'], forecast_tab: 'hours', pressure_span: '6h', wind_span: '6h', rain_span: '7d', clock: 'none' };
 export const labels: Partial<Record<keyof WeatherCardConfig, string>> = {
-  entry_id: 'Lieu', format: 'Format',
-  weather_animations: 'Ciel animé et halos', weather_animation_quality: 'Qualité des animations', glass_effect: 'Effet verre dépoli',
-  show_synthesis: 'Bandeau (synthèse et météo du moment)', show_bulletin: 'Bulletin du jour', smart_brief: 'Alertes et événements',
-  show_today: 'Section Aujourd’hui', collapse_today: 'Aujourd’hui replié au départ',
-  show_predictions: 'Section Prévisions', collapse_predictions: 'Prévisions repliées au départ',
-  show_atmo_details: 'Détail des polluants et des pollens', show_atmo_tomorrow: 'Air et pollens de demain',
-  weather_path: 'Page à ouvrir',
-  tile_blocks: 'Contenu de la tuile dépliée', forecast_tab: 'Prévisions affichées au départ', banner_blocks: 'Contenu du bandeau', today_blocks: 'Contenu d’Aujourd’hui', forecast_blocks: 'Contenu des Prévisions',
-  hold_action: 'Appui long', tap_action: 'Appui', pressure_span: 'Courbe de pression', wind_span: 'Courbe du vent', rain_span: 'Barres de pluie', clock: 'Heure dans le bandeau',
+  entry_id: fr('Lieu'), format: fr('Format'),
+  weather_animations: fr('Ciel animé et halos'), weather_animation_quality: fr('Qualité des animations'), glass_effect: fr('Effet verre dépoli'),
+  show_synthesis: fr('Bandeau (synthèse et météo du moment)'), show_bulletin: fr('Bulletin du jour'), smart_brief: fr('Alertes et événements'),
+  show_today: fr('Section Aujourd’hui'), collapse_today: fr('Aujourd’hui replié au départ'),
+  show_predictions: fr('Section Prévisions'), collapse_predictions: fr('Prévisions repliées au départ'),
+  show_atmo_details: fr('Détail des polluants et des pollens'), show_atmo_tomorrow: fr('Air et pollens de demain'),
+  weather_path: fr('Page à ouvrir'),
+  tile_blocks: fr('Contenu de la tuile dépliée'), forecast_tab: fr('Prévisions affichées au départ'), banner_blocks: fr('Contenu du bandeau'), today_blocks: fr('Contenu d’Aujourd’hui'), forecast_blocks: fr('Contenu des Prévisions'),
+  hold_action: fr('Appui long'), tap_action: fr('Appui'), pressure_span: fr('Courbe de pression'), wind_span: fr('Courbe du vent'), rain_span: fr('Barres de pluie'), clock: fr('Heure dans le bandeau'),
 };
 /** One line under the settings that need it. */
 const helpers: Partial<Record<keyof WeatherCardConfig, string>> = {
-  weather_animations: 'Coupées, le ciel et les halos restent fixes.',
-  weather_animation_quality: 'Allégée : moins de gouttes, de flocons et de nuages.',
-  glass_effect: 'Le flou demande beaucoup de ressources : à couper sur un appareil lent. Coupé, le verre devient plus opaque.',
-  smart_brief: 'La vigilance, l’alerte mesurée chez vous et la frise des événements. Coupé, la frise ne montre que le ciel prévu.',
-  weather_path: 'Le chemin de la page, par exemple /meteo ou /lovelace/meteo.',
-  tile_blocks: 'Cochez ce qui s’affiche quand la tuile est dépliée, et faites glisser pour changer l’ordre.',
-  banner_blocks: 'Le bandeau et son ciel animé restent toujours, avec le lieu, la vigilance et la météo du moment. Cochez ce qu’il montre en dessous, dans l’ordre.',
-  today_blocks: 'Tout décocher retire la section.',
-  forecast_blocks: 'Tout décocher retire la section.',
-  forecast_tab: 'Un appui sur Heures ou Jours change l’affichage ; ce choix est gardé sur chaque appareil.',
-  pressure_span: 'Sur plusieurs jours, on voit mieux arriver une dépression ou un anticyclone.',
-  rain_span: '24 heures et 30 jours demandent un pluviomètre dont Home Assistant garde les statistiques ; sinon, la carte montre 7 jours.',
-  clock: 'L’heure de l’appareil, mise à jour chaque minute.',
+  weather_animations: fr('Coupées, le ciel et les halos restent fixes.'),
+  weather_animation_quality: fr('Allégée : moins de gouttes, de flocons et de nuages.'),
+  glass_effect: fr('Le flou demande beaucoup de ressources : à couper sur un appareil lent. Coupé, le verre devient plus opaque.'),
+  smart_brief: fr('La vigilance, l’alerte mesurée chez vous et la frise des événements. Coupé, la frise ne montre que le ciel prévu.'),
+  weather_path: fr('Le chemin de la page, par exemple /meteo ou /lovelace/meteo.'),
+  tile_blocks: fr('Cochez ce qui s’affiche quand la tuile est dépliée, et faites glisser pour changer l’ordre.'),
+  banner_blocks: fr('Le bandeau et son ciel animé restent toujours, avec le lieu, la vigilance et la météo du moment. Cochez ce qu’il montre en dessous, dans l’ordre.'),
+  today_blocks: fr('Tout décocher retire la section.'),
+  forecast_blocks: fr('Tout décocher retire la section.'),
+  forecast_tab: fr('Un appui sur Heures ou Jours change l’affichage ; ce choix est gardé sur chaque appareil.'),
+  pressure_span: fr('Sur plusieurs jours, on voit mieux arriver une dépression ou un anticyclone.'),
+  rain_span: fr('24 heures et 30 jours demandent un pluviomètre dont Home Assistant garde les statistiques ; sinon, la carte montre 7 jours.'),
+  clock: fr('L’heure de l’appareil, mise à jour chaque minute.'),
 };
 const SETTINGS = '/config/integrations/integration/niak_weather';
 
@@ -45,9 +46,9 @@ export class NiakWeatherCardEditor extends LitElement {
   @state() private entries?: Array<{ entry_id: string; title: string }> | null;
   private asked = false;
   private readonly computeLabel = (item: { name: keyof WeatherCardConfig; title?: string }) =>
-    item.title ?? (item.name === 'hold_action' && this.tapped ? 'Appui' : labels[item.name] ?? item.name);
+    item.title ?? (item.name === 'hold_action' && this.tapped ? t('Appui') : t(labels[item.name] ?? item.name));
   private readonly computeHelper = (item: { name: keyof WeatherCardConfig }) =>
-    helpers[item.name] ?? '';
+    t(helpers[item.name] ?? '');
   private get small(): boolean { return !!this.config?.format && this.config.format !== 'full'; }
   /** Mini and alert open the full card on a simple tap. */
   private get tapped(): boolean { return this.config?.format === 'mini' || this.config?.format === 'alert'; }
@@ -59,6 +60,8 @@ export class NiakWeatherCardEditor extends LitElement {
   }
   protected shouldUpdate(changed: Map<PropertyKey, unknown>): boolean {
     // Home Assistant pushes every state change to editors: nothing here depends on them.
+    // Its words follow Home Assistant's language, like the card's.
+    if (changed.has('hass') && this.hass && setLanguage(this.hass.language, this.hass.locale?.language)) return true;
     if (changed.has('hass') && !this.asked && this.hass) {
       this.asked = true;
       this.hass.callWS<Array<{ entry_id: string; title: string }>>({ type: 'niak_weather/entries' })
@@ -77,56 +80,56 @@ export class NiakWeatherCardEditor extends LitElement {
     const toggles = (...names: Array<keyof WeatherCardConfig>) => names.map(name => ({ name, selector: { boolean: {} } }));
     const group = (title: string, icon: string, schema: unknown[], expanded = false) => ({ type: 'expandable', name: '', title, icon, flatten: true, expanded, schema });
     const format = { name: 'format', selector: { select: { mode: 'list', options: [
-      { value: 'full', label: 'Complète : la page météo' },
-      { value: 'tile', label: 'Tuile : une bande qui se déplie d’un appui' },
-      { value: 'intermediate', label: 'Tuile dépliée : la même, ouverte au départ' },
-      { value: 'mini', label: 'Mini : une seule ligne' },
-      { value: 'forecast', label: 'Prévisions : les heures et les jours' },
-      { value: 'rain', label: 'Pluie : à venir et tombée' },
-      { value: 'alert', label: 'Alerte : visible seulement en cas de vigilance ou d’alerte' }] } } };
+      { value: 'full', label: t('Complète : la page météo') },
+      { value: 'tile', label: t('Tuile : une bande qui se déplie d’un appui') },
+      { value: 'intermediate', label: t('Tuile dépliée : la même, ouverte au départ') },
+      { value: 'mini', label: t('Mini : une seule ligne') },
+      { value: 'forecast', label: t('Prévisions : les heures et les jours') },
+      { value: 'rain', label: t('Pluie : à venir et tombée') },
+      { value: 'alert', label: t('Alerte : visible seulement en cas de vigilance ou d’alerte') }] } } };
     const blocks = { name: 'tile_blocks', selector: { select: { multiple: true, reorder: true, mode: 'list', options: [
-      { value: 'bulletin', label: 'Bulletin du jour' }, { value: 'events', label: 'Événements (la frise)' },
-      { value: 'moments', label: 'Les prochains moments (soir, nuit, matin…)' }, { value: 'forecast', label: 'Prévisions (heures ou jours)' }] } } };
-    const tab = { name: 'forecast_tab', selector: { select: { mode: 'dropdown', options: [{ value: 'hours', label: 'Heures' }, { value: 'days', label: 'Jours' }] } } };
+      { value: 'bulletin', label: t('Bulletin du jour') }, { value: 'events', label: t('Événements (la frise)') },
+      { value: 'moments', label: t('Les prochains moments (soir, nuit, matin…)') }, { value: 'forecast', label: t('Prévisions (heures ou jours)') }] } } };
+    const tab = { name: 'forecast_tab', selector: { select: { mode: 'dropdown', options: [{ value: 'hours', label: t('Heures') }, { value: 'days', label: t('Jours') }] } } };
     // The tile's tap and long press (a tap on mini and alert, which do not fold): the popup, a page (then its path), fold or unfold, or nothing.
     const foldable = this.config?.format === 'tile' || this.config?.format === 'intermediate';
     const hold = this.config?.hold_action ?? (this.config?.weather_path ? 'page' : 'popup'), tap = foldable ? this.config?.tap_action ?? 'toggle' : undefined;
     const press = (name: 'tap_action' | 'hold_action') => ({ name, required: true, selector: { select: { mode: 'dropdown', options: [
-      ...(foldable ? [{ value: 'toggle', label: 'Déplier ou replier la tuile' }] : []),
-      { value: 'popup', label: 'Ouvrir la météo complète en fenêtre' }, { value: 'page', label: 'Ouvrir une page' }, { value: 'none', label: 'Rien' }] } } });
+      ...(foldable ? [{ value: 'toggle', label: t('Déplier ou replier la tuile') }] : []),
+      { value: 'popup', label: t('Ouvrir la météo complète en fenêtre') }, { value: 'page', label: t('Ouvrir une page') }, { value: 'none', label: t('Rien') }] } } });
     const path = [...(foldable ? [press('tap_action')] : []), press('hold_action'),
       ...(hold === 'page' || tap === 'page' ? [{ name: 'weather_path', selector: { text: {} } }] : [])];
     const place = this.entries && this.entries.length > 1
       ? [{ name: 'entry_id', selector: { select: { options: this.entries.map(e => ({ value: e.entry_id, label: e.title })) } } }] : [];
-    const look = group('Visuel et performance', 'mdi:palette-outline', [...toggles('weather_animations'),
-      { name: 'weather_animation_quality', required: true, selector: { select: { mode: 'dropdown', options: [{ value: 'standard', label: 'Standard' }, { value: 'low', label: 'Allégée' }] } } },
+    const look = group(t('Visuel et performance'), 'mdi:palette-outline', [...toggles('weather_animations'),
+      { name: 'weather_animation_quality', required: true, selector: { select: { mode: 'dropdown', options: [{ value: 'standard', label: t('Standard') }, { value: 'low', label: t('Allégée') }] } } },
       ...toggles('glass_effect')], true);
     // The tile unfolds on a tap and opens the full card on a long press: its own options.
     const kind = this.config?.format;
-    if (kind === 'mini' || kind === 'alert') return [...place, format, group('Fonctionnalités', 'mdi:tune-variant', path, true)];
-    if (kind === 'forecast') return [...place, format, group('Fonctionnalités', 'mdi:tune-variant', [tab], true)];
+    if (kind === 'mini' || kind === 'alert') return [...place, format, group(t('Fonctionnalités'), 'mdi:tune-variant', path, true)];
+    if (kind === 'forecast') return [...place, format, group(t('Fonctionnalités'), 'mdi:tune-variant', [tab], true)];
     if (kind === 'rain') return [...place, format];
     if (this.small) return [...place, format, look,
-      group('Contenu', 'mdi:view-list-outline', [blocks, ...((this.config?.tile_blocks ?? []).includes('forecast') ? [tab] : [])], true),
-      group('Fonctionnalités', 'mdi:tune-variant', path)];
+      group(t('Contenu'), 'mdi:view-list-outline', [blocks, ...((this.config?.tile_blocks ?? []).includes('forecast') ? [tab] : [])], true),
+      group(t('Fonctionnalités'), 'mdi:tune-variant', path)];
     // The full card's three sections, in their fixed order, each with its own blocks only.
     const list = (name: string, options: Array<[string, string]>) => ({ name, selector: { select: { multiple: true, reorder: true, mode: 'list',
       options: options.map(([value, label]) => ({ value, label })) } } });
-    const spans: Array<[string, string]> = [['6h', '6 dernières heures'], ['1d', '24 dernières heures'], ['2d', '2 derniers jours'], ['7d', '7 derniers jours']];
+    const spans: Array<[string, string]> = [['6h', t('6 dernières heures')], ['1d', t('24 dernières heures')], ['2d', t('2 derniers jours')], ['7d', t('7 derniers jours')]];
     const choice = (name: string, options: Array<[string, string]>) => ({ name, required: true, selector: { select: { mode: 'dropdown',
       options: options.map(([value, label]) => ({ value, label })) } } });
     return [...place, format, look,
-      group('Bandeau intelligent', 'mdi:view-day-outline', [list('banner_blocks', [['bulletin', 'Bulletin du jour'], ['events', 'Événements (la frise)'],
-        ['moments', 'Les prochains moments (soir, nuit, matin…)'], ['forecast', 'Prévisions en tuiles (heures ou jours)']]),
-        choice('clock', [['none', 'Masquée'], ['left', 'Sous le titre, en grand'], ['right', 'Au-dessus de « En ce moment »']])], true),
-      group('Aujourd’hui', 'mdi:calendar-today', [list('today_blocks', [['rain', 'Pluie'], ['wind', 'Vent'], ['pressure', 'Pression'], ['comfort', 'Ressenti'],
-        ['extras', 'Pastilles (humidité, rosée, soleil…)'], ['air', 'Air et pollens du jour']]),
-        choice('rain_span', [['24h', '24 dernières heures (une barre par heure)'], ['7d', '7 derniers jours'], ['30d', '30 derniers jours (une barre par jour)']]),
+      group(t('Bandeau intelligent'), 'mdi:view-day-outline', [list('banner_blocks', [['bulletin', t('Bulletin du jour')], ['events', t('Événements (la frise)')],
+        ['moments', t('Les prochains moments (soir, nuit, matin…)')], ['forecast', t('Prévisions en tuiles (heures ou jours)')]]),
+        choice('clock', [['none', t('Masquée')], ['left', t('Sous le titre, en grand')], ['right', t('Au-dessus de « En ce moment »')]])], true),
+      group(t('Aujourd’hui'), 'mdi:calendar-today', [list('today_blocks', [['rain', t('Pluie')], ['wind', t('Vent')], ['pressure', t('Pression')], ['comfort', t('Ressenti')],
+        ['extras', t('Pastilles (humidité, rosée, soleil…)')], ['air', t('Air et pollens du jour')]]),
+        choice('rain_span', [['24h', t('24 dernières heures (une barre par heure)')], ['7d', t('7 derniers jours')], ['30d', t('30 derniers jours (une barre par jour)')]]),
         choice('wind_span', spans), choice('pressure_span', spans),
         ...toggles('collapse_today')]),
-      group('Prévisions', 'mdi:calendar-week', [list('forecast_blocks', [['hours', 'Les 18 prochaines heures'], ['days', 'Les 7 prochains jours'],
-        ['air', 'Air et pollens de demain']]), ...toggles('collapse_predictions')]),
-      group('Air et pollens', 'mdi:flower-pollen-outline', toggles('show_atmo_details'))];
+      group(t('Prévisions'), 'mdi:calendar-week', [list('forecast_blocks', [['hours', t('Les 18 prochaines heures')], ['days', t('Les 7 prochains jours')],
+        ['air', t('Air et pollens de demain')]]), ...toggles('collapse_predictions')]),
+      group(t('Air et pollens'), 'mdi:flower-pollen-outline', toggles('show_atmo_details'))];
   }
   protected render() {
     if (!this.config || !this.hass) return nothing;
@@ -138,12 +141,12 @@ export class NiakWeatherCardEditor extends LitElement {
     const data = Object.fromEntries(Object.entries({ ...defaults, ...presses, ...blocks, ...this.config }).filter(([key]) => key !== 'type'));
     const one = this.entries?.length === 1 ? this.entries[0] : undefined;
     return html`
-      ${this.entries === null ? html`<p class="note warn">L’intégration Niak Weather ne répond pas : la carte en a besoin depuis la version 2.0.
-          Déjà téléchargée ? <a href="/config/integrations/dashboard/add?domain=niak_weather" @click=${this.follow}>Ajoutez-la</a>.
-          Sinon, <a href="https://github.com/Niakman13/niak-weather-integration#installation" target="_blank" rel="noopener noreferrer">installez-la</a>.</p>`
-        : this.entries?.length === 0 ? html`<p class="note warn">Ajoutez l’intégration Niak Weather : Paramètres → Appareils et services.</p>`
-        : html`<p class="note">${one ? html`Lieu : <b>${one.title}</b>. ` : nothing}Les sources (prévisions, station, air et pollens) se règlent dans
-          <a href=${SETTINGS} @click=${this.follow}>l’intégration Niak Weather</a>.</p>`}
+      ${this.entries === null ? html`<p class="note warn">${t('L’intégration Niak Weather ne répond pas : la carte en a besoin depuis la version 2.0.')}
+          ${t('Déjà téléchargée ?')} <a href="/config/integrations/dashboard/add?domain=niak_weather" @click=${this.follow}>${t('Ajoutez-la')}</a>.
+          ${t('Sinon,')} <a href="https://github.com/Niakman13/niak-weather-integration#installation" target="_blank" rel="noopener noreferrer">${t('installez-la')}</a>.</p>`
+        : this.entries?.length === 0 ? html`<p class="note warn">${t('Ajoutez l’intégration Niak Weather : Paramètres → Appareils et services.')}</p>`
+        : html`<p class="note">${one ? html`${t('Lieu :')} <b>${one.title}</b>. ` : nothing}${t('Les sources (prévisions, station, air et pollens) se règlent dans')}
+          <a href=${SETTINGS} @click=${this.follow}>${t('l’intégration Niak Weather')}</a>.</p>`}
       <ha-form .hass=${this.hass} .data=${data} .schema=${this.schema()} .computeLabel=${this.computeLabel} .computeHelper=${this.computeHelper} @value-changed=${this.changed}></ha-form>`;
   }
   /** A link inside Home Assistant opens there, without reloading the page. */

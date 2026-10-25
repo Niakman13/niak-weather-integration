@@ -2,8 +2,8 @@
 import { css, html, LitElement } from 'lit';
 import { state } from 'lit/decorators.js';
 import { define } from './define';
-
-const TIME = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' });
+import { dateFormat } from '../intl-cache';
+import { currentLocale } from '../i18n';
 
 @define('niak-clock')
 export class NiakClock extends LitElement {
@@ -21,7 +21,7 @@ export class NiakClock extends LitElement {
   };
 
   protected render() {
-    return html`<time datetime=${this.now.toISOString()}>${TIME.format(this.now)}</time>`;
+    return html`<time datetime=${this.now.toISOString()}>${dateFormat(currentLocale(), { hour: '2-digit', minute: '2-digit' }).format(this.now)}</time>`;
   }
 
   static styles = css`

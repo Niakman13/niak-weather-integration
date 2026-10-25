@@ -5,12 +5,13 @@ from typing import Any, Callable, Mapping
 from zoneinfo import ZoneInfo
 
 from .atmo import COLORS, Reading
+from .i18n import N_, t
 from .settings import LegacyPollen
 
 DOMAIN = "kleenex_pollenradar"
 NAME = "Kleenex Pollen Radar"
 LEVELS = {"low": 1, "moderate": 2, "high": 3, "very-high": 4}
-WORDS = ("Aucun", "Faible", "Modéré", "Élevé", "Très élevé")
+WORDS = (N_("Aucun"), N_("Faible"), N_("Modéré"), N_("Élevé"), N_("Très élevé"))
 GROUPS = {"trees": ("Arbres", "mdi:tree-outline"), "grass": ("Graminées", "mdi:grass"), "weeds": ("Herbacées", "mdi:flower-pollen")}
 
 
@@ -73,5 +74,5 @@ def reading(get: Callable[[str], Any], pollen: LegacyPollen, tomorrow: bool, now
     level = LEVELS.get(str(word))
     if level is None:
         return None
-    return Reading(entity_id=pollen.entity_id, label=WORDS[level], value=level, color=COLORS[level + 1],
+    return Reading(entity_id=pollen.entity_id, label=t(WORDS[level]), value=level, color=COLORS[level + 1],
                    zone="", updated=stamp.astimezone(zone).strftime("%d/%m %H:%M"), unit=None, stale=False)

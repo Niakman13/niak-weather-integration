@@ -13,6 +13,7 @@ from typing import Any, Callable, Mapping, Sequence
 from zoneinfo import ZoneInfo
 
 from . import atmo, kleenex
+from .i18n import N_, t
 from .settings import LegacyPollen, Settings
 from .units import finite
 
@@ -20,13 +21,13 @@ SCALE = 4
 POLLENINFORMATION, IRM_KMI, SWISS_POLLEN = "polleninformation", "irm_kmi", "swiss_pollen"
 KLEENEX = kleenex.DOMAIN
 PROVIDERS = {POLLENINFORMATION: "Polleninformation", IRM_KMI: "IRM KMI", SWISS_POLLEN: "Swiss Pollen", KLEENEX: "Kleenex / Scottex"}
-COUNTRIES = {"atmo": "France", POLLENINFORMATION: "Europe, selon les zones", IRM_KMI: "Belgique", SWISS_POLLEN: "Suisse",
-             KLEENEX: "France, Italie, Pays-Bas, Royaume-Uni, Irlande, États-Unis"}
+COUNTRIES = {"atmo": N_("France"), POLLENINFORMATION: N_("Europe, selon les zones"), IRM_KMI: N_("Belgique"), SWISS_POLLEN: N_("Suisse"),
+             KLEENEX: N_("France, Italie, Pays-Bas, Royaume-Uni, Irlande, États-Unis")}
 
 
 def source_label(source: str) -> str:
-    return f"{PROVIDERS.get(source, 'Atmo France')} ({COUNTRIES[source]})"
-WORDS = ("Aucun", "Faible", "Modéré", "Élevé", "Très élevé")
+    return f"{PROVIDERS.get(source, 'Atmo France')} ({t(COUNTRIES[source])})"
+WORDS = (N_("Aucun"), N_("Faible"), N_("Modéré"), N_("Élevé"), N_("Très élevé"))
 COLORS = atmo.COLORS[1:6]
 # The sensor's word, in any of the languages it writes (French words are feminine: « élevée », « très élevée »).
 _WORDS = {"none": 0, "aucun": 0, "aucune": 0, "low": 1, "faible": 1, "moderate": 2, "modere": 2, "moderee": 2, "high": 3, "eleve": 3, "elevee": 3,
@@ -130,7 +131,7 @@ def reading(state: Any, entity_id: str, tomorrow: bool, now: datetime, zone: Zon
             published = datetime.fromisoformat(stamp)
         except ValueError:
             published = None
-    return atmo.Reading(entity_id=entity_id, label=label_name or (WORDS[value] if value is not None else "Indisponible"), value=value,
+    return atmo.Reading(entity_id=entity_id, label=label_name or (t(WORDS[value]) if value is not None else t("Indisponible")), value=value,
                         color=COLORS[value] if value is not None else atmo.COLORS[0], zone=str(state.attributes.get("location_title") or ""),
                         updated=published.astimezone(zone).strftime("%d/%m %H:%M") if published and published.tzinfo else "", unit=None,
                         stale=published is not None and published.tzinfo is not None and now - published > timedelta(hours=48))
@@ -148,7 +149,7 @@ def readings(get: Callable[[str], Any], settings: Settings, tomorrow: bool, now:
             if tomorrow:
                 continue
             value = usable_level(get, settings, pollen)
-            r = replace(r, value=value, label=WORDS[value] if value is not None else "Indisponible",
+            r = replace(r, value=value, label=t(WORDS[value]) if value is not None else t("Indisponible"),
                         color=COLORS[value] if value is not None else atmo.COLORS[0], zone=pollen.station) if r is not None else None
         if r is not None:
             species.append((name(pollen, state), r))

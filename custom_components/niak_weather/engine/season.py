@@ -7,16 +7,18 @@ from datetime import date, datetime, timedelta
 from typing import Any, Callable
 from zoneinfo import ZoneInfo
 
+from .i18n import N_, t
+
 ORDER = ("spring", "summer", "autumn", "winter")
-NAMES = {"spring": "Printemps", "summer": "Été", "autumn": "Automne", "winter": "Hiver"}
+NAMES = {"spring": N_("Printemps"), "summer": N_("Été"), "autumn": N_("Automne"), "winter": N_("Hiver")}
 ICONS = {"spring": "mdi:flower", "summer": "mdi:white-balance-sunny", "autumn": "mdi:leaf-maple", "winter": "mdi:snowflake"}
-NEWS = {"spring": "C’est le printemps", "summer": "C’est l’été", "autumn": "C’est l’automne", "winter": "C’est l’hiver"}
+NEWS = {"spring": N_("C’est le printemps"), "summer": N_("C’est l’été"), "autumn": N_("C’est l’automne"), "winter": N_("C’est l’hiver")}
 # States of the Season integration, plus French spellings of renamed or template sensors.
 ALIASES = {"spring": "spring", "printemps": "spring", "summer": "summer", "ete": "summer", "été": "summer",
            "autumn": "autumn", "fall": "autumn", "automne": "autumn", "winter": "winter", "hiver": "winter"}
 ASTRONOMICAL = ((3, 20, "spring"), (6, 21, "summer"), (9, 22, "autumn"), (12, 21, "winter"))
 METEOROLOGICAL = ((3, 1, "spring"), (6, 1, "summer"), (9, 1, "autumn"), (12, 1, "winter"))
-MONTHS = ("janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre")
+MONTHS = (N_("janvier"), N_("février"), N_("mars"), N_("avril"), N_("mai"), N_("juin"), N_("juillet"), N_("août"), N_("septembre"), N_("octobre"), N_("novembre"), N_("décembre"))
 
 
 @dataclass(frozen=True)
@@ -37,11 +39,11 @@ class Season:
     @property
     def news(self) -> str | None:
         """Said only during the first week of a new season; then the sky alone carries it."""
-        return NEWS[self.season] if self.days_in is not None and self.days_in < 7 else None
+        return t(NEWS[self.season]) if self.days_in is not None and self.days_in < 7 else None
 
     @property
     def tip(self) -> str:
-        since = f" depuis le {self.start[1]} {MONTHS[self.start[0] - 1]}" if self.start else ""
+        since = t(" depuis le {day} {month}", day=self.start[1], month=t(MONTHS[self.start[0] - 1])) if self.start else ""
         daylight = daylight_text(self)
         return f"{self.label}{since}{' · ' + daylight if daylight else ''}"
 
@@ -94,7 +96,7 @@ def current_season(get: Callable[[str], Any], season_entity: str | None, now: da
     if latitude is not None:
         length = day_length(today, latitude, elevation)
         change = (day_length(today + timedelta(days=1), latitude, elevation) - length) * 60
-    return Season(season, bool(from_sensor), NAMES[season], ICONS[season], start[2] if start else None, (start[0], start[1]) if start else None, length, change)
+    return Season(season, bool(from_sensor), t(NAMES[season]), ICONS[season], start[2] if start else None, (start[0], start[1]) if start else None, length, change)
 
 
 def daylight_text(info: Season) -> str:
@@ -103,8 +105,10 @@ def daylight_text(info: Season) -> str:
         return ""
     hours = math.floor(info.day_length)
     minutes = int(math.floor((info.day_length - hours) * 60 + 0.5))
-    length = f"{hours + 1 if minutes == 60 else hours} h {0 if minutes == 60 else minutes:02d} de jour"
+    length = t("{hours} h {minutes} de jour", hours=hours + 1 if minutes == 60 else hours, minutes=f"{0 if minutes == 60 else minutes:02d}")
     change = abs(info.day_change)
     if change < 0.5:
-        return f"{length} · durée du jour stable"
-    return f"{length} · les jours {'rallongent' if info.day_change > 0 else 'raccourcissent'} de {int(math.floor(change + 0.5))} min par jour"
+        return t("{length} · durée du jour stable", length=length)
+    minutes = int(math.floor(change + 0.5))
+    return (t("{length} · les jours rallongent de {minutes} min par jour", length=length, minutes=minutes) if info.day_change > 0
+            else t("{length} · les jours raccourcissent de {minutes} min par jour", length=length, minutes=minutes))

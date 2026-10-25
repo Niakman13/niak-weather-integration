@@ -15,28 +15,29 @@ import './ui/weather-sky';
 import './editor/niak-weather-card-editor';
 import { VIEW_VERSION, type ViewMessage, type WeatherView } from './view';
 import type { HomeAssistant, PressAction, WeatherCardConfig } from './types';
+import { fr, guessLanguage, setLanguage, t } from './i18n';
 
 const HOLD_MS = 500;
 /** Phones and tablets: unless set otherwise, the tile's sky is lightened (fewer drops, clouds and leaves); its drawing is scaled down there anyway. */
 const LIGHT_SKY = matchMedia('(pointer: coarse)');
 let instances = 0;
 
-/** Why there is no weather to show, and what to do about it. */
+/** Why there is no weather to show, and what to do about it. Written in French, shown through t(). */
 type Problem = 'missing' | 'not_configured' | 'choose_entry' | 'not_found' | 'version' | 'error';
 const PROBLEMS: Record<Problem, { title: string; text: string; links?: [string, string][] }> = {
   // Home Assistant only starts an integration once it is added: downloaded from HACS but not added yet, it does not answer either.
-  missing: { title: 'Niak Weather a besoin de son intégration',
-    text: 'Depuis la version 2.0, la carte reçoit ses calculs de l’intégration Niak Weather. Déjà téléchargée depuis HACS ? Ajoutez-la dans Paramètres → Appareils et services. Sinon, installez-la depuis HACS, redémarrez Home Assistant, puis ajoutez-la. Déjà ajoutée ? Elle n’a pas démarré : les journaux disent pourquoi (Paramètres → Système → Journaux, cherchez « niak »).',
-    links: [['Ajouter l’intégration', '/config/integrations/dashboard/add?domain=niak_weather'], ['L’installer', 'https://github.com/Niakman13/niak-weather-integration#installation']] },
-  not_configured: { title: 'Ajoutez l’intégration Niak Weather',
-    text: 'Elle est installée mais pas encore configurée. Elle peut reprendre les réglages de vos cartes.',
-    links: [['Ajouter l’intégration', '/config/integrations/dashboard/add?domain=niak_weather']] },
-  choose_entry: { title: 'Choisissez un lieu', text: 'Plusieurs lieux Niak Weather sont configurés : choisissez celui de cette carte dans ses réglages.' },
-  not_found: { title: 'Lieu introuvable', text: 'Le lieu de cette carte n’existe plus : choisissez-en un autre dans ses réglages.' },
-  version: { title: 'Rechargez la page', text: 'L’intégration Niak Weather vient d’être mise à jour : rechargez la page pour afficher sa carte.' },
+  missing: { title: fr('Niak Weather a besoin de son intégration'),
+    text: fr('Depuis la version 2.0, la carte reçoit ses calculs de l’intégration Niak Weather. Déjà téléchargée depuis HACS ? Ajoutez-la dans Paramètres → Appareils et services. Sinon, installez-la depuis HACS, redémarrez Home Assistant, puis ajoutez-la. Déjà ajoutée ? Elle n’a pas démarré : les journaux disent pourquoi (Paramètres → Système → Journaux, cherchez « niak »).'),
+    links: [[fr('Ajouter l’intégration'), '/config/integrations/dashboard/add?domain=niak_weather'], [fr('L’installer'), 'https://github.com/Niakman13/niak-weather-integration#installation']] },
+  not_configured: { title: fr('Ajoutez l’intégration Niak Weather'),
+    text: fr('Elle est installée mais pas encore configurée. Elle peut reprendre les réglages de vos cartes.'),
+    links: [[fr('Ajouter l’intégration'), '/config/integrations/dashboard/add?domain=niak_weather']] },
+  choose_entry: { title: fr('Choisissez un lieu'), text: fr('Plusieurs lieux Niak Weather sont configurés : choisissez celui de cette carte dans ses réglages.') },
+  not_found: { title: fr('Lieu introuvable'), text: fr('Le lieu de cette carte n’existe plus : choisissez-en un autre dans ses réglages.') },
+  version: { title: fr('Rechargez la page'), text: fr('L’intégration Niak Weather vient d’être mise à jour : rechargez la page pour afficher sa carte.') },
   // The integration answered, with an error: say which, it tells what went wrong.
-  error: { title: 'L’intégration Niak Weather a renvoyé une erreur',
-    text: 'Les journaux de Home Assistant disent pourquoi : Paramètres → Système → Journaux, cherchez « niak ».', links: [['Voir les journaux', '/config/logs']] },
+  error: { title: fr('L’intégration Niak Weather a renvoyé une erreur'),
+    text: fr('Les journaux de Home Assistant disent pourquoi : Paramètres → Système → Journaux, cherchez « niak ».'), links: [[fr('Voir les journaux'), '/config/logs']] },
 };
 
 @define('niak-weather-card')
@@ -125,8 +126,12 @@ export class NiakWeatherCard extends LitElement {
   /** Being edited or chosen: the alert card shows what it would hide. */
   private get editing(): boolean { return this.editMode || this.preview || this.picker; }
   public disconnectedCallback(): void { super.disconnectedCallback(); this.cancelPress(); this.unsubscribe(); }
+  /** The language this card was last drawn in: Home Assistant's changes, the card redraws in it. */
+  private language?: string;
   protected shouldUpdate(changed: PropertyValues): boolean {
     if (changed.has('hass') || changed.has('config')) this.subscribe();
+    const language = this.hass && `${this.hass.language}|${this.hass.locale?.language ?? ''}`;
+    if (language && language !== this.language) { this.language = language; setLanguage(this.hass!.language, this.hass!.locale?.language); return true; }
     // Home Assistant pushes every state change: the card only redraws when the integration sends a new view.
     return !(changed.size === 1 && changed.has('hass'));
   }
@@ -143,12 +148,13 @@ export class NiakWeatherCard extends LitElement {
   private subscribe(): void {
     const connection = this.hass?.connection, config = this.config;
     if (!connection || !config || !this.isConnected) return;
-    const place = config.entry_id ?? '';
+    // The integration writes the view in this user's language: another language, another subscription.
+    const place = `${config.entry_id ?? ''}|${this.hass?.language ?? ''}`;
     if (this.subscription && this.subscribedTo === place) return;
     this.unsubscribe();
     this.subscribedTo = place;
     const subscription = connection.subscribeMessage<ViewMessage | { version: number; reload: true }>(m => this.receive(m),
-      { type: 'niak_weather/subscribe', ...(config.entry_id ? { entry_id: config.entry_id } : {}) });
+      { type: 'niak_weather/subscribe', language: this.hass?.language, ...(config.entry_id ? { entry_id: config.entry_id } : {}) });
     this.subscription = subscription;
     subscription.catch((error: { code?: string; message?: string }) => {
       if (this.subscription !== subscription) return;
@@ -181,7 +187,7 @@ export class NiakWeatherCard extends LitElement {
   protected render() {
     if (!this.config) return nothing;
     if (this.problem && !this.view) return this.renderProblem(PROBLEMS[this.problem]);
-    if (!this.view) return html`<ha-card><div class="nw-wait" role="status" aria-label="Chargement de la météo"></div></ha-card>`;
+    if (!this.view) return html`<ha-card><div class="nw-wait" role="status" aria-label=${t('Chargement de la météo')}></div></ha-card>`;
     const config = this.config, view = displayed(this.view, config, this.tile);
     // Gusts for the sky: the station's last measure, else the forecast for this hour.
     const measured = view.wind?.gust.at(-1)?.[1];
@@ -191,9 +197,9 @@ export class NiakWeatherCard extends LitElement {
     const full = () => renderFull(view, { sky, uid: this.uid, entity: view.weatherEntity, station: view.station,
       sections: sections(config), tab: this.tab, onTab: this.setTab, clock: config.clock,
       folded: this.folded, onFold: id => { this.folded = { ...this.folded, [id]: !this.folded[id] }; } });
-    const title = `Météo${view.location ? ` · ${view.location}` : ''}`;
+    const title = `${t('Météo')}${view.location ? ` · ${view.location}` : ''}`;
     const dialog = () => this.dialogOpen ? html`<dialog class="nw-dialog" aria-label=${title} @close=${() => { this.dialogOpen = false; }} @click=${this.openEntity} @keydown=${this.entityKey}>
-        <header><b>${title}</b><button type="button" @click=${this.closeDialog}>Fermer</button></header>${full()}</dialog>` : nothing;
+        <header><b>${title}</b><button type="button" @click=${this.closeDialog}>${t('Fermer')}</button></header>${full()}</dialog>` : nothing;
     const holdTarget = this.holdTarget;
     switch (config.format) {
       case 'mini':
@@ -219,8 +225,8 @@ export class NiakWeatherCard extends LitElement {
 
   private renderProblem(p: (typeof PROBLEMS)[Problem]) {
     return html`<ha-card><div class="nw-problem" role="status"><ha-icon icon="mdi:weather-partly-cloudy"></ha-icon>
-      <div><b>${p.title}</b>${p === PROBLEMS.error && this.failure ? html`<p class="failure">« ${this.failure} »</p>` : nothing}<p>${p.text}</p>${p.links ? html`<div class="links">${p.links.map(([label, href], i) => html`<a class=${i ? 'second' : ''} href=${href}
-        target=${href.startsWith('/') ? nothing : '_blank'} rel="noopener noreferrer" @click=${this.follow}>${label}</a>`)}</div>` : nothing}</div></div></ha-card>`;
+      <div><b>${t(p.title)}</b>${p === PROBLEMS.error && this.failure ? html`<p class="failure">« ${this.failure} »</p>` : nothing}<p>${t(p.text)}</p>${p.links ? html`<div class="links">${p.links.map(([label, href], i) => html`<a class=${i ? 'second' : ''} href=${href}
+        target=${href.startsWith('/') ? nothing : '_blank'} rel="noopener noreferrer" @click=${this.follow}>${t(label)}</a>`)}</div>` : nothing}</div></div></ha-card>`;
   }
   /** A link inside Home Assistant opens there, without reloading the page. */
   private follow = (e: MouseEvent) => {
@@ -341,16 +347,18 @@ export class NiakWeatherCard extends LitElement {
 }
 
 // One entry per format in Home Assistant's « Add card » window. Each creates the same card (`custom:niak-weather-card`) with its format:
-// the picker takes the type from getStubConfig, so dashboards never depend on these extra names.
+// the picker takes the type from getStubConfig, so dashboards never depend on these extra names. The list is written once, at load:
+// in the language the page was opened in.
 const FORMATS: Array<[NonNullable<WeatherCardConfig['format']>, string, string]> = [
-  ['full', 'Niak Weather', 'La page météo : synthèse, mesures, prévisions, air et pollens.'],
-  ['tile', 'Niak Weather · Tuile', 'Une bande qui se déplie d’un appui ; son contenu se choisit.'],
-  ['intermediate', 'Niak Weather · Tuile dépliée', 'La tuile, ouverte au départ : bulletin, événements, moments ou prévisions.'],
-  ['mini', 'Niak Weather · Mini', 'Une seule ligne : le ciel, la température et la vigilance.'],
-  ['forecast', 'Niak Weather · Prévisions', 'Les 18 prochaines heures ou les 7 prochains jours.'],
-  ['rain', 'Niak Weather · Pluie', 'La pluie à venir, celle qui tombe et celle qui est tombée.'],
-  ['alert', 'Niak Weather · Alerte', 'Visible seulement en cas de vigilance ou d’alerte.'],
+  ['full', fr('Niak Weather'), fr('La page météo : synthèse, mesures, prévisions, air et pollens.')],
+  ['tile', fr('Niak Weather · Tuile'), fr('Une bande qui se déplie d’un appui ; son contenu se choisit.')],
+  ['intermediate', fr('Niak Weather · Tuile dépliée'), fr('La tuile, ouverte au départ : bulletin, événements, moments ou prévisions.')],
+  ['mini', fr('Niak Weather · Mini'), fr('Une seule ligne : le ciel, la température et la vigilance.')],
+  ['forecast', fr('Niak Weather · Prévisions'), fr('Les 18 prochaines heures ou les 7 prochains jours.')],
+  ['rain', fr('Niak Weather · Pluie'), fr('La pluie à venir, celle qui tombe et celle qui est tombée.')],
+  ['alert', fr('Niak Weather · Alerte'), fr('Visible seulement en cas de vigilance ou d’alerte.')],
 ];
+guessLanguage();
 for (const [format, name, description] of FORMATS) {
   const type = format === 'full' ? 'niak-weather-card' : `niak-weather-${format === 'intermediate' ? 'tile-open' : format}-card`;
   if (format !== 'full' && !customElements.get(type)) customElements.define(type, class extends NiakWeatherCard {
@@ -360,6 +368,6 @@ for (const [format, name, description] of FORMATS) {
   });
   window.customCards = window.customCards || [];
   // A card from HACS still installed next to the integration's has offered them already.
-  if (!window.customCards.some(card => card.type === type)) window.customCards.push({ type, name, description, preview: true });
+  if (!window.customCards.some(card => card.type === type)) window.customCards.push({ type, name: t(name), description: t(description), preview: true });
 }
 declare global { interface Window { customCards: Array<Record<string, unknown>>; } }

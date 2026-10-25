@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import math
 
+from .i18n import N_, t
+
 
 def dew_point(temperature: float, humidity: float) -> float | None:
     """Dew point (°C), from the Goff-Gratch / Arden Buck saturation vapour pressure."""
@@ -35,33 +37,33 @@ def humidity_feel(dew: float | None, humidity: float | None, feels: float | None
     if dew is None or feels is None:
         return ""
     if dew >= 24:
-        return "air étouffant"
+        return t("air étouffant")
     if dew >= 21:
-        return "air très lourd"
+        return t("air très lourd")
     if dew >= 18:
-        return "air lourd"
+        return t("air lourd")
     if dew >= 16 and feels >= 20:
-        return "air un peu humide"
+        return t("air un peu humide")
     if humidity is not None and humidity < 30 and feels >= 15:
-        return "air sec"
+        return t("air sec")
     return ""
 
 
 def humidex_feel(value: float) -> str:
     """The discomfort a humidex value means."""
-    for limit, text in ((54, "coup de chaleur imminent"), (45, "inconfort dangereux"), (40, "fort inconfort"),
-                        (35, "inconfort évident"), (30, "léger inconfort")):
+    for limit, text in ((54, N_("coup de chaleur imminent")), (45, N_("inconfort dangereux")), (40, N_("fort inconfort")),
+                        (35, N_("inconfort évident")), (30, N_("léger inconfort"))):
         if value >= limit:
-            return text
-    return "confortable"
+            return t(text)
+    return t("confortable")
 
 
 def comfort_word(feels: float | None) -> str:
     """One word for the overall feel, on the thresholds of the UTCI thermal stress scale (borrowed as a reading grid)."""
     if feels is None:
         return ""
-    for limit, word in ((-13, "Froid intense"), (0, "Froid"), (9, "Frais"), (26, "Agréable"), (32, "Chaud"),
-                        (38, "Très chaud"), (46, "Chaleur intense")):
+    for limit, word in ((-13, N_("Froid intense")), (0, N_("Froid")), (9, N_("Frais")), (26, N_("Agréable")), (32, N_("Chaud")),
+                        (38, N_("Très chaud")), (46, N_("Chaleur intense"))):
         if feels < limit:
-            return word
-    return "Chaleur extrême"
+            return t(word)
+    return t("Chaleur extrême")

@@ -1,6 +1,7 @@
 // The banner's timeline (« frise Capsules »), as data: the sky forecast cut into segments, the brief's points as dated labels,
 // the points measured now gathered in one label, the hours under the track. The drawing is in ui/frise.ts.
 import type { AlertPoint, Slot, TickerPoint } from './view';
+import { hourText, t } from './i18n';
 
 const HOUR = 3600;
 /** A forecast point less than 20 minutes away is « now ». */
@@ -31,7 +32,7 @@ const KINDS: Record<string, string> = {
   lightning: 'storm', 'lightning-rainy': 'storm', snowy: 'snow', 'snowy-rainy': 'snow', hail: 'hail', windy: 'wind', 'windy-variant': 'wind', exceptional: 'cloud',
 };
 const kind = (s: Slot) => s.condition === 'sunny' && s.night ? 'night' : KINDS[s.condition] ?? 'cloud';
-export const hourLabel = (h: number) => h === 0 ? 'minuit' : h === 12 ? 'midi' : `${h} h`;
+export const hourLabel = hourText;
 const level = (n: number) => Math.min(3, Math.max(1, n)) as 1 | 2 | 3;
 
 /** `timeline` comes from the integration (2.0.5 and later); without it, the timeline is made of the bubble's points and the alert measured at home. */
@@ -44,7 +45,7 @@ export function buildFrise(points: TickerPoint[], alerts: AlertPoint[], hours: S
   const timed = (at?: number, clock?: string) => ({ at, clock: clock ?? (at === undefined ? '' : hourLabel(new Date(at * 1000).getHours())), now: at === undefined || at <= now + SOON });
   const point = (p: TickerPoint): FriseItem => ({ label: p.label, icon: p.icon, text: p.text, theme: p.theme,
     alert: p.alert ? level(p.level) : p.level >= 2 ? level(p.level) : undefined, ...timed(p.at, p.clock) });
-  const measured = alerts.filter(a => !a.official).map((a): FriseItem => ({ label: a.label ?? 'Maintenant', icon: a.icon, text: a.text, alert: level(a.level), ...timed(a.at, a.clock) }));
+  const measured = alerts.filter(a => !a.official).map((a): FriseItem => ({ label: a.label ?? t('Maintenant'), icon: a.icon, text: a.text, alert: level(a.level), ...timed(a.at, a.clock) }));
   const all = timeline ? timeline.map(point) : [...measured, ...points.map(point)];
   const items = [...all.filter(i => i.now), ...all.filter(i => !i.now).sort((a, b) => a.at! - b.at!)];
 
@@ -59,7 +60,7 @@ export function buildFrise(points: TickerPoint[], alerts: AlertPoint[], hours: S
     const last = coming[coming.length - 1];
     if (last && i.at! - items[last[0]].at! < TOGETHER) last.push(n); else coming.push([n]);
   });
-  const groups = [...(present.length ? [group(present, now, 'Maintenant')] : []), ...coming.map(g => group(g, items[g[0]].at!, items[g[0]].clock))];
+  const groups = [...(present.length ? [group(present, now, t('Maintenant'))] : []), ...coming.map(g => group(g, items[g[0]].at!, items[g[0]].clock))];
 
   const segments: FriseSegment[] = [];
   for (const h of dated) {
@@ -71,7 +72,7 @@ export function buildFrise(points: TickerPoint[], alerts: AlertPoint[], hours: S
     else segments.push({ kind: k, icon: h.icon, flex: to - from });
   }
 
-  const marks: FriseMark[] = [{ x: 0, text: 'Maintenant', edge: 'first' }];
+  const marks: FriseMark[] = [{ x: 0, text: t('Maintenant'), edge: 'first' }];
   for (const h of dated) if (h.hour % 6 === 0 && x(h.time) > .04 && x(h.time) < .9) marks.push({ x: x(h.time), text: hourLabel(h.hour) });
   if (last) marks.push({ x: 1, text: hourLabel((last.hour + Math.round((now + span - last.time) / HOUR)) % 24), edge: 'last' });
 

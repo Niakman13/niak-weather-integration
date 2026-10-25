@@ -23,6 +23,7 @@ from engine.forecast import Units, parse_days, parse_hours, parse_time  # noqa: 
 from engine.settings import Settings  # noqa: E402
 from engine.trends import Change  # noqa: E402
 from engine.view import to_json  # noqa: E402
+from engine.i18n import localized  # noqa: E402
 
 VIEW_VERSION = 1
 INTEGRATION = json.loads((Path(__file__).resolve().parent.parent / "custom_components" / "niak_weather" / "manifest.json").read_text())["version"]
@@ -48,9 +49,12 @@ def main() -> None:
                for entity_id, rows in (data.get("history") or {}).items()}
     zone = ZoneInfo(data.get("time_zone") or "UTC")
     now = parse_time(data["now"]) or datetime.now(zone)
-    result = compute(states.get, settings, parse_hours(data.get("hourly") or [], units), parse_days(data.get("daily") or [], units), history, history,
-                     [], None, now, zone, data.get("latitude"), data.get("elevation") or 0)
-    json.dump({"version": VIEW_VERSION, "integration": INTEGRATION, "view": to_json(result.view)}, sys.stdout, ensure_ascii=False)
+    # The card's language, like the integration's niak_weather/subscribe.
+    with localized(data.get("language") or "fr"):
+        result = compute(states.get, settings, parse_hours(data.get("hourly") or [], units), parse_days(data.get("daily") or [], units), history, history,
+                         [], None, now, zone, data.get("latitude"), data.get("elevation") or 0)
+        view = to_json(result.view)
+    json.dump({"version": VIEW_VERSION, "integration": INTEGRATION, "view": view}, sys.stdout, ensure_ascii=False)
 
 
 if __name__ == "__main__":

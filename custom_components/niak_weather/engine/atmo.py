@@ -13,6 +13,7 @@ from typing import Any, Iterable, Mapping, Protocol, Sequence
 from zoneinfo import ZoneInfo
 
 from .settings import ATMO_KEYS, ATMO_METRICS, Settings, atmo_key
+from .i18n import N_, t
 from .units import finite
 
 
@@ -26,32 +27,32 @@ class Metric:
 
 
 METRICS: dict[str, Metric] = {
-    "air": Metric("Air extérieur — indice global", "mdi:air-filter", "code_qual", re.compile(r"qualite.*globale(?!.*pollen)")),
-    "pm25": Metric("PM2.5 — sous-indice", "mdi:blur", "code_pm25", re.compile(r"pm2[._\s]?5")),
-    "pm10": Metric("PM10 — sous-indice", "mdi:blur", "code_pm10", re.compile(r"pm10")),
-    "no2": Metric("NO₂ — sous-indice", "mdi:molecule", "code_no2", re.compile(r"dioxyde.*azote|\bno2\b")),
-    "o3": Metric("O₃ — sous-indice", "mdi:molecule", "code_o3", re.compile(r"ozone|\bo3\b")),
-    "so2": Metric("SO₂ — sous-indice", "mdi:molecule", "code_so2", re.compile(r"dioxyde.*soufre|\bso2\b")),
-    "pollen": Metric("Pollens — indice global", "mdi:flower-pollen", "code_qual", re.compile(r"qualite.*globale.*pollen|pollen.*(?:global|index|indice)")),
-    "grass": Metric("Graminées", "mdi:grass", "code_gram", re.compile(r"gramin")),
-    "ragweed": Metric("Ambroisie", "mdi:flower-pollen", "code_ambr", re.compile(r"ambroisie|ragweed")),
-    "mugwort": Metric("Armoise", "mdi:flower-pollen", "code_arm", re.compile(r"armoise|mugwort")),
-    "alder": Metric("Aulne", "mdi:tree-outline", "code_aul", re.compile(r"aulne|alder")),
-    "birch": Metric("Bouleau", "mdi:tree-outline", "code_boul", re.compile(r"bouleau|birch")),
-    "olive": Metric("Olivier", "mdi:fruit-cherries", "code_oliv", re.compile(r"olivier|olive")),
-    "grass_concentration": Metric("Concentration — Graminées", "mdi:grass", "conc_gram", re.compile(r"gramin")),
-    "ragweed_concentration": Metric("Concentration — Ambroisie", "mdi:flower-pollen", "conc_ambr", re.compile(r"ambroisie|ragweed")),
-    "mugwort_concentration": Metric("Concentration — Armoise", "mdi:flower-pollen", "conc_arm", re.compile(r"armoise|mugwort")),
-    "alder_concentration": Metric("Concentration — Aulne", "mdi:tree-outline", "conc_aul", re.compile(r"aulne|alder")),
-    "birch_concentration": Metric("Concentration — Bouleau", "mdi:tree-outline", "conc_boul", re.compile(r"bouleau|birch")),
-    "olive_concentration": Metric("Concentration — Olivier", "mdi:fruit-cherries", "conc_oliv", re.compile(r"olivier|olive")),
+    "air": Metric(N_("Air extérieur — indice global"), "mdi:air-filter", "code_qual", re.compile(r"qualite.*globale(?!.*pollen)")),
+    "pm25": Metric(N_("PM2.5 — sous-indice"), "mdi:blur", "code_pm25", re.compile(r"pm2[._\s]?5")),
+    "pm10": Metric(N_("PM10 — sous-indice"), "mdi:blur", "code_pm10", re.compile(r"pm10")),
+    "no2": Metric(N_("NO₂ — sous-indice"), "mdi:molecule", "code_no2", re.compile(r"dioxyde.*azote|\bno2\b")),
+    "o3": Metric(N_("O₃ — sous-indice"), "mdi:molecule", "code_o3", re.compile(r"ozone|\bo3\b")),
+    "so2": Metric(N_("SO₂ — sous-indice"), "mdi:molecule", "code_so2", re.compile(r"dioxyde.*soufre|\bso2\b")),
+    "pollen": Metric(N_("Pollens — indice global"), "mdi:flower-pollen", "code_qual", re.compile(r"qualite.*globale.*pollen|pollen.*(?:global|index|indice)")),
+    "grass": Metric(N_("Graminées"), "mdi:grass", "code_gram", re.compile(r"gramin")),
+    "ragweed": Metric(N_("Ambroisie"), "mdi:flower-pollen", "code_ambr", re.compile(r"ambroisie|ragweed")),
+    "mugwort": Metric(N_("Armoise"), "mdi:flower-pollen", "code_arm", re.compile(r"armoise|mugwort")),
+    "alder": Metric(N_("Aulne"), "mdi:tree-outline", "code_aul", re.compile(r"aulne|alder")),
+    "birch": Metric(N_("Bouleau"), "mdi:tree-outline", "code_boul", re.compile(r"bouleau|birch")),
+    "olive": Metric(N_("Olivier"), "mdi:fruit-cherries", "code_oliv", re.compile(r"olivier|olive")),
+    "grass_concentration": Metric(N_("Concentration — Graminées"), "mdi:grass", "conc_gram", re.compile(r"gramin")),
+    "ragweed_concentration": Metric(N_("Concentration — Ambroisie"), "mdi:flower-pollen", "conc_ambr", re.compile(r"ambroisie|ragweed")),
+    "mugwort_concentration": Metric(N_("Concentration — Armoise"), "mdi:flower-pollen", "conc_arm", re.compile(r"armoise|mugwort")),
+    "alder_concentration": Metric(N_("Concentration — Aulne"), "mdi:tree-outline", "conc_aul", re.compile(r"aulne|alder")),
+    "birch_concentration": Metric(N_("Concentration — Bouleau"), "mdi:tree-outline", "conc_boul", re.compile(r"bouleau|birch")),
+    "olive_concentration": Metric(N_("Concentration — Olivier"), "mdi:fruit-cherries", "conc_oliv", re.compile(r"olivier|olive")),
 }
 assert tuple(METRICS) == ATMO_METRICS
 POLLEN_METRICS = ("grass", "ragweed", "mugwort", "alder", "birch", "olive")
 POLLUTANT_METRICS = ("pm25", "pm10", "no2", "o3", "so2")
 
-AIR_LABELS = ("Indisponible", "Bon", "Moyen", "Dégradé", "Mauvais", "Très mauvais", "Extrêmement mauvais", "Événement")
-POLLEN_LABELS = ("Indisponible", "Très faible", "Faible", "Modéré", "Élevé", "Très élevé", "Extrêmement élevé")
+AIR_LABELS = (N_("Indisponible"), N_("Bon"), N_("Moyen"), N_("Dégradé"), N_("Mauvais"), N_("Très mauvais"), N_("Extrêmement mauvais"), N_("Événement"))
+POLLEN_LABELS = (N_("Indisponible"), N_("Très faible"), N_("Faible"), N_("Modéré"), N_("Élevé"), N_("Très élevé"), N_("Extrêmement élevé"))
 COLORS = ("#969696", "#50f0e6", "#50ccaa", "#f0e641", "#ff5050", "#960032", "#872181", "#888888")
 
 
@@ -69,7 +70,7 @@ def _normal(text: str) -> str:
 
 
 def short_label(metric: str) -> str:
-    return METRICS[metric].label.replace(" — sous-indice", "")
+    return t(METRICS[metric].label).replace(t(" — sous-indice"), "")
 
 
 class StateLike(Protocol):
@@ -106,7 +107,7 @@ def reading(state: StateLike | None, entity_id: str, pollen: bool, now: datetime
         concentration or not attributes.get("unit_of_measurement"))
     index = int(number) if valid and not concentration and number is not None else None
     labels = POLLEN_LABELS if pollen else AIR_LABELS
-    label = str(attributes.get("Libellé") or (labels[index] if index is not None and index < len(labels) else "")) if valid else "Indisponible"
+    label = t(str(attributes.get("Libellé") or (labels[index] if index is not None and index < len(labels) else ""))) if valid else t("Indisponible")
     color = str(attributes.get("Couleur")) if valid and re.fullmatch(r"#[\da-fA-F]{3}(?:[\da-fA-F]{3})?", str(attributes.get("Couleur"))) else (
         COLORS[index] if index is not None and not concentration else COLORS[0])
     stamp = attributes.get("Date de mise à jour")

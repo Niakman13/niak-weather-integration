@@ -18,6 +18,7 @@ from .bulletin import Bulletin, build_bulletin
 from .conditions import condition_icon, condition_label
 from .current import STATION, CurrentWeather, available, current_metrics, current_weather, meaningful_comfort, weather_source_label
 from .forecast import Day, Hour, daily_wind, day_offset, local_day
+from .i18n import N_, language, t
 from .lightning import Lightning
 from .local import LocalWeather
 from .season import MONTHS, Season, current_season
@@ -30,8 +31,8 @@ from .units import Kind, french, finite, measurement
 
 Getter = Callable[[str], Any]
 ROSE = ("N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO")
-WEEKDAYS = ("lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche")
-SHORT_WEEKDAYS = ("Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim")
+WEEKDAYS = (N_("lundi"), N_("mardi"), N_("mercredi"), N_("jeudi"), N_("vendredi"), N_("samedi"), N_("dimanche"))
+SHORT_WEEKDAYS = (N_("Lun"), N_("Mar"), N_("Mer"), N_("Jeu"), N_("Ven"), N_("Sam"), N_("Dim"))
 
 @dataclass(frozen=True)
 class Chip:
@@ -261,7 +262,7 @@ def place_name(name: str) -> str:
 
 
 def rose(degrees: float) -> str:
-    return ROSE[math.floor(degrees % 360 / 22.5 + 0.5) % 16]
+    return t("N NNE NE ENE E ESE SE SSE S SSO SO OSO O ONO NO NNO").split()[math.floor(degrees % 360 / 22.5 + 0.5) % 16]
 
 
 def signed(value: float, digits: int = 1) -> str:
@@ -280,7 +281,7 @@ def build_view(get: Getter, settings: Settings, w: LocalWeather, brief: Brief | 
     trend = (w.temperature_trend if settings.temperature_trend_entity else derived.temperature_trend if derived else None) if w.available else None
     shown = alerts.alert_points(brief)
     today = now.astimezone(zone)
-    date_label = f"{WEEKDAYS[today.weekday()]} {today.day} {MONTHS[today.month - 1]}"
+    date_label = t("{weekday} {day} {month}", weekday=t(WEEKDAYS[today.weekday()]), day=today.day, month=t(MONTHS[today.month - 1]))
     season = current_season(get, settings.season_entity, now, zone, latitude, elevation)
     # The forecast hour under way (or the next one): its rain gives the nuance when Météo-France's description is not there.
     this_hour = next((h for h in hours if h.time is None or h.time.timestamp() > now.timestamp() - 3600), None)
@@ -288,7 +289,7 @@ def build_view(get: Getter, settings: Settings, w: LocalWeather, brief: Brief | 
     return WeatherView(
         location=settings.location or place_name(str(attributes.get("friendly_name") or "")),
         date_label=date_label[0].upper() + date_label[1:], provider=weather_source_label(get, settings),
-        forecast_source=settings.forecast_source or ("Météo-France" if re.search("france", str(attributes.get("attribution")), re.IGNORECASE) else "Prévisions météo"),
+        forecast_source=settings.forecast_source or ("Météo-France" if re.search("france", str(attributes.get("attribution")), re.IGNORECASE) else t("Prévisions météo")),
         weather_entity=settings.weather_entity, station=bool(settings.temperature_entity),
         now=current_weather(get, settings, w, trend, original_condition, this_hour.precipitation if this_hour else None, lightning), season=SeasonView(season, season.news, season.tip),
         alerts=tuple(shown), points=tuple(p for p in alerts.ticker_points(brief) if p.text not in {a.source for a in shown}),
@@ -316,7 +317,7 @@ def forecast_days(days: Sequence[Day], hours: Sequence[Hour], now: datetime, zon
     for d in days[:7]:
         offset = day_offset(d.time, now, zone)
         w = winds.get(offset)
-        result.append(DayForecast("Auj." if offset == 0 else SHORT_WEEKDAYS[local_day(d.time, zone).weekday()], offset == 0, d.condition,
+        result.append(DayForecast(t("Auj.") if offset == 0 else t(SHORT_WEEKDAYS[local_day(d.time, zone).weekday()]), offset == 0, d.condition,
                                   condition_label(d.condition), condition_icon(d.condition), None if d.low is None else round(d.low, 0),
                                   None if d.high is None else round(d.high, 0), round(d.precipitation or 0, 1),
                                   w.speed if w else None, w.bearing if w else None, w.gust if w else None))
@@ -328,19 +329,19 @@ def _comfort(get: Getter, settings: Settings, w: LocalWeather) -> ComfortView | 
         return None
     feels, temperature, sources, effects = w.feel.value, w.temperature, w.sources, w.feel.effects
     provider = weather_source_label(get, settings)
-    source = provider if not settings.temperature_entity else f"{STATION} · humidité {provider}" if w.humidity_source == "bulletin" else STATION
+    source = provider if not settings.temperature_entity else t("{station} · humidité {provider}", station=t(STATION), provider=provider) if w.humidity_source == "bulletin" else t(STATION)
     humidex = w.humidex if w.feel.base == "humidex" else None
-    terms = ((humidex - temperature if humidex is not None and temperature is not None else None, "rain", "mdi:water-percent", "humidité", sources.get("humidex")),
-             (effects.wind, "wind", "mdi:weather-windy", "vent", sources.get("wind_speed")),
-             (effects.sun, "level1", "mdi:white-balance-sunny", "soleil", sources.get("solar")),
-             (effects.rain, "rain", "mdi:weather-pouring", "pluie", sources.get("rain_rate")),
-             (effects.night, "cold", "mdi:weather-night", "ciel clair", sources.get("weather")))
-    significant = [t for t in terms if t[0] is not None and abs(t[0]) >= 0.1]
+    terms = ((humidex - temperature if humidex is not None and temperature is not None else None, "rain", "mdi:water-percent", t("humidité"), sources.get("humidex")),
+             (effects.wind, "wind", "mdi:weather-windy", t("vent"), sources.get("wind_speed")),
+             (effects.sun, "level1", "mdi:white-balance-sunny", t("soleil"), sources.get("solar")),
+             (effects.rain, "rain", "mdi:weather-pouring", t("pluie"), sources.get("rain_rate")),
+             (effects.night, "cold", "mdi:weather-night", t("ciel clair"), sources.get("weather")))
+    significant = [term for term in terms if term[0] is not None and abs(term[0]) >= 0.1]
     base = humidex if humidex is not None else temperature
     example = "" if base is None else (
-        f"{french(base, 1, 1)} °C ({'humidex' if humidex is not None else 'thermomètre'})"
-        + "".join(f" {'+' if v > 0 else '−'} {french(abs(v), 1, 1)} °C ({label})" for v, _, _, label, _ in significant if label != "humidité")
-        + f" = {french(feels, 1, 1)} °C ressentis")
+        t("{value} °C ({source})", value=french(base, 1, 1), source=t("humidex") if humidex is not None else t("thermomètre"))
+        + "".join(t(" {sign} {value} °C ({label})", sign="+" if v > 0 else "−", value=french(abs(v), 1, 1), label=label) for v, _, _, label, _ in significant if label != t("humidité"))
+        + t(" = {value} °C ressentis", value=french(feels, 1, 1)))
     return ComfortView(feels, temperature, w.feel.word, w.feel.humidity_word, None if temperature is None else feels - temperature,
                        tuple(Chip(theme, icon, label, f"{signed(v)} °C", entity) for v, theme, icon, label, entity in significant),
                        source, sources.get("temperature"), example)
@@ -367,7 +368,7 @@ def _rain_periods(rain_history: Mapping[str, Sequence[Change]], entities: Sequen
     return tuple(out)
 
 
-AGO = {"6h": "Il y a 6 h", "1d": "Il y a 24 h", "2d": "Il y a 2 j", "7d": "Il y a 7 j"}
+AGO = {"6h": N_("Il y a 6 h"), "1d": N_("Il y a 24 h"), "2d": N_("Il y a 2 j"), "7d": N_("Il y a 7 j")}
 
 
 def _pressure_period(period: str, rows: Sequence[Change], unit: str | None, now: datetime, value: float | None) -> PressurePeriod:
@@ -379,8 +380,8 @@ def _pressure_period(period: str, rows: Sequence[Change], unit: str | None, now:
     if len(values) > 1:
         # « Il y a… » only when the curve really starts near the beginning of the period.
         if first is not None and first.time <= now.timestamp() - PERIODS[period][0] * 5 / 6:
-            stats.append(Stat(AGO[period], f"{french(first.value, 0)} hPa"))
-        stats += [Stat("Min.", f"{french(min(values), 0)} hPa"), Stat("Max.", f"{french(max(values), 0)} hPa")]
+            stats.append(Stat(t(AGO[period]), f"{french(first.value, 0)} hPa"))
+        stats += [Stat(t("Min."), f"{french(min(values), 0)} hPa"), Stat(t("Max."), f"{french(max(values), 0)} hPa")]
     return PressurePeriod(period, series, math.floor(min(values)) - 1 if values else 0, math.ceil(max(values)) + 1 if values else 2, tuple(stats))
 
 
@@ -403,7 +404,10 @@ def _measures(get: Getter, settings: Settings, w: LocalWeather, hours: Sequence[
         return value if value is not None and value >= 0 else None
 
     def source_of(metric: Any) -> str:
-        return f"{metric.source}{' · repli' if metric.fallback else ''}" if metric else STATION
+        if metric is None:
+            return t(STATION)
+        source = t(metric.source)
+        return t("{source} · repli", source=source) if metric.fallback else source
 
     def history_of(entity_id: str | None, attribute: str, unit: str) -> tuple[Sequence[Change], str | None]:
         if entity_id == settings.weather_entity:
@@ -432,35 +436,35 @@ def _measures(get: Getter, settings: Settings, w: LocalWeather, hours: Sequence[
             live = Change(now.timestamp(), daily.state if available(daily) else "unavailable")
             days = rain_days([*rows, live] if rows else [], unit_of(settings.daily_rain_entity), now, zone)
         stats = []
-        for key, field, label in (("week", "weekly_rain_entity", "Semaine"), ("month", "monthly_rain_entity", "Mois"), ("year", "yearly_rain_entity", "Année")):
+        for key, field, label in (("week", "weekly_rain_entity", N_("Semaine")), ("month", "monthly_rain_entity", N_("Mois")), ("year", "yearly_rain_entity", N_("Année"))):
             entity_id = getattr(settings, field)
             total = getattr(derived, key) if derived and not entity_id and settings.rain_total_entity else None
             if entity_id:
                 v = read(entity_id, Kind.RAIN)
-                stats.append(Stat(label, "—" if v is None else f"{french(v)} mm", entity_id))
+                stats.append(Stat(t(label), "—" if v is None else f"{french(v)} mm", entity_id))
             elif total is not None and total.value is not None:
                 # A partial total is « at least » that much: the sign says it, the label stays short.
-                stats.append(Stat(label, f"{'≥ ' if total.partial else ''}{french(total.value)} mm", settings.rain_total_entity))
+                stats.append(Stat(t(label), f"{'≥ ' if total.partial else ''}{french(total.value)} mm", settings.rain_total_entity))
         if recent is not None or (computed is not None and computed.value is not None):
-            label = f"Ces dernières 24 h{' · cumul partiel' if computed is not None and computed.partial else ''}"
+            label = t("Ces dernières 24 h") + (t(" · cumul partiel") if computed is not None and computed.partial else "")
         elif today is not None:
-            label = "Depuis minuit"
+            label = t("Depuis minuit")
         elif not measured and rain_metric:
             label = rain_metric.description
         else:
-            label = "Ces dernières 24 h" if settings.rain_24h_entity else "Depuis minuit"
+            label = t("Ces dernières 24 h") if settings.rain_24h_entity else t("Depuis minuit")
         if measured:
             entity = settings.rain_24h_entity if recent is not None else settings.daily_rain_entity or settings.rain_24h_entity or settings.rain_total_entity
         else:
             entity = rain_metric.entity if rain_metric else None
         rain = RainView(
-            source="Station locale · historique" if computed is not None and computed.value is not None else STATION if measured else source_of(rain_metric),
+            source=t("Station locale · historique") if computed is not None and computed.value is not None else t(STATION) if measured else source_of(rain_metric),
             status=status.rain, value=value if measured else None if rain_metric is None or rain_metric.text else rain_metric.value,
             unit="mm" if measured or not rain_metric else rain_metric.unit, label=label, text=None if measured or not rain_metric else rain_metric.text,
             entity=entity or settings.weather_entity, rate=read(settings.rain_rate_entity, Kind.RAIN) if settings.rain_rate_entity else None,
             rate_entity=settings.rain_rate_entity, days=days if any(d.value is not None for d in days) else None,
-            days_note=f"{'Calculé depuis le compteur total' if counter else 'Maxima enregistrés'}{' · ≥ historique partiel' if any(d.partial for d in days) else ''}",
-            empty="Historique de pluie indisponible" if settings.daily_rain_entity or counter else "Historique mesuré disponible avec un pluviomètre facultatif",
+            days_note=(t("Calculé depuis le compteur total") if counter else t("Maxima enregistrés")) + (t(" · ≥ historique partiel") if any(d.partial for d in days) else ""),
+            empty=t("Historique de pluie indisponible") if settings.daily_rain_entity or counter else t("Historique mesuré disponible avec un pluviomètre facultatif"),
             stats=tuple(stats), periods=_rain_periods(rain_history, (settings.rain_total_entity if settings.station_history else None,
                                                                      settings.daily_rain_entity), lambda e: read(e, Kind.RAIN), now, zone))
 
@@ -493,20 +497,20 @@ def _measures(get: Getter, settings: Settings, w: LocalWeather, hours: Sequence[
         bearing = wind_metric.bearing if wind_metric else None
         stats = []
         if gust is not None and not gust_only:
-            stats.append(Stat("Rafales", f"{french(gust, 0)} km/h", gust_entity))
+            stats.append(Stat(t("Rafales"), f"{french(gust, 0)} km/h", gust_entity))
         if bearing is not None:
-            stats.append(Stat("Direction", f"{rose(bearing)} · {french(bearing % 360, 0)}°", wind_metric.bearing_entity))
+            stats.append(Stat(t("Direction"), f"{rose(bearing)} · {french(bearing % 360, 0)}°", wind_metric.bearing_entity))
         if maximum is not None:
-            stats.append(Stat("Max. du jour", f"{'≥ ' if computed_max is not None and computed_max.partial else ''}{french(maximum, 0)} km/h",
+            stats.append(Stat(t("Max. du jour"), f"{'≥ ' if computed_max is not None and computed_max.partial else ''}{french(maximum, 0)} km/h",
                               settings.max_daily_gust_entity or settings.wind_gust_entity))
         wind = WindView(
-            source=source_of(wind_metric) if wind_metric and wind_entity == wind_metric.entity else STATION, status=status.wind, value=value,
-            label="Rafales" if gust_only else "Vent moyen", entity=wind_entity or settings.weather_entity, description=w.wind.beaufort_text,
-            bearing=bearing, compass="Direction indisponible" if bearing is None else f"Vent {w.wind.from_name or 'du ' + rose(bearing)}",
+            source=source_of(wind_metric) if wind_metric and wind_entity == wind_metric.entity else t(STATION), status=status.wind, value=value,
+            label=t("Rafales") if gust_only else t("Vent moyen"), entity=wind_entity or settings.weather_entity, description=w.wind.beaufort_text,
+            bearing=bearing, compass=t("Direction indisponible") if bearing is None else f"Vent {w.wind.from_name}" if w.wind.from_name and language() == "fr" else t("Vent du {direction}", direction=rose(bearing)),
             bearing_entity=wind_metric.bearing_entity if wind_metric else None, mean=mean, gust=gusts, top=top,
-            mean_label="Rafales" if gust_only else "Vent moyen",
-            empty="Historique du service météo absent ou trop court dans Home Assistant" if wind_entity == settings.weather_entity
-                  else "Historique du vent indisponible ou insuffisant", stats=tuple(stats), periods=wind_periods)
+            mean_label=t("Rafales") if gust_only else t("Vent moyen"),
+            empty=t("Historique du service météo absent ou trop court dans Home Assistant") if wind_entity == settings.weather_entity
+                  else t("Historique du vent indisponible ou insuffisant"), stats=tuple(stats), periods=wind_periods)
 
     pressure = None
     pressure_metric = metrics.get("pressure")
@@ -518,22 +522,22 @@ def _measures(get: Getter, settings: Settings, w: LocalWeather, hours: Sequence[
         periods = tuple(_pressure_period(period, week if period != "6h" else pressure_rows, pressure_unit, now, value) for period in PERIODS)
         six = periods[0]
         change, minutes = w.pressure_trend.change, w.pressure_trend.minutes
-        measured = pressure_metric is not None and pressure_metric.source == STATION
+        measured = pressure_metric is not None and pressure_metric.source in (STATION, t(STATION))
         pressure = PressureView(
             source=source_of(pressure_metric), value=value, entity=entity,
-            description=(w.pressure_trend.text or "Mesurée chez vous") if measured or not pressure_metric else "Pression du bulletin",
+            description=(w.pressure_trend.text or t("Mesurée chez vous")) if measured or not pressure_metric else t("Pression du bulletin"),
             trend=None if change is None or not measured else pressure_trend(change, f"{french(minutes, 0)} min" if minutes and minutes < 150 else "3 h"),
             series=six.series, low=six.low, top=six.top,
-            empty="Historique du service météo absent ou trop court dans Home Assistant" if entity == settings.weather_entity
-                  else "Historique de pression indisponible ou insuffisant", stats=six.stats, periods=periods)
+            empty=t("Historique du service météo absent ou trop court dans Home Assistant") if entity == settings.weather_entity
+                  else t("Historique de pression indisponible ou insuffisant"), stats=six.stats, periods=periods)
     return rain, wind, pressure
 
 
 def pressure_trend(change: float, span: str) -> Chip:
     """« +1,3 hPa en 3 h », or « stable sur 3 h » when the pressure does not move."""
     if abs(change) < 0.05:
-        return Chip("pressure", "mdi:trending-neutral", f"stable sur {span}")
-    return Chip("pressure", "mdi:trending-up" if change > 0 else "mdi:trending-down", f"en {span}", f"{signed(change)} hPa")
+        return Chip("pressure", "mdi:trending-neutral", t("stable sur {span}", span=span))
+    return Chip("pressure", "mdi:trending-up" if change > 0 else "mdi:trending-down", t("en {span}", span=span), f"{signed(change)} hPa")
 
 
 def _extras(get: Getter, settings: Settings, w: LocalWeather, now: datetime, zone: ZoneInfo) -> tuple[Chip, ...]:
@@ -541,17 +545,17 @@ def _extras(get: Getter, settings: Settings, w: LocalWeather, now: datetime, zon
         return ()
     sources, out = w.sources, []
     if w.solar is not None:
-        out.append(Chip("level1", "mdi:solar-power-variant-outline", "soleil", f"{french(w.solar, 0)} W/m²", sources.get("solar")))
+        out.append(Chip("level1", "mdi:solar-power-variant-outline", t("soleil"), f"{french(w.solar, 0)} W/m²", sources.get("solar")))
     if w.uv is not None:
         out.append(Chip("level3" if w.uv >= 8 else "level2" if w.uv >= 6 else "level1", "mdi:sun-wireless-outline", f"UV {w.uv_text}".strip(),
                         french(w.uv, 0), sources.get("uv")))
     if w.lux is not None:
         out.append(Chip("level1", "mdi:brightness-5", "lux", f"{french(w.lux / 1000, 1)} k" if w.lux >= 1000 else french(w.lux, 0), sources.get("lux")))
     if w.humidity is not None:
-        out.append(Chip("rain", "mdi:water-percent", "humidité", f"{french(w.humidity, 0)} %", sources.get("humidity")))
+        out.append(Chip("rain", "mdi:water-percent", t("humidité"), f"{french(w.humidity, 0)} %", sources.get("humidity")))
     if w.dew_point is not None:
         dew = w.dew_point
-        out.append(Chip("cold", "mdi:thermometer-water", "rosée · très lourd" if dew >= 20 else "rosée · lourd" if dew >= 18 else "rosée",
+        out.append(Chip("cold", "mdi:thermometer-water", t("rosée · très lourd") if dew >= 20 else t("rosée · lourd") if dew >= 18 else t("rosée"),
                         f"{french(dew, 1, 1)} °C", sources.get("dew_point")))
     # Pollens given per species (Polleninformation, IRM KMI): only the species that are present.
     if not settings.atmo_pollens and settings.pollen_source != "none":
@@ -562,7 +566,7 @@ def _extras(get: Getter, settings: Settings, w: LocalWeather, now: datetime, zon
             level = polleninfo.usable_level(get, settings, pollen, now=now, zone=zone) or 0
             if level > 0:
                 out.append(Chip("level3" if level >= 4 else "level2" if level >= 3 else "level1", pollen.icon or "mdi:flower-pollen",
-                                ("", "faible", "modéré", "élevé", "très élevé")[level], pollen.name or pollen.entity_id, pollen.entity_id))
+                                t(("", N_("faible"), N_("modéré"), N_("élevé"), N_("très élevé"))[level]), pollen.name or pollen.entity_id, pollen.entity_id))
     return tuple(out)
 
 

@@ -1,16 +1,17 @@
 // The banner of the full card, over the animated sky: the official vigilance, the day's bulletin, the weather now,
 // then the timeline of the coming hours with the brief's points.
 import { css, html, nothing, type TemplateResult } from 'lit';
+import { fr, t } from '../i18n';
 import type { WeatherView } from '../view';
 import { alertPill, info, label, nf, tint, unbroken } from '../ui/parts';
 import { nowBlock } from './tile';
 import '../ui/clock';
 
 const GROUPS = [
-  { key: 'official', title: 'Vigilance officielle' },
-  { key: 'now', title: 'Maintenant' },
-  { key: 'future', title: 'À venir' },
-  { key: 'environment', title: 'Air et pollens' },
+  { key: 'official', title: fr('Vigilance officielle') },
+  { key: 'now', title: fr('Maintenant') },
+  { key: 'future', title: fr('À venir') },
+  { key: 'environment', title: fr('Air et pollens') },
 ] as const;
 
 /** The « i » of the banner: what the brief is, then every point it weighed, by group, with a link to its source. */
@@ -19,12 +20,12 @@ function briefInfo(v: WeatherView, uid: string): TemplateResult {
   const groups = brief ? GROUPS.map(g => ({ ...g, signals: brief.signals.filter(s => s.group === g.key && (s.severity > 0 || v.points.some(p => p.text === s.text))) }))
     .filter(g => g.signals.length) : [];
   return info(`${uid}-brief`, {
-    title: 'Synthèse',
-    text: html`La météo du jour en une phrase, avec ce qui compte maintenant et ce qui arrive.
-      ${groups.map(g => html`<div class="brief-group">${label(g.title)}<ul>${g.signals.map(s => html`<li data-entity=${s.entity ?? nothing}>
+    title: t('Synthèse'),
+    text: html`${t('La météo du jour en une phrase, avec ce qui compte maintenant et ce qui arrive.')}
+      ${groups.map(g => html`<div class="brief-group">${label(t(g.title))}<ul>${g.signals.map(s => html`<li data-entity=${s.entity ?? nothing}>
         <ha-icon icon=${s.icon}></ha-icon><span>${s.text}</span></li>`)}</ul></div>`)}
-      ${brief?.caveats.length ? html`<div class="brief-group">${label('À vérifier')}<ul>${brief.caveats.map(c => html`<li><ha-icon icon="mdi:alert-circle-outline"></ha-icon><span>${c}</span></li>`)}</ul></div>` : nothing}`,
-    example: '« Pluie ce soir, puis éclaircies demain matin. »',
+      ${brief?.caveats.length ? html`<div class="brief-group">${label(t('À vérifier'))}<ul>${brief.caveats.map(c => html`<li><ha-icon icon="mdi:alert-circle-outline"></ha-icon><span>${c}</span></li>`)}</ul></div>` : nothing}`,
+    example: t('« Pluie ce soir, puis éclaircies demain matin. »'),
   });
 }
 
@@ -35,15 +36,15 @@ import type { BannerBlock } from '../types';
 export function renderHero(v: WeatherView, sky: TemplateResult, uid: string, blocks: BannerBlock[], draw: (b: BannerBlock) => unknown,
   clock: 'none' | 'left' | 'right' = 'none'): TemplateResult {
   const trend = v.now.trend === undefined ? nothing : html`<span class="nw-chip" style=${tint(v.now.trend > 0 ? 'heat' : 'cold')}
-    title=${v.now.trend > 0 ? 'La température monte' : 'La température baisse'}><ha-icon icon=${v.now.trend > 0 ? 'mdi:arrow-top-right' : 'mdi:arrow-bottom-right'}></ha-icon>${v.now.trend > 0 ? '+' : '−'}${nf(Math.abs(v.now.trend))} °C/h</span>`;
+    title=${v.now.trend > 0 ? t('La température monte') : t('La température baisse')}><ha-icon icon=${v.now.trend > 0 ? 'mdi:arrow-top-right' : 'mdi:arrow-bottom-right'}></ha-icon>${v.now.trend > 0 ? '+' : '−'}${nf(Math.abs(v.now.trend))} °C/h</span>`;
   const season = v.season.news ? html`<span class="nw-chip" style=${tint('calm')} title=${v.season.tip}><ha-icon icon=${v.season.info.icon}></ha-icon>${v.season.news}</span>` : nothing;
   const official = v.alerts.filter(a => a.official);
   // The bulletin sits next to the weather now when it comes first; the other blocks follow under them, in their order.
   const bulletin = bulletinBlock(v);
   const rest = blocks[0] === 'bulletin' ? blocks.slice(1) : blocks;
-  return html`<section class=${`nw-hero${v.now.darkSky ? ' dark-sky' : ''}`} aria-label="Synthèse">
+  return html`<section class=${`nw-hero${v.now.darkSky ? ' dark-sky' : ''}`} aria-label=${t('Synthèse')}>
     <div class="sky" aria-hidden="true">${sky}</div><div class="veil" aria-hidden="true"></div>
-    <header class="fm-head"><h2>Synthèse</h2>${briefInfo(v, uid)}<span>${[v.location, v.dateLabel].filter(Boolean).join(' · ')}</span>${season}</header>
+    <header class="fm-head"><h2>${t('Synthèse')}</h2>${briefInfo(v, uid)}<span>${[v.location, v.dateLabel].filter(Boolean).join(' · ')}</span>${season}</header>
     <div class="hero-main">
       ${clock === 'left' ? html`<niak-clock class="hero-clock"></niak-clock>` : nothing}
       ${official.length ? html`<div class="nw-alerts">${official.map(a => alertPill(a))}</div>` : nothing}
@@ -55,7 +56,7 @@ export function renderHero(v: WeatherView, sky: TemplateResult, uid: string, blo
 }
 
 /** « Bulletin du jour » and its text. */
-export const bulletinBlock = (v: WeatherView) => v.bulletin ? html`${label('Bulletin du jour')}<p class="nw-bulletin">${unbroken(v.bulletin.summary)}</p>` : nothing;
+export const bulletinBlock = (v: WeatherView) => v.bulletin ? html`${label(t('Bulletin du jour'))}<p class="nw-bulletin">${unbroken(v.bulletin.summary)}</p>` : nothing;
 
 export const heroStyles = css`
   .nw-hero { position:relative; isolation:isolate; overflow:hidden; padding:20px 24px 24px; display:grid; grid-template-columns:minmax(0,1fr) auto;

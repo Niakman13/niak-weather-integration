@@ -1,15 +1,17 @@
 """Names and icons of Home Assistant weather conditions: one table for the whole engine."""
 from __future__ import annotations
 
+from .i18n import N_, t
+
 CONDITIONS: dict[str, tuple[str, str]] = {
-    "sunny": ("Ensoleillé", "mdi:weather-sunny"), "clear-night": ("Nuit claire", "mdi:weather-night"),
-    "partlycloudy": ("Éclaircies", "mdi:weather-partly-cloudy"), "cloudy": ("Ciel couvert", "mdi:weather-cloudy"),
-    "rainy": ("Pluie", "mdi:weather-rainy"), "pouring": ("Fortes pluies", "mdi:weather-pouring"),
-    "lightning": ("Orage", "mdi:weather-lightning"), "lightning-rainy": ("Orage et pluie", "mdi:weather-lightning-rainy"),
-    "snowy": ("Neige", "mdi:weather-snowy"), "snowy-rainy": ("Pluie et neige", "mdi:weather-snowy-rainy"),
-    "hail": ("Grêle", "mdi:weather-hail"), "fog": ("Brouillard", "mdi:weather-fog"),
-    "windy": ("Venteux", "mdi:weather-windy"), "windy-variant": ("Venteux et nuageux", "mdi:weather-windy-variant"),
-    "exceptional": ("Conditions exceptionnelles", "mdi:alert-circle-outline"),
+    "sunny": (N_("Ensoleillé"), "mdi:weather-sunny"), "clear-night": (N_("Nuit claire"), "mdi:weather-night"),
+    "partlycloudy": (N_("Éclaircies"), "mdi:weather-partly-cloudy"), "cloudy": (N_("Ciel couvert"), "mdi:weather-cloudy"),
+    "rainy": (N_("Pluie"), "mdi:weather-rainy"), "pouring": (N_("Fortes pluies"), "mdi:weather-pouring"),
+    "lightning": (N_("Orage"), "mdi:weather-lightning"), "lightning-rainy": (N_("Orage et pluie"), "mdi:weather-lightning-rainy"),
+    "snowy": (N_("Neige"), "mdi:weather-snowy"), "snowy-rainy": (N_("Pluie et neige"), "mdi:weather-snowy-rainy"),
+    "hail": (N_("Grêle"), "mdi:weather-hail"), "fog": (N_("Brouillard"), "mdi:weather-fog"),
+    "windy": (N_("Venteux"), "mdi:weather-windy"), "windy-variant": (N_("Venteux et nuageux"), "mdi:weather-windy-variant"),
+    "exceptional": (N_("Conditions exceptionnelles"), "mdi:alert-circle-outline"),
 }
 
 
@@ -23,4 +25,4 @@ def condition_icon(condition: str, night: bool = False) -> str:
 
 
 def condition_label(condition: str) -> str:
-    return CONDITIONS.get(condition, (condition, ""))[0]
+    return t(CONDITIONS.get(condition, (condition, ""))[0])

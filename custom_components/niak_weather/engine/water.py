@@ -7,13 +7,14 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from typing import Any, Callable
+from .i18n import N_, t
 
 from .atmo import normal
 from .settings import Settings
 
 LEVELS = ("aucune", "vigilance", "alerte", "alerte_renforcee", "crise")
 """The states of the « Restrictions d'eau » sensor."""
-WORDS = ("Pas de restriction", "Vigilance", "Alerte", "Alerte renforcée", "Crise")
+WORDS = (N_("Pas de restriction"), N_("Vigilance"), N_("Alerte"), N_("Alerte renforcée"), N_("Crise"))
 ALERT = 2
 """From this level, uses are restricted: the card and the brief tell it."""
 _STATES = {"pas de restriction": 0, "pas de restrictions": 0, "aucune restriction": 0, "vigilance": 1, "alerte": 2,
@@ -36,7 +37,7 @@ class Restriction:
 
     @property
     def label(self) -> str:
-        return WORDS[self.level]
+        return t(WORDS[self.level])
 
     @property
     def watering(self) -> bool:
@@ -47,13 +48,14 @@ class Restriction:
     def text(self) -> str:
         """« Pas de restriction d’eau », « Vigilance : pas encore de restriction », « Alerte renforcée · 9 usages restreints, dont l’arrosage »."""
         if self.level == 0:
-            return "Pas de restriction d’eau"
+            return t("Pas de restriction d’eau")
         if self.level < ALERT:
-            return "Vigilance : pas encore de restriction, l’eau est à économiser"
+            return t("Vigilance : pas encore de restriction, l’eau est à économiser")
         if not self.usages:
             return self.label
         n = len(self.usages)
-        return f"{self.label} · {n} usage{'s' if n > 1 else ''} restreint{'s' if n > 1 else ''}" + (", dont l’arrosage" if self.watering else "")
+        return (t("{level} · {count} usages restreints", level=self.label, count=n) if n > 1 else t("{level} · 1 usage restreint", level=self.label)) + (
+            t(", dont l’arrosage") if self.watering else "")
 
     def extra(self) -> dict[str, Any]:
         return {"niveau": self.level, "libelle": self.label, "usages": list(self.usages), "arrosage_restreint": self.watering,

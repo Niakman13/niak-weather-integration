@@ -1,9 +1,10 @@
 // The tile: on the dashboard it is one band; by default a tap unfolds it in place (the blocks chosen: bulletin, events, moments, forecasts)
 // and a long press opens the full card. Each press can be set to do something else.
 import { css, html, nothing, type TemplateResult } from 'lit';
+import { hourMark, t } from '../i18n';
 import type { BulletinPeriod, WeatherView } from '../view';
 import type { TileBlock } from '../types';
-import { alertPill, label, nf, rose, tint, unbroken, windArrow } from '../ui/parts';
+import { alertPill, label, nf, tint, unbroken, windArrow, windTip } from '../ui/parts';
 import '../ui/ticker';
 import '../ui/frise';
 
@@ -25,7 +26,7 @@ export const DEFAULT_BLOCKS: TileBlock[] = ['bulletin', 'events'];
 
 /** What a press leads to, in a few words. */
 function goal(target: PressTarget, open: boolean): string {
-  return target === 'page' ? 'page météo' : target === 'card' ? 'carte complète' : open ? 'replier' : 'déplier';
+  return target === 'page' ? t('page météo') : target === 'card' ? t('carte complète') : open ? t('replier') : t('déplier');
 }
 
 /** A moment of the day, an hour or a day: a see-through tile over the sky. */
@@ -37,28 +38,28 @@ const rainLine = (mm: number, min = .1) => mm >= min ? html`<span class="nw-ink"
 /** The wind: an arrow where it goes and its speed in km/h, the gusts in the tooltip; an empty line keeps the tiles level. */
 function windLine(wind?: number, bearing?: number, gust?: number): TemplateResult {
   if (wind === undefined) return html`<span class="tile-wind">&nbsp;</span>`;
-  const tip = `Vent ${bearing === undefined ? '' : `du ${rose(bearing)} `}${nf(wind, 0)} km/h${gust !== undefined && gust > wind ? `, rafales ${nf(gust, 0)} km/h` : ''}`;
+  const tip = windTip(nf(wind, 0), bearing, gust !== undefined && gust > wind ? nf(gust, 0) : undefined);
   return html`<span class="tile-wind" title=${tip} aria-label=${tip}>${bearing === undefined ? nothing : windArrow(bearing)}${nf(wind, 0)}</span>`;
 }
 const temps = (p: BulletinPeriod) => p.tmin === undefined ? '—' : p.tmin === p.tmax ? `${p.tmin} °C` : `${p.tmin}–${p.tmax} °C`;
 
 /** The four moments of the day: evening, night, morning, afternoon. */
 export const moments = (v: WeatherView) => v.bulletin?.periods.length
-  ? html`<div class="block">${label('Les prochains moments')}<div class="moments">${v.bulletin.periods.map(p => glassTile(p.label, p.icon, temps(p),
+  ? html`<div class="block">${label(t('Les prochains moments'))}<div class="moments">${v.bulletin.periods.map(p => glassTile(p.label, p.icon, temps(p),
     html`<small>${p.phrase}</small>${p.rain >= 1 ? rainLine(p.rain) : nothing}`, p.text))}</div></div>` : nothing;
 
 /** The hours or the days, with the switch between them. */
-export function forecastStrip(v: WeatherView, tab: 'hours' | 'days', onTab: (tab: 'hours' | 'days') => void, title = 'Prévisions'): TemplateResult | typeof nothing {
+export function forecastStrip(v: WeatherView, tab: 'hours' | 'days', onTab: (tab: 'hours' | 'days') => void, title = t('Prévisions')): TemplateResult | typeof nothing {
   const hours = v.hours.slice(0, 12).filter(h => h.temperature !== undefined), days = v.days.slice(0, 5);
   if (!hours.length && !days.length) return nothing;
   const shown = !hours.length ? 'days' : !days.length ? 'hours' : tab;
   const select = (t: 'hours' | 'days') => (e: Event) => { e.stopPropagation(); onTab(t); };
   return html`<div class="block"><div class="block-title">${label(title)}
-      ${hours.length && days.length ? html`<span class="seg" role="group" aria-label="Prévisions affichées">
-        <button type="button" aria-pressed=${shown === 'hours'} @click=${select('hours')} @pointerdown=${stopPress}>Heures</button>
-        <button type="button" aria-pressed=${shown === 'days'} @click=${select('days')} @pointerdown=${stopPress}>Jours</button></span>` : nothing}</div>
+      ${hours.length && days.length ? html`<span class="seg" role="group" aria-label=${t('Prévisions affichées')}>
+        <button type="button" aria-pressed=${shown === 'hours'} @click=${select('hours')} @pointerdown=${stopPress}>${t('Heures')}</button>
+        <button type="button" aria-pressed=${shown === 'days'} @click=${select('days')} @pointerdown=${stopPress}>${t('Jours')}</button></span>` : nothing}</div>
     ${shown === 'hours'
-      ? html`<div class="hours">${hours.map(h => glassTile(`${h.hour} h`, h.icon, `${nf(h.temperature!, 0)}°`,
+      ? html`<div class="hours">${hours.map(h => glassTile(hourMark(h.hour), h.icon, `${nf(h.temperature!, 0)}°`,
           html`${rainLine(h.precipitation)}${windLine(h.wind, h.bearing, h.gust)}`, h.conditionLabel))}</div>`
       : html`<div class="days">${days.map(d => glassTile(d.label, d.icon, d.high === undefined ? '—' : `${d.high}°`,
           html`<span class="lo">${d.low === undefined ? '' : `${d.low}°`}</span>${rainLine(d.rain)}${windLine(d.wind, d.bearing, d.gust)}`, d.conditionLabel))}</div>`}</div>`;
@@ -70,23 +71,23 @@ const stopPress = (e: Event) => e.stopPropagation();
 export function todayRange(v: WeatherView): TemplateResult | typeof nothing {
   const d = v.days.find(day => day.today);
   if (!d || (d.low === undefined && d.high === undefined)) return nothing;
-  const tip = `Prévu aujourd’hui : ${[d.low === undefined ? '' : `mini ${d.low} °C`, d.high === undefined ? '' : `maxi ${d.high} °C`].filter(Boolean).join(', ')}`;
+  const tip = t('Prévu aujourd’hui : {range}', { range: [d.low === undefined ? '' : t('mini {t} °C', { t: d.low }), d.high === undefined ? '' : t('maxi {t} °C', { t: d.high })].filter(Boolean).join(', ') });
   return html`<span class="range" title=${tip} aria-label=${tip}>${d.low === undefined ? nothing : html`<span>↓ ${d.low}°</span>`}${d.high === undefined ? nothing : html`<span>↑ ${d.high}°</span>`}</span>`;
 }
 
 /** « En ce moment »: condition, temperature and today's low and high, then the source. Shared by the tile and the banner. */
 export function nowBlock(v: WeatherView, kicker: boolean, extra: unknown = nothing, head: unknown = nothing): TemplateResult {
   const n = v.now;
-  return html`<div class="nw-now">${head}${kicker ? label('En ce moment') : nothing}
+  return html`<div class="nw-now">${head}${kicker ? label(t('En ce moment')) : nothing}
     <span class="cond" data-entity=${n.conditionEntity ?? nothing} title=${n.source}><ha-icon icon=${n.icon}></ha-icon>${n.label}</span>
-    ${n.temperature === undefined ? html`<span class="cond">Température indisponible</span>`
-      : html`<span class="temp" data-entity=${n.temperatureEntity ?? nothing} aria-label=${`${n.temperatureSource} : ${nf(n.temperature)} degrés Celsius`}>${nf(n.temperature)}<small>°C</small></span>`}
+    ${n.temperature === undefined ? html`<span class="cond">${t('Température indisponible')}</span>`
+      : html`<span class="temp" data-entity=${n.temperatureEntity ?? nothing} aria-label=${t('{source} : {t} degrés Celsius', { source: n.temperatureSource, t: nf(n.temperature) })}>${nf(n.temperature)}<small>°C</small></span>`}
     ${todayRange(v)}${extra}<span class="nw-badge">${n.temperatureSource}</span></div>`;
 }
 
 /** « Événements »: the timeline of the coming hours, with the points of now and of the next hours over the forecast sky. Shared with the banner. */
 export const frise = (v: WeatherView) => v.points.length || v.alerts.length || v.hours.length || v.timeline?.length
-  ? html`<div class="nw-events">${label('Événements')}<niak-frise .points=${v.points} .alerts=${v.alerts} .hours=${v.hours} .timeline=${v.timeline}></niak-frise></div>` : nothing;
+  ? html`<div class="nw-events">${label(t('Événements'))}<niak-frise .points=${v.points} .alerts=${v.alerts} .hours=${v.hours} .timeline=${v.timeline}></niak-frise></div>` : nothing;
 
 export function renderTile(v: WeatherView, sky: TemplateResult, s: TileState): TemplateResult {
   // The top keeps the official vigilance, one pill folded, the others opening under it. What the station measures leads the scrolling bubble,
@@ -95,13 +96,13 @@ export function renderTile(v: WeatherView, sky: TemplateResult, s: TileState): T
   const points = [...v.alerts.filter(a => !a.official), ...more].map(a => ({ ...a, alert: true as const }));
   const ticker = [...points, ...v.points];
   const headline = v.bulletin?.summary;
-  const presses = ([['Appui', s.tapTarget], ['Appui long', s.holdTarget]] as const).filter(([, target]) => target !== 'none');
+  const presses = ([['tap', s.tapTarget], ['hold', s.holdTarget]] as const).filter(([, target]) => target !== 'none');
   const foldable = s.tapTarget === 'toggle' || s.holdTarget === 'toggle';
   // Under the unfolded tile, folding on a tap goes without saying.
-  const hints = presses.filter(([name, target]) => name !== 'Appui' || target !== 'toggle');
+  const hints = presses.filter(([name, target]) => name !== 'tap' || target !== 'toggle');
   return html`<div class=${`nw-tilecard${s.open ? ' open' : ''}${foldable ? '' : ' fixed'}${v.now.darkSky ? ' dark-sky' : ''}${ticker.length ? '' : ' quiet'}`}
       role="button" tabindex="0" aria-expanded=${foldable ? s.open : nothing}
-      aria-label=${`Météo${v.location ? ` à ${v.location}` : ''}${presses.length ? ` : ${presses.map(([name, target]) => `${name.toLowerCase()} pour ${goal(target, s.open)}`).join(', ')}` : ''}`}>
+      aria-label=${`${v.location ? t('Météo à {place}', { place: v.location }) : t('Météo')}${presses.length ? ` : ${presses.map(([name, target]) => name === 'tap' ? t('appui pour {goal}', { goal: goal(target, s.open) }) : t('appui long pour {goal}', { goal: goal(target, s.open) })).join(', ')}` : ''}`}>
     <div class="sky" aria-hidden="true">${sky}</div><div class="veil" aria-hidden="true"></div><i class="press-ring" aria-hidden="true"></i>
     <div class="top">
       <div class="meta">${v.location ? html`<span class="place">${v.location}</span>` : nothing}${first ? alertPill(first) : nothing}
@@ -111,10 +112,10 @@ export function renderTile(v: WeatherView, sky: TemplateResult, s: TileState): T
     </div>
     <div class="grabber" aria-hidden="true"><i></i></div>
     <div class="more" ?inert=${!s.open}><div><div class="more-in">
-      ${s.blocks.map(block => block === 'bulletin' ? (headline ? html`<div class="bulletin">${label('Bulletin du jour')}<p class="nw-bulletin">${unbroken(headline)}</p></div>` : nothing)
+      ${s.blocks.map(block => block === 'bulletin' ? (headline ? html`<div class="bulletin">${label(t('Bulletin du jour'))}<p class="nw-bulletin">${unbroken(headline)}</p></div>` : nothing)
         : block === 'events' ? frise(v) : block === 'moments' ? moments(v) : forecastStrip(v, s.tab, s.onTab))}
       <div class="foot"><span>${v.forecastSource}${v.now.temperatureSource !== v.forecastSource ? ` · ${v.now.temperatureSource.toLowerCase()}` : ''}</span>
-        ${hints.length ? html`<span>${hints.map(([name, target]) => `${name} : ${goal(target, true)}`).join(' · ')}</span>` : nothing}</div>
+        ${hints.length ? html`<span>${hints.map(([name, target]) => name === 'tap' ? t('Appui : {goal}', { goal: goal(target, true) }) : t('Appui long : {goal}', { goal: goal(target, true) })).join(' · ')}</span>` : nothing}</div>
     </div></div></div>
   </div>`;
 }
