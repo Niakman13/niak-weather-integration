@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { alertItems, rainAhead } from '../src/views/compact';
+import { airPanels } from '../src/views/single';
 import { displayed } from '../src/display';
 import type { AlertPoint, Slot, TickerPoint, WeatherView } from '../src/view';
 import type { WeatherCardConfig } from '../src/types';
@@ -39,5 +40,13 @@ describe('The tile’s blocks', () => {
     const v = view({ bulletin, air: { today: [], tomorrow: [] } } as Partial<WeatherView>);
     expect(displayed(v, config({ format: 'tile', show_bulletin: false, tile_blocks: ['moments'] }), true).bulletin).toEqual(bulletin);
     expect(displayed(v, config({ format: 'tile', show_bulletin: false }), true).bulletin).toBeUndefined();
+  });
+});
+
+describe('The air and pollen card', () => {
+  const panel = (kind: 'air' | 'pollen', tomorrow: boolean) => ({ kind, tomorrow, zone: '', details: [], updated: '', stale: false });
+  it('shows the panels chosen, in their order, and skips those the sources do not give', () => {
+    const v = view({ air: { today: [panel('air', false), panel('pollen', false)], tomorrow: [panel('air', true)] } } as Partial<WeatherView>);
+    expect(airPanels(v, ['pollen_today', 'air_tomorrow', 'pollen_tomorrow'])).toEqual([panel('pollen', false), panel('air', true)]);
   });
 });

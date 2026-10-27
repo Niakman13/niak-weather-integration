@@ -62,7 +62,7 @@ L’interface s’adapte au téléphone et remplit la hauteur disponible. Dans *
 
 ## La carte
 
-Sept cartes à choisir dans **Ajouter une carte** : complète, tuile, tuile dépliée, mini, prévisions, pluie et alerte. Toutes s’écrivent `type: custom:niak-weather-card`, seul `format` change. [La carte en détail : formats, réglages, visuel](docs/carte/README.md).
+Douze cartes, rangées en trois types dans **Ajouter une carte** : **Niak - Météo** (complète, tuile, tuile dépliée), **Niak - À la pièce** (ressenti, pluie, vent, pression, éclairs, air et pollens, prévisions) et **Niak - Petite carte** (mini, alerte). Chacune montre les parties que vous cochez. Toutes s’écrivent `type: custom:niak-weather-card`, seul `format` change. [La carte en détail : formats, réglages, visuel](docs/carte/README.md).
 
 ![Niak Weather — tuile pleine et demi-largeur repliées, puis tuile dépliée, par temps d’orage avec vigilance jaune](docs/carte/images/niak-weather-formats.png)
 
@@ -97,7 +97,7 @@ Chaque entité dit **pourquoi** (attribut `raison`) et **d’où vient** sa vale
 
 | Page | Ce qu’elle explique |
 | --- | --- |
-| [La carte](docs/carte/README.md) | Les sept cartes, le bandeau, les réglages, le visuel, les messages |
+| [La carte](docs/carte/README.md) | Les douze cartes, le bandeau, les réglages, le visuel, les messages |
 | [Les capteurs et les automatisations](docs/capteurs.md) | Les sept familles d’entités, l’évènement d’alerte, l’action, l’entité météo, les modèles à importer |
 | [Le ressenti](docs/ressenti.md) | Humidex, effets du vent, du soleil, de la pluie et de la nuit, mots et nuances, alerte de la station |
 | [La synthèse et les alertes](docs/synthese.md) | Les points retenus, leurs seuils, les niveaux, la vigilance officielle |

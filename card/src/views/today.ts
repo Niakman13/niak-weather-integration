@@ -5,6 +5,7 @@ import type { ChartPeriodId, ComfortView, PressureView, RainDay, RainPeriodId, R
 import type { TodayBlock } from '../types';
 import { chartEnd, chartY, curvePaths, extremePills, type ChartPaths, type ChartPill } from '../ui/charts';
 import { chip, entity, info, label, legend, nf, panelHead, tempColor } from '../ui/parts';
+import { lightningPanel } from './lightning';
 
 const pills = (list: ChartPill[]) => list.map(p => html`<span class=${`pill${p.y < 30 ? ' low' : ''}`} style=${`left:${p.x}%;top:${p.y}%`}>${p.text}</span>`);
 const stats = (list: Stat[]) => list.length ? html`<div class="stats">${list.map(s => html`<div data-entity=${entity(s.entity)}>${label(s.label)}<b>${s.value}</b></div>`)}</div>` : nothing;
@@ -23,11 +24,15 @@ const RAIN: Record<RainPeriodId, { title: string; axis?: [string, string, string
   '7d': { title: fr('7 derniers jours') },
   '30d': { title: fr('30 derniers jours'), axis: [fr('−30 j'), fr('−15 j'), fr('aujourd’hui')] },
 };
+/** The parts a panel shows; all of them in the full card. */
+export type Parts = ReadonlySet<string> | undefined;
+const has = (parts: Parts, part: string) => !parts || parts.has(part);
+
 const curve = (paths: ChartPaths[], color: string) => paths.map(p => svg`
   <path d=${p.area} fill=${`color-mix(in oklab,${color} 16%,transparent)`}/>
   <path d=${p.line} fill="none" stroke=${color} stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round"/>`);
 
-function comfortPanel(c: ComfortView, uid: string, station: boolean): TemplateResult {
+export function comfortPanel(c: ComfortView, uid: string, station: boolean, parts?: Parts, extras: TemplateResult | typeof nothing = nothing): TemplateResult {
   const P = (t: number) => Math.min(100, Math.max(0, (t + 5) / 50 * 100));
   const gap = c.gap === undefined || Math.abs(c.gap) < .1 ? '' : t(station ? '{gap} °C par rapport au thermomètre' : '{gap} °C par rapport à la température du bulletin',
     { gap: `${c.gap > 0 ? '+' : '−'}${nf(Math.abs(c.gap))}` });
@@ -38,18 +43,19 @@ function comfortPanel(c: ComfortView, uid: string, station: boolean): TemplateRe
     example: c.example ? t('En ce moment : {example}.', { example: c.example }) : t('25 °C au thermomètre dans un air très humide se ressentent comme 30 °C.'),
   });
   return html`<section class="nw-panel" aria-label=${t('Ressenti')}>${panelHead('mdi:thermometer', 'heat', t('Ressenti'), c.source, explain)}
-    <div class="metric-row">
-      <div class="metric" data-entity=${entity(c.entity)}><div class="metric-main"><b>${nf(c.feels)}</b><span>°C</span></div>
-        <small>${[c.word ? html`<b>${c.word}</b>` : '', c.humidity, gap].filter(Boolean).map((x, i) => html`${i ? ' · ' : ''}${x}`)}</small></div>
-      ${c.factors.length ? html`<div class="nw-chips factors">${c.factors.map(chip)}</div>` : nothing}
-    </div>
-    <div class="rail-line"><span>−5°</span><div class="rail">
+    ${has(parts, 'feel') || has(parts, 'factors') && c.factors.length ? html`<div class="metric-row">
+      ${has(parts, 'feel') ? html`<div class="metric" data-entity=${entity(c.entity)}><div class="metric-main"><b>${nf(c.feels)}</b><span>°C</span></div>
+        <small>${[c.word ? html`<b>${c.word}</b>` : '', c.humidity, gap].filter(Boolean).map((x, i) => html`${i ? ' · ' : ''}${x}`)}</small></div>` : nothing}
+      ${has(parts, 'factors') && c.factors.length ? html`<div class="nw-chips factors">${c.factors.map(chip)}</div>` : nothing}
+    </div>` : nothing}
+    ${has(parts, 'gauge') ? html`<div class="rail-line"><span>−5°</span><div class="rail">
       ${c.temperature === undefined ? nothing : html`<i class="thermo" style=${`left:${P(c.temperature)}%`} title=${t(station ? 'Thermomètre {t} °C' : 'Bulletin {t} °C', { t: nf(c.temperature) })}></i>`}
-      <i class="feel" style=${`left:${P(c.feels)}%;--c:${tempColor(c.feels)}`} title=${t('Ressenti {t} °C', { t: nf(c.feels) })}></i></div><span>45°</span></div>
+      <i class="feel" style=${`left:${P(c.feels)}%;--c:${tempColor(c.feels)}`} title=${t('Ressenti {t} °C', { t: nf(c.feels) })}></i></div><span>45°</span></div>` : nothing}
+    ${extras}
   </section>`;
 }
 
-export function rainPanel(r: RainView): TemplateResult {
+export function rainPanel(r: RainView, parts?: Parts, lead: TemplateResult | typeof nothing = nothing): TemplateResult {
   const top = Math.max(1, ...(r.days ?? []).map(d => d.value ?? 0)), period = RAIN[r.period ?? '7d'], dense = (r.days?.length ?? 0) > 7;
   // Over many bars, only the wettest one says its amount; each bar gives its own on hover.
   const wettest = dense ? (r.days ?? []).reduce<RainDay | undefined>((a, d) => (d.value ?? 0) > (a?.value ?? 0) ? d : a, undefined) : undefined;
@@ -58,58 +64,60 @@ export function rainPanel(r: RainView): TemplateResult {
   const now = r.rate !== undefined && r.rate > 0 ? chip({ theme: 'rain', icon: 'mdi:weather-rainy', value: `${nf(r.rate)} mm/h`, label: t('en ce moment'), entity: r.rateEntity })
     // Only while it rains: « no rain » tells nothing the sky does not already say.
     : r.status ? chip({ theme: 'rain', icon: 'mdi:weather-rainy', label: r.status }) : nothing;
-  return html`<section class="nw-panel" aria-label=${t('Pluie')}>${panelHead('mdi:weather-rainy', 'rain', t('Pluie'), r.source)}
-    <div class="metric-row"><div class="metric" data-entity=${r.entity}>
+  return html`<section class="nw-panel" aria-label=${t('Pluie')}>${panelHead('mdi:weather-rainy', 'rain', t('Pluie'), r.source)}${lead}
+    ${has(parts, 'now') ? html`<div class="metric-row"><div class="metric" data-entity=${r.entity}>
       ${r.text ? html`<div class="metric-main"><b class="word">${r.text}</b></div>`
-        : html`<div class="metric-main"><b>${r.value === undefined ? '—' : nf(r.value, 1, true)}</b><span>${r.unit}</span></div>`}<small>${r.label}</small></div>${now}</div>
-    <div class="mini" title=${r.daysNote}><div class="mini-top">${t(period.title)} · ${r.total === undefined ? 'mm' : `${r.totalPartial ? '≥ ' : ''}${nf(r.total)} mm`}</div>
+        : html`<div class="metric-main"><b>${r.value === undefined ? '—' : nf(r.value, 1, true)}</b><span>${r.unit}</span></div>`}<small>${r.label}</small></div>${now}</div>` : nothing}
+    ${has(parts, 'chart') ? html`<div class="mini" title=${r.daysNote}><div class="mini-top">${t(period.title)} · ${r.total === undefined ? 'mm' : `${r.totalPartial ? '≥ ' : ''}${nf(r.total)} mm`}</div>
       ${r.days ? html`<div class=${`bars${dense ? ' dense' : ''}`} style=${`--n:${r.days.length}`} role="img" aria-label=${t('Pluie des {period}', { period: t(period.title) })}>${r.days.map(d => html`<div title=${colon(when(d), d.value === undefined ? t('indisponible') : d.partial ? t('au moins {mm} mm', { mm: nf(d.value) }) : `${nf(d.value)} mm`)}>
           <span>${d.value === undefined ? (dense ? '' : '—') : d.value && (!dense || d === wettest) ? `${d.partial ? '≥ ' : ''}${nf(d.value)}` : ''}</span>
           <i class=${d.value ? '' : 'zero'} style=${`height:${d.value ? Math.max(12, d.value / top * 74) : 5}%`}></i></div>`)}</div>
         ${period.axis ? html`<div class="mini-axis">${period.axis.map(x => label(t(x)))}</div>` : html`<div class="bars-axis">${r.days.map(d => label(d.label.replace('.', '')))}</div>`}`
-      : html`<p class="nw-empty">${r.empty}</p>`}</div>
-    ${stats(r.stats)}
+      : html`<p class="nw-empty">${r.empty}</p>`}</div>` : nothing}
+    ${has(parts, 'stats') ? stats(r.stats) : nothing}
   </section>`;
 }
 
-function windPanel(w: WindView): TemplateResult {
+export function windPanel(w: WindView, parts?: Parts): TemplateResult {
   const color = 'var(--nw-wind)', end = chartEnd(w.mean, w.gust), period = PERIODS[w.period ?? '6h'];
   const mean = curvePaths(w.mean, w.top, end, 0, period.span), gust = curvePaths(w.gust, w.top, end, 0, period.span);
   return html`<section class="nw-panel" aria-label=${t('Vent')}>${panelHead('mdi:weather-windy', 'wind', t('Vent'), w.source)}
-    <div class="metric-row"><div class="metric" data-entity=${w.entity}><div class="metric-main"><b>${w.value === undefined ? '—' : nf(w.value, 0)}</b><span>km/h</span></div>
+    ${has(parts, 'now') ? html`<div class="metric-row"><div class="metric" data-entity=${w.entity}><div class="metric-main"><b>${w.value === undefined ? '—' : nf(w.value, 0)}</b><span>km/h</span></div>
       <small>${w.label}${w.description ? ` · ${w.description}` : ''}</small></div>
       ${w.status ? chip({ theme: 'wind', icon: 'mdi:weather-windy', label: w.status }) : nothing}
       ${w.bearing === undefined ? nothing : html`<svg class="compass" viewBox="0 0 72 72" role="img" aria-label=${w.compass} data-entity=${entity(w.bearingEntity)}>
         <circle cx="36" cy="36" r="30" fill="color-mix(in oklab,var(--nw-wind) 10%,transparent)" stroke="var(--nw-line)"/>
         <text x="36" y="16" text-anchor="middle" font-size="10" font-weight="700" fill="var(--nw-fg2)">N</text>
-        <path d="M36 16 44 46 36 40 28 46Z" fill="color-mix(in oklab,var(--nw-wind) 75%,var(--nw-fg))" transform=${`rotate(${(w.bearing + 180) % 360} 36 36)`}/></svg>`}</div>
-    <div class="mini"><div class="mini-top">${t(period.title)} · km/h</div>
+        <path d="M36 16 44 46 36 40 28 46Z" fill="color-mix(in oklab,var(--nw-wind) 75%,var(--nw-fg))" transform=${`rotate(${(w.bearing + 180) % 360} 36 36)`}/></svg>`}</div>` : nothing}
+    ${has(parts, 'chart') ? html`<div class="mini"><div class="mini-top">${t(period.title)} · km/h</div>
       ${mean.length || gust.length ? html`<div class="mini-plot"><svg viewBox="0 0 100 50" preserveAspectRatio="none" role="img" aria-label=${t('Vent des {period}, moyennes et rafales', { period: t(period.title) })}>
           ${gust.map(p => svg`<path d=${p.line} fill="none" stroke="color-mix(in oklab,var(--nw-wind) 55%,transparent)" stroke-width="2" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/>`)}
           ${curve(mean, color)}</svg>${pills(extremePills(w.mean, end, v => chartY(v, w.top), v => nf(v, 0), period.span))}</div>${axis(period)}
         <div class="nw-legend">${legend(w.meanLabel, color)}${gust.length ? legend(t('Rafales'), color, 'dash') : nothing}</div>`
-      : html`<p class="nw-empty">${w.empty}</p>`}</div>
-    ${stats(w.stats)}
+      : html`<p class="nw-empty">${w.empty}</p>`}</div>` : nothing}
+    ${has(parts, 'stats') ? stats(w.stats) : nothing}
   </section>`;
 }
 
 
-function pressurePanel(p: PressureView): TemplateResult {
+export function pressurePanel(p: PressureView, parts?: Parts): TemplateResult {
   const period = PERIODS[p.period ?? '6h'], end = chartEnd(p.series), series = curvePaths(p.series, p.top, end, p.low, period.span);
   return html`<section class="nw-panel" aria-label=${t('Pression')}>${panelHead('mdi:gauge', 'pressure', t('Pression'), p.source)}
-    <div class="metric-row"><div class="metric" data-entity=${entity(p.entity)}><div class="metric-main"><b>${p.value === undefined ? '—' : nf(p.value, 0)}</b><span>hPa</span></div>
-      <small>${p.description}</small></div>${p.trend ? chip(p.trend) : nothing}</div>
-    <div class="mini"><div class="mini-top">${t(period.title)} · hPa</div>
+    ${has(parts, 'now') ? html`<div class="metric-row"><div class="metric" data-entity=${entity(p.entity)}><div class="metric-main"><b>${p.value === undefined ? '—' : nf(p.value, 0)}</b><span>hPa</span></div>
+      <small>${p.description}</small></div>${p.trend ? chip(p.trend) : nothing}</div>` : nothing}
+    ${has(parts, 'chart') ? html`<div class="mini"><div class="mini-top">${t(period.title)} · hPa</div>
       ${series.length ? html`<div class="mini-plot"><svg viewBox="0 0 100 50" preserveAspectRatio="none" role="img" aria-label=${t('Pression des {period}', { period: t(period.title) })}>${curve(series, 'var(--nw-pressure)')}</svg>${pills(extremePills(p.series, end, v => chartY(v, p.top, p.low), v => nf(v, 0), period.span))}</div>${axis(period)}`
-        : html`<p class="nw-empty">${p.empty}</p>`}</div>
-    ${stats(p.stats)}
+        : html`<p class="nw-empty">${p.empty}</p>`}</div>` : nothing}
+    ${has(parts, 'stats') ? stats(p.stats) : nothing}
   </section>`;
 }
 
-const TODAY: TodayBlock[] = ['comfort', 'rain', 'wind', 'pressure', 'extras', 'air'];
+const TODAY: TodayBlock[] = ['comfort', 'rain', 'wind', 'pressure', 'lightning', 'extras', 'air'];
 
 export function renderToday(v: WeatherView, uid: string, station: boolean, air: TemplateResult | typeof nothing, blocks: TodayBlock[] = TODAY): TemplateResult {
-  const panel = (b: TodayBlock) => b === 'rain' ? v.rain && rainPanel(v.rain) : b === 'wind' ? v.wind && windPanel(v.wind) : b === 'pressure' ? v.pressure && pressurePanel(v.pressure) : undefined;
+  // Without Blitzortung there is no lightning panel: the measures keep their row of three.
+  const panel = (b: TodayBlock) => b === 'rain' ? v.rain && rainPanel(v.rain) : b === 'wind' ? v.wind && windPanel(v.wind) : b === 'pressure' ? v.pressure && pressurePanel(v.pressure)
+    : b === 'lightning' ? v.lightning && lightningPanel(v.lightning) : undefined;
   // Measures that follow each other share one grid; the feel and the chips stand on their own.
   const out: unknown[] = [];
   let run: TemplateResult[] = [];

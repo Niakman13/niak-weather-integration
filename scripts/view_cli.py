@@ -18,6 +18,7 @@ from zoneinfo import ZoneInfo
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "custom_components" / "niak_weather"))
 
+from engine import lightning  # noqa: E402
 from engine.compute import compute  # noqa: E402
 from engine.forecast import Units, parse_days, parse_hours, parse_time  # noqa: E402
 from engine.settings import Settings  # noqa: E402
@@ -50,9 +51,14 @@ def main() -> None:
     zone = ZoneInfo(data.get("time_zone") or "UTC")
     now = parse_time(data["now"]) or datetime.now(zone)
     # The card's language, like the integration's niak_weather/subscribe.
+    # Blitzortung's strikes, as [minutes ago, km, azimuth or null], when the scenario has some.
+    seen = None
+    if settings.lightning_entity:
+        t = now.timestamp()
+        seen = lightning.read([lightning.Strike(t - m * 60, km, az) for m, km, az in data.get("strikes") or []], t, True, data.get("lightning_month"))
     with localized(data.get("language") or "fr"):
         result = compute(states.get, settings, parse_hours(data.get("hourly") or [], units), parse_days(data.get("daily") or [], units), history, history,
-                         [], None, now, zone, data.get("latitude"), data.get("elevation") or 0)
+                         [], None, now, zone, data.get("latitude"), data.get("elevation") or 0, lightning=seen)
         view = to_json(result.view)
     json.dump({"version": VIEW_VERSION, "integration": INTEGRATION, "view": view}, sys.stdout, ensure_ascii=False)
 

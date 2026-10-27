@@ -226,6 +226,31 @@ class SeasonView:
 
 
 @dataclass(frozen=True)
+class LightningView:
+    """The storm Blitzortung sees: the card's radar of the last hour, the nearest strike, the level and the month's count."""
+    source: str
+    entity: str
+    available: bool
+    """False while the Blitzortung sensor does not answer: no strike then says nothing."""
+    step: int
+    """0 calm, 1 a storm within 30 km, 2 close or coming closer, 3 overhead."""
+    headline: str
+    nearest: float | None
+    """Kilometres to the nearest strike of the last 20 minutes, else of the hour."""
+    direction: str
+    trend: str | None
+    """« approche », « eloigne » or None."""
+    movement: str
+    hour_count: int
+    recent_count: int
+    """Strikes in the last 10 minutes."""
+    last_minutes: int | None
+    strikes: tuple[tuple[int, float, float | None], ...]
+    """The last hour's strikes, oldest first: [minutes ago, km, degrees from the north or null after a restart]."""
+    month: int | None = None
+
+
+@dataclass(frozen=True)
 class WeatherView:
     location: str
     date_label: str
@@ -251,6 +276,7 @@ class WeatherView:
     hours: tuple[Slot, ...]
     days: tuple[DayForecast, ...]
     air: Air
+    lightning: LightningView | None = None
 
 
 def place_name(name: str) -> str:
@@ -296,7 +322,29 @@ def build_view(get: Getter, settings: Settings, w: LocalWeather, brief: Brief | 
         timeline=tuple(alerts.timeline_points(brief)), brief=brief,
         bulletin=build_bulletin(hours, now, zone), comfort=_comfort(get, settings, w), rain=rain, wind=wind, pressure=pressure,
         extras=_extras(get, settings, w, now, zone), hours=forecast_slots(hours, now, zone, w.sunrise, w.sunset), days=forecast_days(days, hours, now, zone),
-        air=Air(_air(get, settings, now, zone, False), _air(get, settings, now, zone, True)))
+        air=Air(_air(get, settings, now, zone, False), _air(get, settings, now, zone, True)),
+        lightning=_lightning(settings, lightning))
+
+
+def _lightning(settings: Settings, seen: Lightning | None) -> LightningView | None:
+    """The radar's view, when Blitzortung is chosen."""
+    if seen is None or not settings.lightning_entity:
+        return None
+    now = seen.now or 0.0
+    nearest = seen.nearest if seen.nearest is not None else min((s.distance for s in seen.hour), default=None)
+    headline = (t("Blitzortung ne répond pas : les éclairs ne sont pas suivis pour le moment.") if not seen.available
+                else (t("L’orage est sur vous."), t("L’orage est proche."), t("Un orage dans le secteur."))[3 - seen.step] if seen.step
+                else t("Orage au loin.") if seen.nearest is not None
+                else t("Plus d’éclair depuis {minutes} min.", minutes=max(1, round((now - max(s.at for s in seen.hour)) / 60))) if seen.hour
+                else t("Aucun éclair dans l’heure."))
+    last = max((s.at for s in seen.hour), default=None)
+    return LightningView(
+        source="Blitzortung", entity=settings.lightning_entity, available=seen.available, step=seen.step, headline=headline,
+        nearest=None if nearest is None else round(nearest, 1), direction=t(seen.direction) if seen.direction else "", trend=seen.trend,
+        movement=seen.movement, hour_count=len(seen.hour), recent_count=seen.recent_count,
+        last_minutes=None if last is None else max(0, round((now - last) / 60)),
+        strikes=tuple((max(0, round((now - s.at) / 60)), round(s.distance, 1), None if s.azimuth is None else round(s.azimuth)) for s in seen.hour),
+        month=seen.month)
 
 
 def forecast_slots(hours: Sequence[Hour], now: datetime, zone: ZoneInfo, sunrise: float = 6.5, sunset: float = 21) -> tuple[Slot, ...]:

@@ -14,9 +14,9 @@ Dans l’application Home Assistant, une carte reste invisible juste après une 
 
 ![Niak Weather — votre station météo et les prévisions, réunies en une carte qui parle](images/niak-weather-banner.png)
 
-## Sept cartes à choisir
+## Douze cartes à choisir
 
-Dans **Ajouter une carte**, cherchez « Niak Weather » : chaque carte a son aperçu. Toutes s’écrivent `type: custom:niak-weather-card`, seul `format` change.
+Dans **Ajouter une carte**, cherchez « Niak » : trois entrées, une par type de carte — **Niak - Météo** (complète ou tuile), **Niak - À la pièce** (ressenti, pluie, vent, pression, éclairs, air et pollens, prévisions) et **Niak - Petite carte** (mini ou alerte). Dans les réglages de la carte, choisissez d’abord le **type**, puis le **format**. Toutes s’écrivent `type: custom:niak-weather-card`, seul `format` change.
 
 | Carte | Pour quoi |
 | --- | --- |
@@ -24,11 +24,18 @@ Dans **Ajouter une carte**, cherchez « Niak Weather » : chaque carte a son ape
 | **Tuile** (`tile`) | La page d’accueil, en pleine ou demi-largeur : le lieu, la vigilance, la bulle qui défile et la météo du moment. **Un appui** la déplie sur place, **un appui long** ouvre la carte complète par-dessus la page. |
 | **Tuile dépliée** (`intermediate`) | La même tuile, ouverte au départ. |
 | **Mini** (`mini`) | Une seule ligne : le ciel, la température, le lieu et la vigilance. Pour un en-tête ou un téléphone. Un appui ouvre la carte complète. |
-| **Prévisions** (`forecast`) | La courbe des 18 prochaines heures ou le tableau des 7 jours, avec le bouton **Heures / Jours**. |
-| **Pluie** (`rain`) | La pluie à venir (dans l’heure, sur 6 h, la prochaine averse), celle qui tombe et celle des 7 derniers jours. |
+| **Ressenti** (`comfort`) | Le ressenti et son explication, sa jauge, ce qui le fait varier et les pastilles (humidité, rosée, soleil…). |
+| **Pluie** (`rain`) | La pluie à venir (dans l’heure, sur 6 h, la prochaine averse), celle qui tombe, ses barres et ses cumuls. |
+| **Vent** (`wind`) | Le vent du moment et sa direction, sa courbe, les rafales et le maximum du jour. |
+| **Pression** (`pressure`) | La pression et sa tendance, sa courbe, les valeurs passées. |
+| **Éclairs** (`lightning`) | Avec l’extension [Blitzortung](https://github.com/mrk-its/homeassistant-blitzortung) : les éclairs de la dernière heure sur un radar autour de chez vous (anneaux à 10, 30 et 50 km, les plus récents en rouge), l’éclair le plus proche et sa direction, le niveau (calme, secteur, proche, sur vous), les comptes de l’heure, des 10 dernières minutes et du mois. Peut rester cachée tant qu’aucun orage n’est à moins de 30 km. Sans Blitzortung, elle explique comment l’installer. |
+| **Air et pollens** (`air`) | L’air extérieur et les pollens, aujourd’hui et demain. |
+| **Prévisions** (`forecast`) | La courbe des 18 prochaines heures et le tableau des 7 jours, avec le bouton **Heures / Jours** quand les deux sont gardés. |
 | **Alerte** (`alert`) | Visible seulement en cas de vigilance, d’alerte mesurée chez vous ou de point sérieux à venir. Cachée quand tout est calme. Un appui ouvre la carte complète. |
 
 **Le contenu se choisit**, dans l’ordre voulu :
+
+- **Ressenti, Pluie, Vent, Pression, Éclairs, Air et pollens, Prévisions** : chaque partie de la carte se coche ou se décoche (réglage `card_blocks`). Ce sont les panneaux de la carte complète, chacun seul sur sa carte.
 
 - **Tuile dépliée** : le bulletin du jour, les événements (la frise), les prochains moments (cet après-midi, ce soir, cette nuit, demain matin) et les prévisions avec **Heures / Jours** (température, pluie, vent et sa direction). Par défaut : le bulletin et les événements.
 - **Complète** : trois sections, toujours dans cet ordre, chacune avec son propre contenu :
@@ -76,10 +83,11 @@ Tout se règle dans l’éditeur de la carte, rangé en blocs : le lieu et le fo
 | Bloc | Réglage | Par défaut | Rôle |
 | --- | --- | --- | --- |
 | En haut | `entry_id` | — | Le lieu à afficher, s’il y en a plusieurs dans l’intégration |
-| En haut | `format` | `full` | `full`, `tile`, `intermediate`, `mini`, `forecast`, `rain` ou `alert` |
+| En haut | `format` | `full` | `full`, `tile`, `intermediate`, `mini`, `comfort`, `rain`, `wind`, `pressure`, `lightning`, `air`, `forecast` ou `alert` |
+| Contenu (cartes seules) | `card_blocks` | tout | Ressenti : `feel`, `gauge`, `factors`, `extras`. Pluie : `ahead` (à venir), `now`, `chart`, `stats`. Vent et Pression : `now`, `chart`, `stats`. Éclairs : `now`, `radar`, `stats` (et `hide_when_calm: true` pour la cacher sans orage). Air et pollens, dans l’ordre voulu : `air_today`, `pollen_today`, `air_tomorrow`, `pollen_tomorrow`. Prévisions : `hours`, `days`. Les cartes Pluie, Vent et Pression suivent aussi `rain_span`, `wind_span` et `pressure_span` |
 | Bandeau intelligent (complète) | `banner_blocks` | `bulletin`, `events` | Sous le lieu, la vigilance et la météo du moment, dans l’ordre : `bulletin`, `events` (la frise), `moments`, `forecast` (les prévisions en tuiles). Le bandeau et son ciel animé restent toujours |
 | Bandeau intelligent (complète) | `clock` | `none` | L’heure de l’appareil dans le bandeau : `left` en grand sous le titre, `right` au-dessus de « En ce moment », `none` masquée |
-| Aujourd’hui (complète) | `today_blocks` | tout | `rain`, `wind`, `pressure`, `comfort` (ressenti), `extras` (pastilles), `air` (air et pollens du jour). Une liste vide retire la section |
+| Aujourd’hui (complète) | `today_blocks` | tout | `rain`, `wind`, `pressure`, `lightning` (éclairs, avec Blitzortung), `comfort` (ressenti), `extras` (pastilles), `air` (air et pollens du jour). Une liste vide retire la section |
 | Aujourd’hui (complète) | `rain_span` | `7d` | Les barres de pluie : `24h` (une par heure), `7d` (une par jour) ou `30d` (une par jour). 24 heures et 30 jours demandent un pluviomètre dont Home Assistant garde les statistiques ; sinon, 7 jours |
 | Aujourd’hui (complète) | `wind_span` | `6h` | La courbe du vent sur `6h`, `1d` (24 heures), `2d` (2 jours) ou `7d` (7 jours). Au-delà de 6 h, les moyennes horaires et les rafales maximales de chaque heure |
 | Aujourd’hui (complète) | `pressure_span` | `6h` | La courbe de pression sur `6h`, `1d` (24 heures), `2d` (2 jours) ou `7d` (7 jours). Au-delà de 6 h, les moyennes horaires gardées par Home Assistant |
@@ -120,6 +128,15 @@ Une tuile dépliée comme en 1.20, avec les moments et les prévisions :
 type: custom:niak-weather-card
 format: intermediate
 tile_blocks: [bulletin, moments, forecast]
+```
+
+La pression seule, sa courbe sur 7 jours, sans les chiffres :
+
+```yaml
+type: custom:niak-weather-card
+format: pressure
+card_blocks: [now, chart]
+pressure_span: 7d
 ```
 
 ## Le visuel

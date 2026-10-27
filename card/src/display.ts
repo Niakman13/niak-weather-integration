@@ -35,6 +35,6 @@ export function displayed(v: WeatherView, config: WeatherCardConfig, tile: boole
     pressure: v.pressure && pressureOver(v.pressure, config.pressure_span ?? '6h'),
     wind: v.wind && windOver(v.wind, config.wind_span ?? '6h'),
     rain: v.rain && rainOver(v.rain, config.rain_span ?? '7d'),
-    air: { today: details(v.air.today), tomorrow: config.show_atmo_tomorrow === false && !config.forecast_blocks ? [] : details(v.air.tomorrow) },
+    air: { today: details(v.air.today), tomorrow: config.show_atmo_tomorrow === false && !config.forecast_blocks && config.format !== 'air' ? [] : details(v.air.tomorrow) },
   };
 }

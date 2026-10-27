@@ -23,8 +23,11 @@ export interface HomeAssistant {
 export type TileBlock = 'bulletin' | 'events' | 'moments' | 'forecast';
 /** The full card's three sections, always in this order, each with its own blocks: nothing moves from one to another. */
 export type BannerBlock = 'bulletin' | 'events' | 'moments' | 'forecast';
-export type TodayBlock = 'comfort' | 'rain' | 'wind' | 'pressure' | 'extras' | 'air';
+export type TodayBlock = 'comfort' | 'rain' | 'wind' | 'pressure' | 'lightning' | 'extras' | 'air';
 export type ForecastBlock = 'hours' | 'days' | 'air';
+/** What a card on its own shows (comfort, rain, wind, pressure, air, forecast), each format with its own parts. */
+export type CardBlock = 'now' | 'chart' | 'radar' | 'stats' | 'ahead' | 'feel' | 'gauge' | 'factors' | 'extras'
+  | 'air_today' | 'pollen_today' | 'air_tomorrow' | 'pollen_tomorrow' | 'hours' | 'days';
 
 /** The card's own settings: what it shows and how. Its sources (weather, station, air) are set in the Niak Weather integration. */
 /** What a press does: the full weather over the page, the weather page, fold or unfold the tile, or nothing. */
@@ -36,15 +39,19 @@ export interface WeatherCardConfig {
   entry_id?: string;
   /** full (default): the weather page. tile: one band that unfolds on tap. intermediate: the same tile, unfolded at first.
    *  mini: one line. forecast: the hours and the days alone. rain: the rain to come and the rain that fell.
-   *  alert: only while there is a vigilance or an alert, hidden otherwise.
+   *  comfort, wind, pressure, air: that part of the full card alone. alert: only while there is a vigilance or an alert, hidden otherwise.
    *  On the small formats a long press (a tap on mini and alert) does what hold_action says. */
-  format?: 'full' | 'intermediate' | 'tile' | 'mini' | 'forecast' | 'rain' | 'alert';
+  format?: 'full' | 'intermediate' | 'tile' | 'mini' | 'comfort' | 'rain' | 'wind' | 'pressure' | 'lightning' | 'air' | 'forecast' | 'alert';
+  /** The cards on their own: what they show, in this order. Unset, everything their format has. */
+  card_blocks?: CardBlock[];
+  /** The lightning card: hidden while no storm is within 30 km (shown while the dashboard is edited). */
+  hide_when_calm?: boolean;
   /** What the unfolded tile shows, in this order. Default: the bulletin, then the events. */
   tile_blocks?: TileBlock[];
   /** Full card, what each section shows and in which order; an empty list removes the section. Unset, the older switches decide.
    *  The banner: bulletin, events (timeline), moments, forecast (the hours/days tiles); the place, vigilance and weather now always lead. */
   banner_blocks?: BannerBlock[];
-  /** « Aujourd'hui »: comfort (feel), rain, wind, pressure, extras (chips), air (today's air and pollens). */
+  /** « Aujourd'hui »: comfort (feel), rain, wind, pressure, lightning (with Blitzortung), extras (chips), air (today's air and pollens). */
   today_blocks?: TodayBlock[];
   /** How far back the pressure and wind charts go. Default: six hours. */
   pressure_span?: '6h' | '1d' | '2d' | '7d';

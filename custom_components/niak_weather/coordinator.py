@@ -98,6 +98,14 @@ def alert_store(hass: HomeAssistant, entry_id: str) -> Store[dict[str, Any]]:
     return Store(hass, 1, f"{DOMAIN}.alertes.{entry_id}")
 
 
+def blitzortung_counter(registry: er.EntityRegistry, distance_id: str | None) -> str | None:
+    """Blitzortung's strike counter, beside its distance sensor: their unique ids differ only by their last word."""
+    entry = registry.async_get(distance_id) if distance_id else None
+    if entry is None or entry.platform != "blitzortung" or not (entry.unique_id or "").endswith("-distance"):
+        return None
+    return registry.async_get_entity_id("sensor", "blitzortung", f"{entry.unique_id.removesuffix('-distance')}-counter")
+
+
 class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
     config_entry: NiakWeatherConfigEntry
 
@@ -124,6 +132,8 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         self._air_tried: datetime | None = None
         self.strikes: list[lightning.Strike] = []
         """Blitzortung's strikes of the last hour: its sensor only keeps the last one."""
+        self.lightning_month: int | None = None
+        """Strikes Blitzortung counted since the first of the month, when its counter keeps statistics."""
         self._cancel_retry: Callable[[], None] | None = None
         self._stop_listeners: set[Callable[[], None]] = set()
         self._retries = 0
@@ -140,9 +150,9 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         # Listen first: a weather service that starts while the first fetches run is caught at once.
         entry.async_on_unload(async_track_state_change_event(self.hass, sorted(ids), self._on_state_change))
         await asyncio.gather(self._load_forecasts(), self._load_history(), self._load_rain(), self._load_week(), self._load_air_forecast(),
-                             self._load_strikes())
+                             self._load_strikes(), self._load_lightning_month())
         for interval, load in ((FORECAST_INTERVAL, self._load_forecasts), (HISTORY_INTERVAL, self._load_history), (RAIN_INTERVAL, self._load_rain),
-                               (RAIN_INTERVAL, self._load_week), (AIR_INTERVAL, self._load_air_forecast)):
+                               (RAIN_INTERVAL, self._load_week), (AIR_INTERVAL, self._load_air_forecast), (RAIN_INTERVAL, self._load_lightning_month)):
             entry.async_on_unload(async_track_time_interval(self.hass, self._in_background(load), interval))
         entry.async_on_unload(self._cancel_forecast_retry)
         entry.async_on_unload(self._stopped)
@@ -222,7 +232,7 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         if settings.lightning_entity:
             sensor = hass.states.get(settings.lightning_entity)
             self.strikes = lightning.keep(self.strikes, now.timestamp())
-            strikes = lightning.read(self.strikes, now.timestamp(), sensor is not None and sensor.state != STATE_UNAVAILABLE)
+            strikes = lightning.read(self.strikes, now.timestamp(), sensor is not None and sensor.state != STATE_UNAVAILABLE, self.lightning_month)
         # Sensors and events keep their established French values. A card is
         # rendered separately in its dashboard user's language by view_for().
         with localized("fr"):
@@ -262,7 +272,8 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         strikes = None
         if settings.lightning_entity:
             sensor = self.hass.states.get(settings.lightning_entity)
-            strikes = lightning.read(self.strikes, snapshot.computed.timestamp(), sensor is not None and sensor.state != STATE_UNAVAILABLE)
+            strikes = lightning.read(self.strikes, snapshot.computed.timestamp(), sensor is not None and sensor.state != STATE_UNAVAILABLE,
+                                     self.lightning_month)
         with localized(code):
             result = compute(get, settings, self.hours, self.days, self.history, self.rain_history, self.statistics, self.statistics_unit,
                              snapshot.computed, zone, self.hass.config.latitude, self.hass.config.elevation or 0, self.platforms,
@@ -435,6 +446,31 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         # The state already there at the start is the last strike before the hour, or « unknown »: only changes count.
         recorded = [c for c in changes.get(entity_id, []) if c.time >= (now - timedelta(seconds=lightning.KEEP)).timestamp()]
         self.strikes = lightning.keep([*lightning.from_history(recorded, unit), *self.strikes], now.timestamp())
+
+    async def _load_lightning_month(self) -> None:
+        """The month's strikes from Blitzortung's counter, next to its distance sensor: the change of its long-term statistics since the
+        first of the month (they follow the counter's resets to 0). Up to an hour late: the statistics are hourly."""
+        counter = blitzortung_counter(er.async_get(self.hass), self.settings.lightning_entity)
+        if not counter:
+            self.lightning_month = None
+            return
+        zone = ZoneInfo(self.hass.config.time_zone)
+        now = dt_util.utcnow()
+        local = now.astimezone(zone)
+        start = datetime(local.year, local.month, 1, tzinfo=zone)
+
+        def during() -> list[dict[str, Any]]:
+            rows = statistics.statistics_during_period(self.hass, start, now, {counter}, "month", None, {"change"})
+            return list(rows.get(counter, []))
+
+        try:
+            rows = await get_instance(self.hass).async_add_executor_job(during)
+        except Exception as err:  # noqa: BLE001 - the month's count is optional: the radar does without it
+            LOGGER.debug("Lightning statistics unavailable for %s: %s", counter, err)
+            self.lightning_month = None
+            return
+        change = sum(r.get("change") or 0 for r in rows) if rows else None
+        self.lightning_month = None if change is None else max(0, round(change))
 
     async def _load_rain(self) -> None:
         """Eight days of the daily rain counter and the total counter; long-term statistics of the total for weeks, months and the year."""

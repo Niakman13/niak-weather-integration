@@ -112,6 +112,12 @@ class Lightning:
     trend: str | None = None
     """« approche », « eloigne », or None when it cannot be told."""
     azimuth: float | None = None
+    hour: tuple[Strike, ...] = ()
+    """Every strike of the last hour, oldest first: the card's radar."""
+    now: float | None = None
+    """When the strikes were read, in seconds since 1970: the strikes' ages count from it."""
+    month: int | None = None
+    """Strikes counted by Blitzortung since the first of the month, when its counter keeps statistics."""
 
     @property
     def near(self) -> bool:
@@ -131,6 +137,16 @@ class Lightning:
         if not self.near:
             return 0
         return 2 if (self.nearest or 0) <= CLOSE_KM or (self.trend == APPROACHING and (self.nearest or 0) <= 20) else 1
+
+    @property
+    def step(self) -> int:
+        """The card's four steps: 0 calm (nothing within 30 km), 1 a storm in the area, 2 close or coming closer, 3 overhead."""
+        return 3 if self.overhead else self.level
+
+    @property
+    def recent_count(self) -> int:
+        """Strikes in the last 10 minutes."""
+        return sum(1 for s in self.hour if self.now is not None and s.at >= self.now - RECENT)
 
     @property
     def movement(self) -> str:
@@ -162,11 +178,12 @@ class Lightning:
                 "eclairs_proches_20_min": self.near_count}
 
 
-def read(strikes: Sequence[Strike], now: float, available: bool = True) -> Lightning:
-    """What the strikes of the last 20 minutes say at `now`."""
+def read(strikes: Sequence[Strike], now: float, available: bool = True, month: int | None = None) -> Lightning:
+    """What the strikes of the last 20 minutes say at `now`; the last hour's strikes and the month's count come along for the card."""
+    hour = tuple(s for s in strikes if now - KEEP <= s.at <= now + 60)
     window = [s for s in strikes if now - WINDOW <= s.at <= now + 60]
     if not window:
-        return Lightning(available)
+        return Lightning(available, hour=hour, now=now, month=month)
     recent = [s for s in window if s.at >= now - RECENT]
     older = [s for s in window if s.at < now - RECENT]
     near = [s for s in window if s.distance <= NEAR_KM]
@@ -177,4 +194,4 @@ def read(strikes: Sequence[Strike], now: float, available: bool = True) -> Light
     # Where the storm stands: the strikes that make it near, else all of them.
     shown = near or window
     return Lightning(available, min(s.distance for s in window), min((s.distance for s in recent), default=None), len(window), len(near),
-                     max(s.at for s in window), trend, _direction([s.azimuth for s in shown if s.azimuth is not None]))
+                     max(s.at for s in window), trend, _direction([s.azimuth for s in shown if s.azimuth is not None]), hour, now, month)

@@ -153,3 +153,38 @@ def test_blitzortung_distance_is_found_alone():
     assert detect_sources(found, registry, {})["lightning_entity"] == "sensor.blitzortung_distance"
     # A choice already made, even empty, is kept.
     assert "lightning_entity" not in detect_sources(found, registry, {"lightning_entity": ""})
+
+
+# ── The card's radar ────────────────────────────────────────────────────────
+
+def radar(seen: Lightning):
+    from engine.view import _lightning
+    return _lightning(Settings(weather_entity="weather.home", lightning_entity="sensor.blitzortung_lightning_distance"), seen)
+
+
+def test_the_radar_gets_every_strike_of_the_hour_oldest_first():
+    v = radar(read(strikes((50, 40, None), (18, 38, 225), (8, 20, 225), (5, 16, 222), (2, 12, 228)), T, month=41))
+    assert v.strikes == ((50, 40, None), (18, 38, 225), (8, 20, 225), (5, 16, 222), (2, 12, 228))
+    assert (v.hour_count, v.recent_count, v.last_minutes, v.month) == (5, 3, 2, 41)
+    assert v.nearest == 12 and v.direction == "au sud-ouest" and v.step == 2 and v.headline == "L’orage est proche."
+
+
+def test_the_four_steps_follow_the_orage_sensor():
+    assert radar(read(strikes((3, 6, 40), (1, 8, 45)), T)).step == 3
+    assert radar(read(strikes((3, 6, 40), (1, 8, 45)), T)).headline == "L’orage est sur vous."
+    assert radar(read(strikes((4, 25, 90), (2, 27, 92)), T)).step == 1
+    far = radar(read(strikes((4, 60, 0), (2, 62, 5)), T))
+    assert far.step == 0 and far.headline == "Orage au loin."
+
+
+def test_a_quiet_hour_says_since_when_or_that_there_was_nothing():
+    calmed = radar(read(strikes((35, 12, 200)), T))
+    assert calmed.step == 0 and calmed.headline == "Plus d’éclair depuis 35 min." and calmed.nearest == 12
+    quiet = radar(read([], T))
+    assert quiet.headline == "Aucun éclair dans l’heure." and quiet.strikes == () and quiet.nearest is None and quiet.month is None
+
+
+def test_a_silent_sensor_is_said_and_no_radar_without_blitzortung():
+    assert radar(read([], T, available=False)).headline.startswith("Blitzortung ne répond pas")
+    from engine.view import _lightning
+    assert _lightning(Settings(weather_entity="weather.home"), read([], T)) is None

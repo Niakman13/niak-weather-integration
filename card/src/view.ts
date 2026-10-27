@@ -135,6 +135,22 @@ export interface AirPanel {
   source?: string;
 }
 
+/** The storm Blitzortung sees: the radar of the last hour, the nearest strike, the level, the counts. */
+export interface LightningView {
+  source: string; entity: string;
+  /** False while the Blitzortung sensor does not answer. */
+  available: boolean;
+  /** 0 calm, 1 a storm within 30 km, 2 close or coming closer, 3 overhead. */
+  step: 0 | 1 | 2 | 3;
+  headline: string;
+  nearest?: number; direction: string; trend?: 'approche' | 'eloigne'; movement: string;
+  hourCount: number; recentCount: number; lastMinutes?: number;
+  /** The last hour's strikes, oldest first: [minutes ago, km, degrees from the north or null after a restart]. */
+  strikes: Array<[number, number, number | null]>;
+  /** Strikes since the first of the month, when Blitzortung's counter keeps statistics. */
+  month?: number;
+}
+
 export interface WeatherView {
   location: string; dateLabel: string; provider: string; forecastSource: string;
   /** Opened when the forecast is tapped. */
@@ -148,6 +164,8 @@ export interface WeatherView {
   comfort?: ComfortView; rain?: RainView; wind?: WindView; pressure?: PressureView; extras: Chip[];
   hours: Slot[]; days: DayForecast[];
   air: { today: AirPanel[]; tomorrow: AirPanel[] };
+  /** Blitzortung's storm, when it is chosen in the integration (from 2.9). */
+  lightning?: LightningView;
 }
 
 /** One message of the integration's `niak_weather/subscribe`. */

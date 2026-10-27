@@ -123,7 +123,8 @@ export function scenarioSources(s) {
       yearly_rain_entity: 'sensor.rain_year', pressure_entity: 'sensor.pressure', temperature_trend_entity: 'sensor.trend',
       solar_radiation_entity: 'sensor.solar' } : {}),
     ...(s.atmo !== false ? { atmo_air_entity: 'sensor.atmo_air', atmo_air_tomorrow_entity: 'sensor.atmo_air_j1', atmo_pollen_entity: 'sensor.atmo_pollen',
-      atmo_pollen_tomorrow_entity: 'sensor.atmo_pollen_j1', pollen_source: 'atmo' } : { pollen_source: 'none' }) };
+      atmo_pollen_tomorrow_entity: 'sensor.atmo_pollen_j1', pollen_source: 'atmo' } : { pollen_source: 'none' }),
+    ...(s.lightning ? { lightning_entity: 'sensor.blitzortung_distance' } : {}) };
 }
 
 /** Tout ce que l'intégration lirait dans Home Assistant pour ce scénario : ce que son moteur reçoit (scripts/view_cli.py). */
@@ -132,7 +133,19 @@ export function scenarioData(scenario, now = new Date()) {
   const { temp, rain } = demoWeather(s), { hourly, daily } = s.forecasts === false ? { hourly: [], daily: [] } : demoForecasts(temp, rain, now, s.story);
   return { options: scenarioSources(s), states: scenarioStates(s, now), hourly, daily,
     history: s.station === false ? {} : demoHistory(['sensor.wind', 'sensor.gust', 'sensor.pressure', 'sensor.rain_day'], s, now),
-    now: now.toISOString(), time_zone: 'Europe/Paris', latitude: 43.45, elevation: 0 };
+    now: now.toISOString(), time_zone: 'Europe/Paris', latitude: 43.45, elevation: 0,
+    ...(s.lightning ? { strikes: demoStrikes(s.lightning), lightning_month: 41 } : {}) };
+}
+
+/** Blitzortung's strikes of the last hour, [minutes ago, km, azimuth]: a storm coming closer from the south-west (« approche »),
+ *  one overhead (« dessus »), one moving away to the north-east (« loin »), or none (« calme »). */
+export function demoStrikes(kind) {
+  const [azimuth, distance, n, spread, drift] = { approche: [225, 16, 37, 40, 24], dessus: [40, 5, 64, 120, 10], loin: [60, 38, 22, 30, -15] }[kind] ?? [0, 0, 0, 0, 0];
+  let x = 7; const rnd = () => (x = (x * 9301 + 49297) % 233280) / 233280;
+  return Array.from({ length: n }, () => {
+    const age = Math.round(rnd() * 58);
+    return [age, Math.max(1, Math.round((distance + drift * age / 60 + (rnd() - .5) * 8) * 10) / 10), Math.round((azimuth + (rnd() - .5) * spread + 360) % 360)];
+  }).sort((a, b) => b[0] - a[0]);
 }
 
 /** Un faux Home Assistant : la vue de l'intégration arrive par la connexion, calculée par son moteur sur le serveur du banc (POST /demo/view). */

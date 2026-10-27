@@ -1,11 +1,10 @@
-// The small cards: « Mini » (one line), « Prévisions » (the hours and the days alone), « Pluie » and « Alerte » (only when there is one).
+// The small cards: « Mini » (one line), « Prévisions » (the hours and the days alone), the rain to come, and « Alerte » (only when there is one).
 // A tap on Mini and Alerte opens the full card, like a long press on the tile.
 import { css, html, nothing, type TemplateResult } from 'lit';
 import { colon, hourText, t } from '../i18n';
 import type { TickerPoint, WeatherView } from '../view';
 import { alertBubble, alertPill, bubble, chip, label, nf } from '../ui/parts';
 import { hoursChart, week } from './forecasts';
-import { rainPanel } from './today';
 import type { PressTarget } from './tile';
 
 /** One line: the sky and the temperature now, the place, and the most serious alert. */
@@ -38,12 +37,13 @@ export function renderAlert(v: WeatherView, editing: boolean): TemplateResult | 
   </div>`;
 }
 
-/** The hours (curve) or the days (table), with the switch between them. */
-export function renderForecastCard(v: WeatherView, tab: 'hours' | 'days', onTab: (tab: 'hours' | 'days') => void, entity: string, uid: string): TemplateResult {
-  const hasHours = v.hours.some(h => h.temperature !== undefined), hasDays = v.days.length > 0;
+/** The hours (curve) or the days (table), with the switch between them when both are chosen. */
+export function renderForecastCard(v: WeatherView, tab: 'hours' | 'days', onTab: (tab: 'hours' | 'days') => void, entity: string, uid: string,
+                                   blocks: ReadonlyArray<string> = ['hours', 'days']): TemplateResult {
+  const hasHours = blocks.includes('hours') && v.hours.some(h => h.temperature !== undefined), hasDays = blocks.includes('days') && v.days.length > 0;
   const shown = !hasHours ? 'days' : !hasDays ? 'hours' : tab;
   const select = (t: 'hours' | 'days') => (e: Event) => { e.stopPropagation(); onTab(t); };
-  const body = shown === 'hours' ? hoursChart(v.hours, v.provider, entity, uid) : week(v.days, v.provider, entity);
+  const body = !hasHours && !hasDays ? nothing : shown === 'hours' ? hoursChart(v.hours, v.provider, entity, uid) : week(v.days, v.provider, entity);
   return html`<div class="nw-forecastcard">
     <div class="fcard-head"><span class="fcard-title"><b>${t('Prévisions')}</b>${v.location ? html`<span>${v.location}</span>` : nothing}</span>
       ${hasHours && hasDays ? html`<span class="seg" role="group" aria-label=${t('Prévisions affichées')}>
@@ -60,19 +60,15 @@ export function rainAhead(v: WeatherView): { hour: number; six: number; next?: s
   return { hour: sum(1), six: sum(6), next: first ? hourText(first.hour) : undefined };
 }
 
-/** « Pluie »: what is coming first, then what fell (the full card's rain panel, without its frame). */
-export function renderRain(v: WeatherView): TemplateResult {
-  const ahead = rainAhead(v), soon = v.hours.length > 0;
-  const coming = !soon ? html`<p class="nw-empty">${t('Prévisions indisponibles pour le moment.')}</p>`
+/** « À venir »: the rain of the next hour and of the next six, or when the next rain starts. */
+export function rainComing(v: WeatherView): TemplateResult {
+  const ahead = rainAhead(v);
+  const coming = !v.hours.length ? html`<p class="nw-empty">${t('Prévisions indisponibles pour le moment.')}</p>`
     : ahead.six < .1 ? html`<div class="nw-chips">${chip({ theme: 'calm', icon: 'mdi:weather-partly-cloudy', label: ahead.next ? t('Pas de pluie avant {hour}', { hour: ahead.next }) : t('Pas de pluie prévue d’ici 18 h') })}</div>`
     : html`<div class="nw-chips">${chip({ theme: 'rain', icon: 'mdi:timer-sand', value: `${nf(ahead.hour)} mm`, label: t('dans l’heure') })}
         ${chip({ theme: 'rain', icon: 'mdi:weather-pouring', value: `${nf(ahead.six)} mm`, label: t('sur 6 h') })}
         ${ahead.next && ahead.hour < .1 ? chip({ theme: 'rain', icon: 'mdi:clock-outline', label: t('à partir de {hour}', { hour: ahead.next }) }) : nothing}</div>`;
-  return html`<div class="nw-raincard">
-    <div class="fcard-head"><span class="fcard-title"><b>${t('Pluie')}</b>${v.location ? html`<span>${v.location}</span>` : nothing}</span></div>
-    <div class="rain-ahead">${label(t('À venir'))}${coming}</div>
-    ${v.rain ? rainPanel(v.rain) : nothing}
-  </div>`;
+  return html`<div class="rain-ahead">${label(t('À venir'))}${coming}</div>`;
 }
 
 export const compactStyles = css`
@@ -102,10 +98,8 @@ export const compactStyles = css`
   .fcard-title b { font-size:var(--nw-fs-title); font-weight:700; letter-spacing:-.2px; }
   .fcard-title span { font-size:var(--nw-fs-small); color:var(--nw-fg2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   /* The full card's panels, without their frame: the card is the frame. */
-  .nw-forecastcard .nw-panel, .nw-raincard .nw-panel { border:0; padding:0; background:none; }
+  .nw-forecastcard .nw-panel { border:0; padding:0; background:none; }
   .nw-forecastcard .nw-panel-head { display:none; }
-  .nw-raincard { display:flex; flex-direction:column; gap:12px; padding:14px 16px 16px; }
   .rain-ahead { display:flex; flex-direction:column; gap:6px; padding-bottom:12px; border-bottom:1px solid var(--nw-line-soft); }
-  /* The panel's own title says « Pluie » again: only its source pill stays, on the right. */
-  .nw-raincard .nw-panel-head :is(.nw-panel-icon, h3) { display:none; }
+  .rain-ahead:last-child { padding-bottom:0; border-bottom:0; }
 `;

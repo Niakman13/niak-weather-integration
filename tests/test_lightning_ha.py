@@ -14,7 +14,7 @@ except ImportError:  # pragma: no cover - the engine's own test run
     raise unittest.SkipTest("Home Assistant is not installed")
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from custom_components.niak_weather.coordinator import NiakWeatherCoordinator  # noqa: E402
+from custom_components.niak_weather.coordinator import NiakWeatherCoordinator, blitzortung_counter  # noqa: E402
 from custom_components.niak_weather.engine import lightning  # noqa: E402
 from custom_components.niak_weather.engine.settings import Settings  # noqa: E402
 from custom_components.niak_weather.engine.trends import Change  # noqa: E402
@@ -65,3 +65,26 @@ class StrikeTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Registry:
+    """The two Blitzortung sensors of one place, and a station's sensor."""
+    entries = {DISTANCE: SimpleNamespace(platform="blitzortung", unique_id="abc123-distance"),
+               "sensor.station_rain": SimpleNamespace(platform="netatmo", unique_id="rain-distance")}
+    ids = {("sensor", "blitzortung", "abc123-counter"): "sensor.blitzortung_counter"}
+
+    def async_get(self, entity_id):
+        return self.entries.get(entity_id)
+
+    def async_get_entity_id(self, domain, platform, unique_id):
+        return self.ids.get((domain, platform, unique_id))
+
+
+class MonthTests(unittest.TestCase):
+    def test_the_counter_is_found_beside_the_distance_sensor(self):
+        self.assertEqual(blitzortung_counter(Registry(), DISTANCE), "sensor.blitzortung_counter")
+
+    def test_no_counter_without_blitzortung(self):
+        self.assertIsNone(blitzortung_counter(Registry(), "sensor.station_rain"))
+        self.assertIsNone(blitzortung_counter(Registry(), None))
+        self.assertIsNone(blitzortung_counter(Registry(), "sensor.unknown"))

@@ -564,4 +564,11 @@ EN: dict[str, str] = {
     "Le vent faiblit": "The wind is easing",
     "La pression baisse": "Pressure falling",
     "La pression monte": "Pressure rising",
+    "Blitzortung ne répond pas : les éclairs ne sont pas suivis pour le moment.": "Blitzortung is not answering: lightning is not tracked for now.",
+    "L’orage est sur vous.": "The storm is overhead.",
+    "L’orage est proche.": "The storm is close.",
+    "Un orage dans le secteur.": "A storm in the area.",
+    "Orage au loin.": "Distant storm.",
+    "Aucun éclair dans l’heure.": "No lightning in the last hour.",
+    "Plus d’éclair depuis {minutes} min.": "No lightning for {minutes} min.",
 }

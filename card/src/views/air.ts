@@ -30,7 +30,7 @@ function detail(item: AirItem): string {
   return `${value}${r.stale ? ` · ${t('données anciennes')}` : ''}`;
 }
 
-function panel(p: AirPanel): TemplateResult {
+export function airPanel(p: AirPanel): TemplateResult {
   const air = p.kind === 'air', r = p.primary, scale = p.scale ?? 6, value = known(r, scale), atmo = scale === 6;
   // WAQI and Open-Meteo use Atmo's scale of 6 but name themselves.
   const source = p.source ?? (atmo ? 'Atmo France' : 'Polleninformation');
@@ -54,7 +54,7 @@ function panel(p: AirPanel): TemplateResult {
   </section>`;
 }
 
-export const renderAir = (panels: AirPanel[]) => panels.length ? html`<div class="panels-two">${panels.map(panel)}</div>` : nothing;
+export const renderAir = (panels: AirPanel[]) => panels.length ? html`<div class="panels-two">${panels.map(airPanel)}</div>` : nothing;
 
 export const airStyles = css`
   .panels-two { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:16px; align-items:stretch; }

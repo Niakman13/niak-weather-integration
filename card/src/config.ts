@@ -1,4 +1,23 @@
-import type { BannerBlock, ForecastBlock, TodayBlock, WeatherCardConfig } from './types';
+import type { BannerBlock, CardBlock, ForecastBlock, TodayBlock, WeatherCardConfig } from './types';
+
+/** The cards on their own, and everything each can show, in its default order. */
+export const CARD_BLOCKS: Partial<Record<NonNullable<WeatherCardConfig['format']>, CardBlock[]>> = {
+  comfort: ['feel', 'gauge', 'factors', 'extras'],
+  rain: ['ahead', 'now', 'chart', 'stats'],
+  wind: ['now', 'chart', 'stats'],
+  pressure: ['now', 'chart', 'stats'],
+  lightning: ['now', 'radar', 'stats'],
+  air: ['air_today', 'pollen_today', 'air_tomorrow', 'pollen_tomorrow'],
+  forecast: ['hours', 'days'],
+};
+/** What a card on its own shows: its chosen parts that its format has, everything when none is chosen.
+ *  Parts left from another format (the format changed by hand) count as none chosen. */
+export function cardBlocks(c: WeatherCardConfig): CardBlock[] {
+  const all = CARD_BLOCKS[c.format ?? 'full'] ?? [];
+  if (!c.card_blocks) return all;
+  const kept = c.card_blocks.filter(b => all.includes(b));
+  return kept.length || !c.card_blocks.length ? kept : all;
+}
 
 export interface Sections { hero: boolean; banner: BannerBlock[]; today: TodayBlock[]; forecasts: ForecastBlock[] }
 /** What each section of the full card shows: its list when set, otherwise what the older switches showed. */
@@ -7,7 +26,7 @@ export function sections(c: WeatherCardConfig): Sections {
     // The banner and its animated sky always stay; only an older card that switched it off keeps it hidden.
     hero: c.banner_blocks !== undefined || c.show_synthesis !== false,
     banner: c.banner_blocks ?? (c.show_synthesis === false ? [] : [...(c.show_bulletin === false ? [] : ['bulletin' as const]), 'events']),
-    today: c.today_blocks ?? (c.show_today === false ? [] : ['comfort', 'rain', 'wind', 'pressure', 'extras', 'air']),
+    today: c.today_blocks ?? (c.show_today === false ? [] : ['comfort', 'rain', 'wind', 'pressure', 'lightning', 'extras', 'air']),
     forecasts: c.forecast_blocks ?? (c.show_predictions === false ? [] : ['hours', 'days', ...(c.show_atmo_tomorrow === false ? [] : ['air' as const])]),
   };
 }
