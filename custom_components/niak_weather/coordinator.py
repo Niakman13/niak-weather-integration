@@ -38,7 +38,7 @@ from .engine.local import LocalWeather
 from .engine.nowcast import rain_ahead
 from .engine.settings import Settings
 from .engine.series import RAIN_DAYS, WEEK, hourly_changes, rain_state_key, rain_sum_key, weather_history, weather_history_key, week_key
-from .engine.station import Derived, Statistic, midnight
+from .engine.station import Derived, Statistic, midnight, steady_sums
 from .engine.trends import Change
 from .engine.units import Kind, measurement
 from .engine.view import to_json
@@ -466,14 +466,15 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
             except Exception as err:  # noqa: BLE001 - statistics are optional: the seven days still come from the counter's history
                 LOGGER.debug("Rain statistics unavailable for %s: %s", entity_id, err)
                 continue
-            rows = [r for r in rows if r.get("sum") is not None]
+            # A counter that dropped to 0 and came back is not a month of fresh rain.
+            rows = steady_sums([Statistic(_seconds(r["start"]), _seconds(r["end"]), r["sum"], r.get("state")) for r in rows if r.get("sum") is not None])
             if not rows:
                 continue
             # Rows come in the unit the statistics keep: the bars are in millimetres.
             mm = (lambda v: measurement(v, unit, Kind.RAIN))
             last = rows[-1]
-            return {rain_sum_key(entity_id): [Change(_seconds(r["end"]), str(mm(r["sum"]))) for r in rows],
-                    rain_state_key(entity_id): [Change(_seconds(last["end"]), str(mm(last.get("state"))))]}
+            return {rain_sum_key(entity_id): [Change(r.end, str(mm(r.sum))) for r in rows],
+                    rain_state_key(entity_id): [Change(last.end, str(mm(last.state)))]}
         return {}
 
     async def _sum_unit(self, entity_id: str) -> str | None:
@@ -519,7 +520,7 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         rows = sorted((Statistic(_seconds(r["start"]), _seconds(r["end"]), r.get("sum"), r.get("state")) for r in (*daily, *hourly)),
                       key=lambda r: r.end - r.start, reverse=True)
         # One row per boundary: where a day and an hour end together, the hour wins.
-        return sorted({r.end: r for r in rows}.values(), key=lambda r: r.end), unit
+        return steady_sums(sorted({r.end: r for r in rows}.values(), key=lambda r: r.end)), unit
 
 
 def _ready(state: Any) -> bool:

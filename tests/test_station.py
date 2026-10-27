@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from engine.settings import Settings
-from engine.station import Statistic, Total, counter_increase, derive_station, midnight, period_starts, statistic_increase
+from engine.station import Statistic, Total, counter_increase, derive_station, midnight, period_starts, statistic_increase, steady_sums
 from engine.trends import Change
 
 UTC = ZoneInfo("UTC")
@@ -50,6 +50,26 @@ def test_uses_the_cumulative_statistic_sum_and_labels_short_coverage() -> None:
     assert statistic_increase(rows[1:], 0, 30) == Total(5, True)
     assert statistic_increase([], 0, 30).value is None
     assert statistic_increase(rows, 15, 30) == Total(5, True)
+
+
+def test_a_counter_that_drops_to_zero_and_comes_back_is_no_fresh_rain() -> None:
+    # Issue #9: a WS90 total counter at 68.4 mm reads 0 for a moment, then 68.4 again; 0.5 mm really fell.
+    hour = 3600
+    assert counter_increase([(0, 68.4), (100, 0), (160, 68.4), (3 * hour, 68.9)], 0, 3 * hour) == Total(0.5, False)
+    assert counter_increase([(0, 68.4), (100, 0), (130, None), (160, 0), (200, 68.6)], 0, 200) == Total(0.2, False)
+    # Still a reset when the counter stays down, or comes back only long after.
+    assert counter_increase([(0, 10), (10, 0), (10 + 2 * hour, 12)], 0, 10 + 2 * hour) == Total(12, False)
+
+    # Home Assistant's sum takes the drop for a reset and adds the 68.4 mm back: within one hour…
+    within = steady_sums([Statistic(0, hour, 100, 68.4), Statistic(hour, 2 * hour, 168.5, 68.5)])
+    assert within[-1].sum == pytest.approx(100.1)
+    # …or across two, the drop ending one hour and the level back at the next.
+    across = steady_sums([Statistic(0, hour, 100, 68.4), Statistic(hour, 2 * hour, 100.2, 0), Statistic(2 * hour, 3 * hour, 168.9, 68.7)])
+    assert [r.sum for r in across] == pytest.approx([100, 100.2, 100.3])
+    assert statistic_increase(across, hour, 3 * hour) == Total(0.3, False)
+    # A daily counter reset at midnight keeps every millimetre.
+    daily = [Statistic(0, hour, 100, 5), Statistic(hour, 2 * hour, 100.3, 0.3), Statistic(2 * hour, 3 * hour, 100.8, 0.8)]
+    assert steady_sums(daily) == daily
 
 
 def test_keeps_gaps_and_decreasing_sums_partial_instead_of_inventing_totals() -> None:

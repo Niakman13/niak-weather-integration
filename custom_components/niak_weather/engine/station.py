@@ -60,9 +60,68 @@ def _round(value: float) -> float:
     return math.floor(value * 100 + 0.5) / 100
 
 
+BLIP = 3600
+"""A counter that drops and is back at its level within this long never reset: the station sent a wrong reading (often 0)."""
+
+
+def _is_drop(value: float, previous: float) -> bool:
+    return value < previous * 0.9
+
+
+def _without_blips(points: Sequence[tuple[float, float | None]]) -> list[tuple[float, float | None]]:
+    """The readings without the brief drops of a counter that comes straight back to its level: no fake reset, no fake rain."""
+    out: list[tuple[float, float | None]] = []
+    previous: float | None = None
+    i = 0
+    while i < len(points):
+        time, value = points[i]
+        if value is not None and value >= 0 and previous is not None and _is_drop(value, previous):
+            j = i
+            while j < len(points) and (points[j][1] is None or points[j][1] < 0 or _is_drop(points[j][1], previous)):
+                j += 1
+            if j < len(points) and points[j][0] - time <= BLIP and points[j][1] >= previous:
+                i = j
+                continue
+        out.append(points[i])
+        if value is not None and value >= 0:
+            previous = value
+        i += 1
+    return out
+
+
+def steady_sums(rows: Sequence[Statistic]) -> list[Statistic]:
+    """Home Assistant's running sums without the rain it counts when a counter drops and comes back: it takes the drop
+    for a reset and the way back up for fresh rain. A row's rain is never more than the counter's own rise when the
+    counter ends it at or above its level; a drop at the end of a row with the level back at the next is no reset."""
+    out: list[Statistic] = []
+    excess, level, credited = 0.0, None, 0.0
+    for i, row in enumerate(rows):
+        before = rows[i - 1] if i else None
+        if before is None or row.sum is None or before.sum is None:
+            out.append(Statistic(row.start, row.end, None if row.sum is None else row.sum - excess, row.state, row.partial))
+            level = None
+            continue
+        rain = row.sum - before.sum
+        if row.state is not None and before.state is not None:
+            after = rows[i + 1] if i + 1 < len(rows) else None
+            if level is not None and row.state >= level:
+                rain = max(0.0, min(rain, row.state - level - credited))
+                level = None
+            elif row.state >= before.state:
+                rain = max(0.0, min(rain, row.state - before.state))
+            elif _is_drop(row.state, before.state) and after is not None and after.state is not None \
+                    and after.state >= before.state and after.end - row.end <= BLIP + 3600:
+                # The rain before the drop stays; the next row counts only what rose past the level before it.
+                level, credited = before.state, max(0.0, rain)
+        excess += row.sum - before.sum - rain
+        out.append(Statistic(row.start, row.end, row.sum - excess, row.state, row.partial))
+    return out
+
+
 def counter_increase(rows: Sequence[tuple[float, float | None]], start: float, end: float) -> Total:
-    """Rain fallen between two moments, from an ever-growing counter; a reset to zero is followed, a small dip is not."""
-    points = sorted((p for p in rows if p[0] <= end), key=lambda p: p[0])
+    """Rain fallen between two moments, from an ever-growing counter; a reset to zero is followed, a small dip is not,
+    nor a brief drop the counter comes straight back from."""
+    points = _without_blips(sorted((p for p in rows if p[0] <= end), key=lambda p: p[0]))
     prior = next((p for p in reversed(points) if p[0] <= start), None)
     first = prior if prior is not None and prior[1] is not None else next((p for p in points if p[0] >= start and p[1] is not None), None)
     if first is None:
