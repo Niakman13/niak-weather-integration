@@ -1,3 +1,9 @@
+## 2.9.1 — Stable : un bloc coché se range à sa place
+
+### Corrections
+
+- Dans les réglages de la carte, un bloc qu’on coche se range à sa place habituelle, et non plus tout en bas. Par exemple, les éclairs cochés se placent juste après la pression, à côté de la pluie et du vent.
+
 ## 2.9.0 — Stable : Niak Weather en anglais, cartes à la pièce et radar des éclairs
 
 **En bref**

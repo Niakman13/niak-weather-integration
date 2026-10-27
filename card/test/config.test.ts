@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cardBlocks, cleanConfig } from '../src/config';
+import { BLOCK_ORDERS, cardBlocks, cleanConfig, placeChecked } from '../src/config';
 import type { WeatherCardConfig } from '../src/types';
 
 const base: WeatherCardConfig = { type:'custom:niak-weather-card',weather_entity:'weather.city' };
@@ -36,5 +36,21 @@ describe('The cards on their own', () => {
   it('start over with everything when the parts belong to another format, and show nothing when all are unticked', () => {
     expect(cardBlocks(card({ format: 'pressure', card_blocks: ['ahead', 'feel'] }))).toEqual(['now', 'chart', 'stats']);
     expect(cardBlocks(card({ format: 'rain', card_blocks: [] }))).toEqual([]);
+  });
+});
+
+describe('placeChecked', () => {
+  const order = BLOCK_ORDERS.today_blocks!;
+  it('puts a block checked later at its place, not at the end', () => {
+    expect(placeChecked(['comfort', 'rain', 'wind', 'pressure', 'extras', 'air'], ['comfort', 'rain', 'wind', 'pressure', 'extras', 'air', 'lightning'], order))
+      .toEqual(['comfort', 'rain', 'wind', 'pressure', 'lightning', 'extras', 'air']);
+  });
+  it('keeps the order the user dragged', () => {
+    expect(placeChecked(['air', 'rain'], ['air', 'rain'], order)).toEqual(['air', 'rain']);
+    expect(placeChecked(['air', 'rain'], ['air', 'rain', 'wind'], order)).toEqual(['air', 'rain', 'wind']);
+    expect(placeChecked(['air', 'rain'], ['air', 'rain', 'comfort'], order)).toEqual(['comfort', 'air', 'rain']);
+  });
+  it('leaves an unchecked block out', () => {
+    expect(placeChecked(['rain', 'wind'], ['wind'], order)).toEqual(['wind']);
   });
 });

@@ -54,3 +54,22 @@ export function cleanConfig(config: WeatherCardConfig): WeatherCardConfig {
   for (const key of ['humidex_entity', 'humidex_perception_entity', 'thermal_dew_point_entity', 'heat_index_entity', 'absolute_humidity_entity', 'thermal_perception_entity', 'thermal_device_id']) delete copy[key];
   return copy;
 }
+
+/** The sections' blocks in the card's own order: a block checked later takes its place there, not the end of the list. */
+export const BLOCK_ORDERS: Partial<Record<keyof WeatherCardConfig, string[]>> = {
+  banner_blocks: ['bulletin', 'events', 'moments', 'forecast'],
+  today_blocks: ['comfort', 'rain', 'wind', 'pressure', 'lightning', 'extras', 'air'],
+  forecast_blocks: ['hours', 'days', 'air'],
+};
+/** `next` with its newly checked blocks moved just after the last block that precedes them in `order`; the rest keeps the order dragged. */
+export function placeChecked(previous: readonly string[], next: readonly string[], order: readonly string[]): string[] {
+  const rank = (b: string) => { const i = order.indexOf(b); return i < 0 ? order.length : i; };
+  const added = new Set(next.filter(b => !previous.includes(b)));
+  const out = next.filter(b => !added.has(b));
+  for (const b of added) {
+    let at = out.length;
+    while (at > 0 && rank(out[at - 1]) > rank(b)) at--;
+    out.splice(at, 0, b);
+  }
+  return out;
+}

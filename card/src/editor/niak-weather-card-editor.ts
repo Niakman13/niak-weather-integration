@@ -1,7 +1,7 @@
 import { css, html, LitElement, nothing } from 'lit';
 import { property, state } from 'lit/decorators.js';
 import { define } from '../ui/define';
-import { cardBlocks, cleanConfig, sections } from '../config';
+import { BLOCK_ORDERS, cardBlocks, cleanConfig, placeChecked, sections } from '../config';
 import type { HomeAssistant, WeatherCardConfig } from '../types';
 import { fr, setLanguage, t } from '../i18n';
 
@@ -90,6 +90,10 @@ export class NiakWeatherCardEditor extends LitElement {
     delete value.kind;
     // Another format has other parts: it starts with all of its own.
     if (value.format && value.format !== this.config.format) { delete value.card_blocks; delete this.config.card_blocks; }
+    for (const [name, order] of Object.entries(BLOCK_ORDERS) as Array<[keyof WeatherCardConfig, string[]]>) {
+      const next = value[name] as string[] | undefined, previous = (this.config[name] ?? []) as string[];
+      if (Array.isArray(next)) (value as Record<string, unknown>)[name] = placeChecked(previous, next, order);
+    }
     this.config = cleanConfig({ ...this.config, ...value });
     this.dispatchEvent(new CustomEvent('config-changed', { detail: { config: this.config }, bubbles: true, composed: true }));
   }
