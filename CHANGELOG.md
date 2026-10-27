@@ -1,3 +1,34 @@
+## 2.9.0 — Stable : Niak Weather en anglais, cartes à la pièce et radar des éclairs
+
+**En bref**
+
+- **Niak Weather parle anglais** : la carte s’affiche en anglais quand Home Assistant n’est pas en français. Une première pour les utilisateurs hors de France.
+- **Cartes à la pièce** : ressenti, pluie, vent, pression, éclairs, air et pollens, prévisions. Chacune se pose seule sur un tableau de bord.
+- **Radar des éclairs** avec Blitzortung : les éclairs de la dernière heure autour de la maison.
+- **Réglages → Extensions**, comme dans Niak Confort : la liaison avec Niak Confort et chaque intégration utilisée, au même endroit.
+
+### Nouveautés
+
+- **En anglais** : la carte, le bulletin du jour, les événements, les mesures et les prévisions.
+- Chaque utilisateur voit la carte dans la langue de son profil Home Assistant : français pour l’un, anglais pour l’autre, sur le même tableau de bord.
+- Les nombres et les heures s’écrivent à la manière de la langue : 8.5 et 14:00 en anglais.
+- Les capteurs et les réglages restent en français pour l’instant.
+- Cartes à la pièce : chacune montre les parties que vous cochez.
+- Radar des éclairs : l’éclair le plus proche, le niveau (calme, secteur, proche, sur vous), le nombre d’éclairs de l’heure, des 10 dernières minutes et du mois.
+- Dans la carte complète, les éclairs se rangent à côté de la pluie, du vent et de la pression. La carte seule peut se cacher quand il n’y a pas d’orage.
+- Onglet Extensions : Niak Confort se relie ou se coupe d’un interrupteur. Coupé d’un côté, il l’est aussi de l’autre.
+- Onglet Extensions : chaque intégration (Météo-France, Atmo France, WAQI, Vigieau, Blitzortung, pollens) montre si elle est installée, à quoi elle sert pour ce lieu, et s’allume ou s’éteint d’un interrupteur.
+
+### Améliorations
+
+- Réglages de la carte en deux temps : le type de carte, puis le format.
+- « Ajouter une carte » propose trois entrées : Niak - Météo, Niak - À la pièce, Niak - Petite carte.
+- Pendant son chargement, la carte se dessine en lignes grises balayées de lumière.
+
+### Corrections
+
+- Une baisse passagère du compteur de pluie de la station n’est plus comptée comme de la pluie (issue #9).
+
 ## 2.9.0b1 — Bêta : Niak Weather en anglais
 
 **La carte parle la langue de Home Assistant : français, ou anglais pour toutes les autres langues.**

@@ -481,3 +481,31 @@ class NetatmoTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(draft.change({"op": "station", "value": "netatmo"}), "")
         self.assertEqual(draft.sources["humidity_entity"], "sensor.jardin_humidite")
         self.assertEqual(draft.sources["wind_speed_entity"], "sensor.anemometre_vitesse_du_vent")
+
+
+class OfficialLinkTests(unittest.IsolatedAsyncioTestCase):
+    asyncSetUp = PanelTests.asyncSetUp
+    asyncTearDown = PanelTests.asyncTearDown
+
+    async def test_niak_confort_link_is_read_and_set_through_its_interface(self):
+        """One link for both bricks: Niak Confort keeps it, Weather's switch changes it there and reads it back."""
+        from custom_components.niak_weather.extensions import official, set_official
+        self.assertEqual(official(self.hass, "nw1")[0]["installed"], False)
+        class Comfort:
+            version = 1
+            chosen = None
+            def weather(self): return self.chosen
+            async def set_weather(self, entry_id): self.chosen = entry_id; return entry_id
+        comfort = self.hass.data["niak_comfort_api"] = Comfort()
+        first = official(self.hass, "nw1")[0]
+        self.assertEqual((first["installed"], first["linked"], first["switchable"]), (True, False, True))
+        await set_official(self.hass, "niak_comfort", "nw1", True)
+        self.assertTrue(official(self.hass, "nw1")[0]["linked"])
+        await set_official(self.hass, "niak_comfort", "nw2", False)  # another place cannot cut this one's link
+        self.assertEqual(comfort.chosen, "nw1")
+        comfort.chosen = None  # turned off in Confort's own settings
+        self.assertFalse(official(self.hass, "nw1")[0]["linked"])
+        del Comfort.set_weather  # an older Niak Confort: shown, but not switchable from here
+        self.assertFalse(official(self.hass, "nw1")[0]["switchable"])
+        with self.assertRaises(ValueError):
+            await set_official(self.hass, "niak_comfort", "nw1", True)

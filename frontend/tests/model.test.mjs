@@ -7,7 +7,7 @@ import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 const temp=await mkdtemp(join(tmpdir(),'niak-weather-'));
 await build({entryPoints:['model.ts'],bundle:true,platform:'node',format:'esm',outfile:join(temp,'model.mjs')});
-const {provenance,grouped,enabledKeys,entityLine,sameSet,extensionGroups}=await import(pathToFileURL(join(temp,'model.mjs')));
+const {provenance,grouped,enabledKeys,entityLine,sameSet,extensionGroups,extensionSwitch}=await import(pathToFileURL(join(temp,'model.mjs')));
 after(()=>rm(temp,{recursive:true,force:true}));
 const sensor=(id,state='1')=>({id,name:id,state,available:true,missing:false});
 
@@ -44,4 +44,21 @@ test('extensions group by use and Atmo keeps separate air and pollen configurati
  assert.equal(groups[2].items[0].configured,false);
  assert.equal(groups[2].items[0].stage,3);
  assert.notEqual(groups[1].items[0].id,groups[2].items[0].id);
+});
+
+test('an extension switch turns its source on or off in the draft, and Météo-France has none',()=>{
+ const ext=(id,extra={})=>({id,name:id,description:'',installed:true,configured:false,stage:2,field:'',url:'',integration:id,install:'',...extra});
+ const view={air:{value:'atmo',sources:[{value:'atmo',label:'Atmo'},{value:'waqi',label:'WAQI',available:false},{value:'none',label:'Aucune'}]},
+  pollen:{value:'irm_kmi',sources:[{value:'atmo',label:'Atmo'},{value:'irm_kmi',label:'IRM'},{value:'none',label:'Aucun'}]},
+  prevision:{fields:[{key:'lightning_entity',value:'',options:[sensor('sensor.strikes')],better:null},{key:'weather_entity',value:'weather.home',options:[],better:null}]}};
+ const atmo=extensionSwitch(ext('atmo',{configured:true,air_configured:true,pollen_configured:false}),view);
+ assert.deepEqual([atmo.shown,atmo.checked,atmo.uses],[true,true,['Qualité de l’air']]);
+ assert.deepEqual(atmo.off,[{op:'air',value:'none'}]);           // pollens stay with IRM KMI
+ assert.deepEqual(atmo.on,[{op:'pollen',value:'atmo'}]);         // air is Atmo already
+ assert.equal(extensionSwitch(ext('waqi'),view).available,false);  // no WAQI station found: nothing to turn on
+ assert.deepEqual(extensionSwitch(ext('irm_kmi',{configured:true}),view).off,[{op:'pollen',value:'none'}]);
+ const storm=extensionSwitch(ext('blitzortung',{field:'lightning_entity'}),view);
+ assert.deepEqual([storm.available,storm.on],[true,[{op:'set',key:'lightning_entity',value:'sensor.strikes'}]]);
+ assert.equal(extensionSwitch(ext('meteo_france',{field:'weather_entity',configured:true}),view).shown,false);
+ assert.equal(extensionSwitch(ext('vigieau',{installed:false,field:'water_restriction_entity'}),view).shown,false);
 });

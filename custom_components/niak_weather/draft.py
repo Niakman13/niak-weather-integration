@@ -20,7 +20,7 @@ from .api import API_KEY
 from .config_flow import NONE, _clean, _context, _SourceSteps
 from .const import DOMAIN
 from .engine import detection, ecosystem, families, polleninfo
-from .extensions import inventory
+from .extensions import inventory, official
 from .engine.settings import Settings
 
 AIR_SOURCES = ("atmo", "waqi", NONE)
@@ -266,7 +266,10 @@ class Draft(_SourceSteps):
                 "better": self._entity(better) if better else None}
 
     def view(self) -> dict[str, Any]:
-        return {"title": self._title(), "extensions": inventory(self.hass, self.entry.options if self.entry else {}), "prevision": self._prevision(), "station": self._station(), "air": self._air(),
+        return {"title": self._title(), "extensions": inventory(self.hass, self.entry.options if self.entry else {}),
+                # The same, as this draft would save them: the « Extensions » step's switches follow it.
+                "in_draft": inventory(self.hass, self.sources),
+                "official": official(self.hass, self.entry.entry_id if self.entry else None), "prevision": self._prevision(), "station": self._station(), "air": self._air(),
                 "pollen": self._pollens(), "entities": self.entities(), "summary": self._summary(), "needs": self.needs()}
 
     def _prevision(self) -> dict[str, Any]:

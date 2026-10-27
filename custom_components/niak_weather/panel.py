@@ -25,7 +25,7 @@ from .const import DOMAIN, LOGGER
 from .draft import Draft, ecosystem_of, entity_keys, entity_label, family_label, field_label, linked, needs_text
 from .engine import atmo, detection, families, health, home, polleninfo
 from .engine.settings import Settings
-from .extensions import inventory
+from .extensions import inventory, official, set_official
 from .websocket import VERSION_KEY
 from .socle import async_register_brick, async_register_card, is_card_resource
 
@@ -42,7 +42,7 @@ async def async_setup_panel(hass: HomeAssistant, version: str) -> None:
         return  # Headless setups and isolated tests have no frontend.
     if not hass.data.get(f"{DOMAIN}_panel"):
         await hass.http.async_register_static_paths([StaticPathConfig(ASSETS, str(Path(__file__).parent / "frontend"), False)])
-        for command in (ws_places, ws_open, ws_change, ws_save):
+        for command in (ws_places, ws_open, ws_change, ws_save, ws_link):
             websocket_api.async_register_command(hass, command)
         # Dashboard resource, with a guarded extra-module fallback for YAML resources.
         await async_register_card(hass, CARD_URL, version)
@@ -174,7 +174,8 @@ def place(hass: HomeAssistant, entry: Any, card_twice: bool = False) -> tuple[di
     f = facts(hass, entry, card_twice)
     enabled = {key for key, _, _, on, _ in f.entities if on}
     info = {"entry_id": entry.entry_id, "title": entry.title, "loaded": entry.state is ConfigEntryState.LOADED,
-            "failed": f.failed, "health": health.report(f), "extensions": inventory(hass, entry.options)}
+            "failed": f.failed, "health": health.report(f), "extensions": inventory(hass, entry.options),
+            "official": official(hass, entry.entry_id)}
     status = home.Place(title=entry.title, loaded=not f.failed, station=len(f.sensors),
                         silent=[s.label for s in f.sensors if s.status != "ok"],
                         forecast=f.restarting or f.failed or f.forecast_age is not None,
@@ -274,3 +275,18 @@ async def ws_save(hass: HomeAssistant, connection: websocket_api.ActiveConnectio
         connection.send_error(msg["id"], "invalid", str(err))
         return
     connection.send_result(msg["id"], {"entry_id": entry_id})
+
+
+@websocket_api.websocket_command({vol.Required("type"): "niak_weather/panel/link", vol.Required("entry_id"): str,
+                                  vol.Required("brick"): str, vol.Required("enabled"): bool})
+@websocket_api.require_admin
+@websocket_api.async_response
+async def ws_link(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """Links this place to an official Niak brick or unlinks it, saved at once on the brick's side: one link for both."""
+    try:
+        _entry(hass, msg["entry_id"])
+        await set_official(hass, msg["brick"], msg["entry_id"], msg["enabled"])
+    except (LookupError, ValueError) as err:
+        connection.send_error(msg["id"], "invalid", str(err))
+        return
+    connection.send_result(msg["id"], {"official": official(hass, msg["entry_id"])})

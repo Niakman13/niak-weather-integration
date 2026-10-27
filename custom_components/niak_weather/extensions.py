@@ -24,6 +24,45 @@ CATALOGUE = (
 )
 
 
+COMFORT_API = "niak_comfort_api"
+
+
+def comfort_api(hass: HomeAssistant) -> Any:
+    candidate = hass.data.get(COMFORT_API)
+    return candidate if getattr(candidate, "version", None) == 1 else None
+
+
+def official(hass: HomeAssistant, entry_id: str | None) -> list[dict[str, Any]]:
+    """Niak's own bricks for this place. Niak Confort keeps the link and Weather reads or changes it through
+    Confort's interface, so turning it off on either side turns it off on both."""
+    link = comfort_api(hass)
+    installed = link is not None or bool(hass.config_entries.async_entries("niak_comfort"))
+    switchable = link is not None and hasattr(link, "set_weather")
+    if switchable:
+        chosen = link.weather()
+    else:
+        # A Niak Confort older than 1.7.21 only says it by listening to a place.
+        weather = hass.data.get("niak_weather_api")
+        chosen = entry_id if weather is not None and entry_id and weather.linked(entry_id).get("niak_comfort") else None
+    other = hass.config_entries.async_get_entry(chosen) if chosen and chosen != entry_id else None
+    return [{"id": "niak_comfort", "name": "Niak Confort", "official": True, "installed": installed,
+             "linked": bool(entry_id) and chosen == entry_id, "elsewhere": other.title if other else "",
+             "switchable": switchable,
+             "description": "Vos pièces comparées au dehors de ce lieu : quand aérer, quand fermer, quand chauffer.",
+             "url": "https://github.com/Niakman13/niak-comfort-integration"}]
+
+
+async def set_official(hass: HomeAssistant, key: str, entry_id: str, enabled: bool) -> None:
+    """Links this place to the brick, or unlinks it if it is the one linked. Raises ValueError with a sentence to show."""
+    link = comfort_api(hass) if key == "niak_comfort" else None
+    if link is None or not hasattr(link, "set_weather"):
+        raise ValueError("Mettez à jour Niak Confort pour régler la liaison depuis Niak Weather.")
+    if enabled:
+        await link.set_weather(entry_id)
+    elif link.weather() == entry_id:
+        await link.set_weather(None)
+
+
 def inventory(hass: HomeAssistant, options: Mapping[str, Any]) -> list[dict[str, Any]]:
     """Installation is global, configuration is read from this place's saved options only."""
     entities = er.async_get(hass).entities

@@ -15,7 +15,9 @@ export interface Technical {
  entities:{active:number;with_value:number;total:number};integration:string;links:string[];interface_version:number;
 }
 export interface Extension {id:string;name:string;description:string;installed:boolean;configured:boolean;air_configured?:boolean;pollen_configured?:boolean;stage:number;field:string;url:string;integration:string;install:string}
-export interface Place {entry_id:string;title:string;loaded:boolean;failed:boolean;health:Health;extensions?:Extension[]}
+// A Niak brick: Niak Confort keeps the link, Niak Weather reads and changes it through Confort's interface.
+export interface Official {id:string;name:string;official:true;installed:boolean;linked:boolean;elsewhere:string;switchable:boolean;description:string;url:string}
+export interface Place {entry_id:string;title:string;loaded:boolean;failed:boolean;health:Health;extensions?:Extension[];official?:Official[]}
 export interface Places {places:Place[];can_add:boolean;extensions?:Extension[]}
 export interface Species extends Entity {label:string;chosen:boolean}
 export interface EntityItem {key:string;name:string;hint:string;enabled:boolean;need:string;optional?:boolean}
@@ -23,6 +25,8 @@ export interface Family {key:string;name:string;hint?:string;chosen?:boolean;ent
 export interface View {
  title:string;
  extensions?:Extension[];
+ in_draft?:Extension[];
+ official?:Official[];
  prevision:{fields:Field[];location:string;location_placeholder:string;advanced:Field[];forecast_source:string};
  station:{model:string;models:Choice[];device:string;devices:Choice[];profile:string;history:boolean;history_help:string;groups:{name:string;title:string;fields:Field[]}[]};
  air:{value:string;sources:Choice[];area:string;areas:Choice[];station:string;stations:Choice[]};
@@ -36,7 +40,7 @@ export interface DraftReply {draft:Sources;view:View;error:string}
 export type Change={op:string;key?:string;value?:unknown;area?:string};
 
 export const NONE='none';
-export const stages=['Sources météo','Station météo · capteurs locaux','Qualité de l’air','Pollens','Entités','Récapitulatif','Eau et jardin'];
+export const stages=['Sources météo','Station météo · capteurs locaux','Qualité de l’air','Pollens','Entités','Récapitulatif','Eau et jardin','Extensions'];
 // What each step is for, shown on top of it in a frame that folds: one idea per line.
 export const intros:string[][]=[
  ['Les prévisions du lieu viennent d’un service météo installé dans Home Assistant, Météo-France par exemple.',
@@ -55,6 +59,9 @@ export const intros:string[][]=[
  ['Tout ce que vous avez choisi, onglet par onglet.',
   'Rien ne change tant que vous n’avez pas enregistré ; un oubli, revenez à l’onglet voulu.'],
  ['Les restrictions d’eau de votre commune viennent de Vigieau.', 'Choisissez ici le capteur de la zone d’eau du robinet (AEP). Facultatif.'],
+ ['Les autres briques Niak et les intégrations de Home Assistant dont ce lieu se sert.',
+  'Une brique Niak se relie ici ou dans ses propres réglages : coupée d’un côté, elle l’est des deux.',
+  'Une extension tierce s’allume ou s’éteint ici ; son onglet sert à la régler.'],
 ];
 
 // The entities switched on, by key, as the « Entités » step shows them.
@@ -93,4 +100,25 @@ export function extensionGroups(items:Extension[]):ExtensionGroup[]{
   {key:'water',label:'Eau et jardin',items:items.filter(e=>e.id==='vigieau')},
   {key:'storm',label:'Orages et éclairs',items:items.filter(e=>e.id==='blitzortung')},
  ].filter(g=>g.items.length);
+}
+
+// What a third-party extension's switch shows and the draft changes that turn it on or off for this place.
+// Météo-France is the one source every place needs: it has no switch.
+export interface ExtensionSwitch {shown:boolean;checked:boolean;available:boolean;on:Change[];off:Change[];uses:string[]}
+export function extensionSwitch(e:Extension,v:View):ExtensionSwitch{
+ const air=v.air.sources.find(c=>c.value===e.id),pollen=v.pollen.sources.find(c=>c.value===e.id);
+ const atmoAir=v.air.sources.find(c=>c.value==='atmo'),atmoPollen=v.pollen.sources.find(c=>c.value==='atmo');
+ const field=e.field?v.prevision.fields.find(f=>f.key===e.field):undefined;
+ const uses=e.id==='atmo'?[e.air_configured?'Qualité de l’air':'',e.pollen_configured?'Pollens':''].filter(Boolean)
+  :e.configured?[extensionGroups([e]).map(g=>g.label)[0]??''].filter(Boolean):[];
+ const base={shown:e.installed&&e.id!=='meteo_france',checked:e.configured,uses};
+ if(e.id==='atmo'){const ok=(c?:Choice)=>!!c&&c.available!==false;
+  return {...base,available:ok(atmoAir)||ok(atmoPollen),
+   on:[...(ok(atmoAir)&&v.air.value!=='atmo'?[{op:'air',value:'atmo'}]:[]),...(ok(atmoPollen)&&v.pollen.value!=='atmo'?[{op:'pollen',value:'atmo'}]:[])],
+   off:[...(v.air.value==='atmo'?[{op:'air',value:NONE}]:[]),...(v.pollen.value==='atmo'?[{op:'pollen',value:NONE}]:[])]};}
+ if(air)return {...base,available:air.available!==false,on:[{op:'air',value:e.id}],off:v.air.value===e.id?[{op:'air',value:NONE}]:[]};
+ if(pollen)return {...base,available:pollen.available!==false,on:[{op:'pollen',value:e.id}],off:v.pollen.value===e.id?[{op:'pollen',value:NONE}]:[]};
+ if(field){const pick=field.better?.id??field.options[0]?.id;
+  return {...base,available:!!pick||!!field.value,on:pick?[{op:'set',key:field.key,value:pick}]:[],off:[{op:'set',key:field.key,value:''}]};}
+ return {...base,shown:false,available:false,on:[],off:[]};
 }

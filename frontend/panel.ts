@@ -4,12 +4,15 @@ import {LitElement,html,unsafeCSS,nothing,type TemplateResult,type PropertyValue
 import {customElement,property,state} from 'lit/decorators.js';
 import styles from './styles.css';
 import {frame,hubStyles,modernStyles,hubIcon,helpTip} from './socle/ui';
-import {NONE,stages,intros,extensionGroups,enabledKeys,provenance,sameSet,entityLine,grouped,capital,type Change,type Choice,type DraftReply,type Field,type Hass,type Line,type Place,type Places,type Sources,type View,type Extension} from './model';
+import {NONE,stages,intros,extensionGroups,extensionSwitch,enabledKeys,provenance,sameSet,entityLine,grouped,capital,type Change,type Choice,type DraftReply,type Field,type Hass,type Line,type Place,type Places,type Sources,type View,type Extension,type Official} from './model';
 
-const categories=['sources','station','air','pollens','entites','recapitulatif','eau-jardin'];
-const order=[0,1,2,3,6,4,5];
-const sections=[{stage:0,label:'Sources météo',icon:'weather'},{stage:1,label:'Station météo',icon:'temperature'},{stage:2,label:'Qualité de l’air',icon:'air'},{stage:3,label:'Pollens',icon:'pollen'},{stage:6,label:'Eau et jardin',icon:'pollen'},{stage:4,label:'Entités',icon:'entities'}];
-const sectionStage=(section:string)=>section==='extensions'?0:categories.indexOf(section);
+const categories=['sources','station','air','pollens','entites','recapitulatif','eau-jardin','extensions'];
+const order=[0,1,2,3,6,4,7,5];
+const sections=[{stage:0,label:'Sources météo',icon:'weather'},{stage:1,label:'Station météo',icon:'temperature'},{stage:2,label:'Qualité de l’air',icon:'air'},{stage:3,label:'Pollens',icon:'pollen'},{stage:6,label:'Eau et jardin',icon:'pollen'},{stage:4,label:'Entités',icon:'entities'},{stage:7,label:'Extensions',icon:'settings'}];
+const sectionStage=(section:string)=>categories.indexOf(section);
+// The same words and colours as Niak Confort's general settings: blue when used, orange when something is to do.
+const extIcon:Record<string,string>={niak_comfort:'home',meteo_france:'weather',atmo:'air',waqi:'air',vigieau:'pollen',blitzortung:'weather',polleninformation:'pollen',irm_kmi:'pollen',swiss_pollen:'pollen',kleenex_pollenradar:'pollen'};
+const hacsUrl=(url:string)=>{const [owner,repository]=url.replace('https://github.com/','').split('/');return `https://my.home-assistant.io/redirect/hacs_repository/?owner=${owner}&repository=${repository}&category=integration`;};
 
 @customElement('niak-weather-setup')
 export class WeatherSetup extends LitElement {
@@ -227,6 +230,45 @@ export class WeatherSetup extends LitElement {
  }
  private water(v:View){return html`${frame('Restrictions d’eau',html`<h3>Vigieau</h3>${this.integrationInfo(v.extensions?.find(e=>e.id==='vigieau'),!!v.prevision.fields.find(f=>f.key==='water_restriction_entity')?.options.length)}
   ${v.prevision.fields.filter(f=>f.key==='water_restriction_entity').map(f=>this.field(f))}`,{className:'nk-field-section nk-plain'})}${this.refreshSources()}${this.bottom()}`;}
+ // ---- Extensions: Niak's own bricks, then the integrations of Home Assistant this place reads ----
+ private extensions(v:View){const third=v.in_draft??v.extensions??[];
+  return html`<h2 class="ex-sec">Extensions officielles Niak</h2>${(v.official??[]).map(o=>this.officialCard(o))}
+   <h2 class="ex-sec">Extensions tierces</h2><p class="hint">Toutes facultatives, sauf le service météo. Un changement ici s’enregistre avec le lieu.</p>
+   ${third.map(e=>this.extensionCard(e,v))}${this.refreshSources()}${this.bottom()}`;}
+ private exCard(icon:string,name:string,pill:[string,string],use:string,detail:unknown,act:unknown,toggle:unknown,todo=false){
+  return html`<section class=${'nk-section ex-card'+(todo?' act':'')}><div class="nk-body"><div class="ex-head"><span class="ex-icon">${hubIcon(icon)}</span>
+   <div class="ex-body"><h3>${name} <span class=${'tw-pill '+pill[1]}>${pill[0]}</span></h3><p class="hint">${use}</p>${detail?html`<p class="hint ex-detail">${detail}</p>`:nothing}</div>${act}</div>${toggle}</div></section>`;}
+ /** A Niak brick: its link is saved at once, on its own side, so both bricks always say the same. */
+ private officialCard(o:Official){
+  const pill:[string,string]=!o.installed?['non installée','']:o.linked?['liée','ok']:o.elsewhere?['liée à '+o.elsewhere,'']:['à lier','act'];
+  const detail=!o.installed?'':!this.entryId?'Enregistrez d’abord ce lieu pour le relier.':!o.switchable?'Mettez à jour Niak Confort pour régler la liaison d’ici.'
+   :o.elsewhere&&!o.linked?`Niak Confort lit le lieu « ${o.elsewhere} ». L’allumer ici lui fait lire celui-ci.`:'';
+  const act=o.installed?nothing:html`<a class="ex-act" href=${hacsUrl(o.url)} target="_blank" rel="noreferrer">Installer avec HACS</a>`;
+  const toggle=o.installed&&o.switchable&&this.entryId?html`<label class="check ex-switch"><input type="checkbox" role="switch" .checked=${o.linked} ?disabled=${this.busy}
+   @change=${(e:Event)=>void this.link(o.id,(e.target as HTMLInputElement).checked)}>Donner le dehors de ce lieu à ${o.name}</label>
+   <p class="hint ex-note">Enregistré tout de suite, ici et dans ${o.name}.</p>`:nothing;
+  return this.exCard(extIcon[o.id]??'settings',o.name,pill,o.description,detail,act,toggle,o.installed&&!o.linked&&!o.elsewhere&&o.switchable&&!!this.entryId);}
+ /** An integration of Home Assistant: used by this place or not, and where to set it. */
+ private extensionCard(e:Extension,v:View){const sw=extensionSwitch(e,v);
+  const pill:[string,string]=!e.installed?['non installée','']:e.configured?['liée','ok']:['installée',''];
+  const detail=e.id==='meteo_france'?'Obligatoire : les prévisions et la vigilance du lieu.':sw.uses.length?'Utilisée pour : '+sw.uses.join(' · '):e.installed&&!sw.available?'Aucune donnée trouvée pour ce lieu.':'';
+  const go=html`<button class="ac-edit" ?disabled=${this.busy} @click=${()=>this.go(e.stage)}>Régler</button>`;
+  const act=!e.installed?(e.url.startsWith('https://github.com/')?html`<a class="ex-act" href=${hacsUrl(e.url)} target="_blank" rel="noreferrer">Installer avec HACS</a>`
+   :html`<a class="ex-act" href=${'https://my.home-assistant.io/redirect/config_flow_start/?domain='+e.integration} target="_blank" rel="noreferrer">Ajouter</a>`):e.configured?go:nothing;
+  const toggle=sw.shown?html`<label class="check ex-switch"><input type="checkbox" role="switch" .checked=${sw.checked} ?disabled=${this.busy||!sw.checked&&!sw.available}
+   @change=${(ev:Event)=>void this.applyAll((ev.target as HTMLInputElement).checked?sw.on:sw.off)}>Utiliser ${e.name} pour ce lieu</label>`:nothing;
+  return this.exCard(extIcon[e.id]??'settings',e.name,pill,e.description,detail,act,toggle);}
+ private async applyAll(changes:Change[]){for(const c of changes)await this.change(c);}
+ /** Links this place to a Niak brick or unlinks it: the brick saves it, then both settings pages read it back. */
+ private async link(brick:string,enabled:boolean){
+  if(!this.entryId||!this.view)return;
+  this.busy=true;this.error='';
+  try{const reply=await this.hass!.callWS<{official:Official[]}>({type:'niak_weather/panel/link',entry_id:this.entryId,brick,enabled});
+   this.view={...this.view,official:reply.official};
+   const p=this.places?.places.find(x=>x.entry_id===this.entryId);if(p)p.official=reply.official;}
+  catch(e){this.error=this.message(e);this.requestUpdate();}
+  finally{this.busy=false;}
+ }
  private recap(v:View){
   const added=this.enabled.filter(k=>!this.initialEnabled.includes(k)).length,removed=this.initialEnabled.filter(k=>!this.enabled.includes(k)).length;
   const change=[added?`${added} de plus`:'',removed?`${removed} de moins`:''].filter(Boolean).join(', ');
@@ -290,9 +332,9 @@ export class WeatherSetup extends LitElement {
     </dl>`)}
    </div>
    ${frame('Extensions',html`${extensions?html`<p class="hint extension-summary">${extensions.filter(e=>e.installed).length} / ${extensions.length} installées dans Home Assistant · ${extensions.filter(e=>e.configured).length} configurée${extensions.filter(e=>e.configured).length>1?'s':''} pour ce lieu</p>
-    <div class="extension-overview">${extensionGroups(extensions).map(group=>html`<div class="extension-overview-group"><h3>${group.label}</h3><ul>${group.items.map(e=>html`<li><span>${e.name}</span>${badge(e)}</li>`)}</ul></div>`)}</div>`:html`<p class="muted">État des extensions non reçu. Actualisez le bilan.</p>`}
-    <button class="link" ?disabled=${this.busy} @click=${()=>void this.open(p.entry_id,0)}>Configurer les sources →</button>`,{className:'overview-extensions'})}
-   ${frame('Configuration',html`<nav class="dashboard-config" aria-label=${'Configuration de '+p.title}>${[0,1,2,3,6,4].map(config)}</nav>`)}
+    <div class="extension-overview">${p.official?.length?html`<div class="extension-overview-group"><h3>Briques Niak</h3><ul>${p.official.map(o=>html`<li><span>${o.name}</span><span class="extension-badge ${o.linked?'ok':'none'}">${!o.installed?'Pas installée':o.linked?'Liée':o.elsewhere?'Liée à '+o.elsewhere:'Pas liée'}</span></li>`)}</ul></div>`:nothing}${extensionGroups(extensions).map(group=>html`<div class="extension-overview-group"><h3>${group.label}</h3><ul>${group.items.map(e=>html`<li><span>${e.name}</span>${badge(e)}</li>`)}</ul></div>`)}</div>`:html`<p class="muted">État des extensions non reçu. Actualisez le bilan.</p>`}
+    <button class="link" ?disabled=${this.busy} @click=${()=>void this.open(p.entry_id,7)}>Régler les extensions →</button>`,{className:'overview-extensions'})}
+   ${frame('Configuration',html`<nav class="dashboard-config" aria-label=${'Configuration de '+p.title}>${[0,1,2,3,6,4,7].map(config)}</nav>`)}
    ${frame('Versions et liens',html`<div class="dashboard-main dashboard-meta"><div>
      ${row('Intégration',version||'Version non reçue')}
      ${card?row('Carte',card.text.replace(/^Carte /,'')+' · '+card.why,card.level):nothing}
@@ -311,13 +353,13 @@ export class WeatherSetup extends LitElement {
  }
  private editor(){
   const v=this.view!;
-  const body=[this.prevision,this.station,this.air,this.pollen,this.entities,this.recap,this.water][this.stage].call(this,v);
+  const body=[this.prevision,this.station,this.air,this.pollen,this.entities,this.recap,this.water,this.extensions][this.stage].call(this,v);
   return html`<main><button class="link" @click=${()=>this.leave()}>← Vue d’ensemble Météo</button>
    ${this.confirmLeave?html`<div class="notice" role="alert"><p>Vos changements ne sont pas enregistrés.</p><div class="actions">
     <button @click=${()=>{this.confirmLeave=false;}}>Continuer à modifier</button><button @click=${()=>this.close()}>Abandonner les changements</button></div></div>`:nothing}
    <div class="workspace-head"><h1>${this.entryId?'Réglages généraux':'Nouveau lieu'}</h1><p class="step-count">Les réglages de ce lieu météo</p></div>
    <div class="place-context"><span>Lieu météo : <strong>${this.placeTitle||v.title}</strong></span></div>
-   <nav class="room-menu" aria-label="Configuration météo">${[sections.slice(0,3),sections.slice(3)].map(row=>html`<div class="room-menu-row">${row.map(x=>html`<button aria-label=${stages[x.stage]} title=${stages[x.stage]} aria-current=${x.stage===this.stage?'page':nothing} ?disabled=${this.busy} @click=${()=>this.go(x.stage)}>${hubIcon(x.icon)}<span>${x.label}</span></button>`)}</div>`)}</nav>
+   <nav class="room-menu" aria-label="Configuration météo">${[sections.slice(0,4),sections.slice(4)].map(row=>html`<div class="room-menu-row">${row.map(x=>html`<button aria-label=${stages[x.stage]} title=${stages[x.stage]} aria-current=${x.stage===this.stage?'page':nothing} ?disabled=${this.busy} @click=${()=>this.go(x.stage)}>${hubIcon(x.icon)}<span>${x.label}</span></button>`)}</div>`)}</nav>
    <button class="link configuration-recap" aria-current=${this.stage===5?'page':nothing} ?disabled=${this.busy} @click=${()=>this.go(5)}>Récapitulatif</button>
    ${this.error?html`<p class="notice error" role="alert">${this.error}</p>`:nothing}
    <div class="room-content-head"><h2>${stages[this.stage]}</h2></div>${this.intro()}${body}</main>${this.busy?html`<p class="busy" role="status">Un instant…</p>`:nothing}`;
