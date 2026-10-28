@@ -105,6 +105,7 @@ Chaque entité dit **pourquoi** (attribut `raison`) et **d’où vient** sa vale
 | [Sources et réglages](docs/sources.md) | Météo-France, station, soleil, Atmo France, Vigieau, Blitzortung, historique, toutes les clés |
 | [Pluie, vent, pression](docs/mesures.md) | Cumuls, courbes, tendances, ce qui est calculé depuis l’historique |
 | [Fonctionnement technique](docs/technique.md) | Moteur, coordinateur, capteurs, API, tests ; le code de la carte est dans `card/` |
+| [Traductions](docs/traductions.md) | Améliorer un texte ou ajouter une langue de la carte, sans connaître git |
 
 ## Limites
 

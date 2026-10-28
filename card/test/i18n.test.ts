@@ -2,6 +2,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
 import { EN } from '../src/i18n/en';
+import { DE } from '../src/i18n/de';
 import { hourText, setLanguage, t } from '../src/i18n';
 import { rose } from '../src/ui/parts';
 
@@ -50,11 +51,28 @@ describe('The card in English', () => {
     expect(t('Pluie')).toBe('Pluie');
     setLanguage('en'); expect(t('Pluie')).toBe('Rain');
     setLanguage('nl'); expect(t('Niveau {value} sur {scale}', { value: 2, scale: 6 })).toBe('Level 2 of 6');
+    setLanguage('de'); expect(t('Pluie')).toBe('Regen');
     setLanguage('fr-CA'); expect(t('Pluie')).toBe('Pluie');
   });
   it('writes hours and the compass the English way', () => {
     expect([hourText(0), hourText(12), hourText(9), rose(225)]).toEqual(['minuit', 'midi', '9 h', 'SO']);
     setLanguage('en');
     expect([hourText(0), hourText(12), hourText(9), rose(225), rose(270)]).toEqual(['midnight', 'noon', '09:00', 'SW', 'W']);
+  });
+});
+
+describe('The card in German', () => {
+  afterEach(() => setLanguage('fr'));
+  it('has a German text for every French one, and none left over', () => {
+    expect([...texts].filter(text => !(text in DE))).toEqual([]);
+    expect(Object.keys(DE).filter(text => !texts.has(text))).toEqual([]);
+  });
+  it('keeps the same {names} as the French', () => {
+    const names = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map(m => m[1]).sort();
+    expect(Object.entries(DE).filter(([french, german]) => names(french).join() !== names(german).join()).map(([french]) => french)).toEqual([]);
+  });
+  it('writes hours and the compass the German way', () => {
+    setLanguage('de-DE');
+    expect([hourText(0), hourText(12), hourText(9), rose(45), rose(225), rose(270)]).toEqual(['Mitternacht', 'Mittag', '09:00', 'NO', 'SW', 'W']);
   });
 });
