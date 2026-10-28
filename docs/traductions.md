@@ -10,7 +10,7 @@ You do not need to know git or to build anything.
 
 1. Ouvrez le fichier de votre langue sur GitHub · Open the file for your language on GitHub:
    - Anglais · English: [`card/src/i18n/en.ts`](../card/src/i18n/en.ts)
-   - Allemand · German: [`card/src/i18n/de.ts`](../card/src/i18n/de.ts) (carte · card) et [`custom_components/niak_weather/engine/i18n_de.py`](../custom_components/niak_weather/engine/i18n_de.py) (bulletin, événements, mesures · bulletin, events, measurements)
+   - Allemand · German: [`card/src/i18n/de.ts`](../card/src/i18n/de.ts) (carte · card) et [`custom_components/niak_weather/engine/i18n_de.py`](../custom_components/niak_weather/engine/i18n_de.py) (bulletin, événements, mesures · bulletin, events, measurements) et [`custom_components/niak_weather/translations/de.json`](../custom_components/niak_weather/translations/de.json) (fenêtres d’installation et de configuration · setup and options dialogs)
 2. Cliquez sur le crayon (Edit) · Click the pencil (Edit). GitHub crée une copie à votre nom · GitHub makes a copy under your name.
 3. Corrigez ce qui est **à droite des deux-points** · Change only what is **on the right of the colon**:
    ```ts
@@ -34,5 +34,5 @@ Not comfortable with GitHub? Post your corrections in [issue #7](https://github.
 
 ## Ce qui n’est pas encore traduit · Not translated yet
 
-Les capteurs et le panneau de réglages de l’intégration (`translations/*.json`) ne sont pas encore en allemand.
-Sensors and the integration's settings panel (`translations/*.json`) are not in German yet.
+Les noms des capteurs (`entity` dans `translations/*.json`) et le panneau de réglages Niak (onglet Météo, en français seulement) ne sont pas encore traduits.
+The sensor names (`entity` in `translations/*.json`) and the Niak settings panel (Météo tab, French only) are not translated yet.

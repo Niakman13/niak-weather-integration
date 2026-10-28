@@ -6,7 +6,8 @@
 
 - La carte s’affiche en allemand quand Home Assistant est en allemand : les réglages, le bulletin du jour, les événements, les mesures, l’air, les pollens et les prévisions. C’est une traduction de départ : les relectures de locuteurs natifs sont les bienvenues (issue #7).
 - Les points cardinaux suivent la langue : O pour l’est et W pour l’ouest en allemand.
-- Les capteurs et le panneau de réglages restent en français ou en anglais pour l’instant.
+- Les fenêtres d’installation et de configuration d’Home Assistant (Ajouter l’intégration, Configurer) sont aussi en allemand.
+- Les capteurs et le panneau de réglages Niak (onglet Météo) restent en français pour l’instant.
 - Nouveau guide [Traductions](docs/traductions.md) : corriger un texte depuis GitHub, sans connaître git, ou ajouter une langue.
 
 ## 2.9.1 — Stable : un bloc coché se range à sa place
