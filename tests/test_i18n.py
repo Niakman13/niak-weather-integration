@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from engine import i18n
+from engine.i18n_de import DE
 from engine.i18n_en import EN
 
 ROOT = Path(__file__).parent.parent / "custom_components" / "niak_weather"
@@ -74,3 +75,24 @@ def test_a_view_in_english_leaves_french_untouched():
     with i18n.localized("en"):
         assert i18n.t("Pluie") == "Rain"
     assert i18n.t("Pluie") == "Pluie"
+
+
+def test_every_french_text_has_german_words_and_none_is_left_over():
+    assert sorted(TEXTS - DE.keys()) == []
+    assert sorted(DE.keys() - TEXTS) == []
+
+
+def test_german_keeps_the_same_names():
+    def names(s: str) -> list[str]:
+        return sorted(re.findall(r"\{(\w+)\}", s))
+    assert [k for k, v in DE.items() if names(k) != names(v)] == []
+
+
+def test_a_view_in_german_leaves_french_untouched():
+    i18n.set_language("de-DE")
+    assert i18n.language() == "de"
+    assert i18n.t("Pluie") == "Regen"
+    assert i18n.t("{weekday} {day} {month}", weekday="Mittwoch", day=28, month="Oktober") == "Mittwoch, 28. Oktober"
+    with i18n.localized("fr"):
+        assert i18n.t("Pluie") == "Pluie"
+    assert i18n.t("Pluie") == "Regen"

@@ -10,9 +10,10 @@ import re
 from contextlib import contextmanager
 from collections.abc import Iterator
 
+from .i18n_de import DE
 from .i18n_en import EN
 
-DICTIONARIES: dict[str, dict[str, str]] = {"en": EN}
+DICTIONARIES: dict[str, dict[str, str]] = {"en": EN, "de": DE}
 _language = "fr"
 
 

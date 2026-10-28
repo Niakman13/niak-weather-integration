@@ -4,7 +4,7 @@
 
 ### Nouveautés
 
-- La carte s’affiche en allemand quand Home Assistant est en allemand. C’est une traduction de départ : les relectures de locuteurs natifs sont les bienvenues (issue #7).
+- La carte s’affiche en allemand quand Home Assistant est en allemand : les réglages, le bulletin du jour, les événements, les mesures, l’air, les pollens et les prévisions. C’est une traduction de départ : les relectures de locuteurs natifs sont les bienvenues (issue #7).
 - Les points cardinaux suivent la langue : O pour l’est et W pour l’ouest en allemand.
 - Les capteurs et le panneau de réglages restent en français ou en anglais pour l’instant.
 - Nouveau guide [Traductions](docs/traductions.md) : corriger un texte depuis GitHub, sans connaître git, ou ajouter une langue.
