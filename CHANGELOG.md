@@ -1,4 +1,4 @@
-## 2.9.2b1 — Bêta : la carte en allemand
+## 2.9.2 — Bêta : la carte en allemand
 
 **La carte parle la langue de Home Assistant : français, anglais ou allemand.**
 
