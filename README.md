@@ -15,7 +15,7 @@
 
 Elle donne le résultat à **sa carte**, fournie avec elle, et à vos automatisations.
 
-![Niak Weather — votre station météo et les prévisions, réunies en une carte qui parle](docs/carte/images/niak-weather-banner.png)
+![Niak Weather — la météo de chez vous, expliquée et anticipée : la synthèse sous l’orage, entre les cartes Pluie et Air et pollens](docs/carte/images/niak-weather-banner.png)
 
 ## Pourquoi
 
