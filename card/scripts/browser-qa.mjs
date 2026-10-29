@@ -210,7 +210,7 @@ try {
   });
   assert.deepEqual(problems, {
     // Downloaded but not added, the integration is not started either: the message offers to add it first, then to install it.
-    unknown_command: ['Hestia Weather a besoin de son intégration', '/config/integrations/dashboard/add?domain=niak_weather', 'https://github.com/Niakman13/niak-weather-integration#installation'],
+    unknown_command: ['Hestia Weather a besoin de son intégration', '/config/integrations/dashboard/add?domain=niak_weather', 'https://github.com/Niakman13/hestia-weather-integration#installation'],
     not_configured: ['Ajoutez l’intégration Hestia Weather', '/config/integrations/dashboard/add?domain=niak_weather'],
     choose_entry: ['Choisissez un lieu'],
     // Any other answer is the integration's own error: shown as it is, with the way to the logs.

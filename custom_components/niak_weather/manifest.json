@@ -5,10 +5,10 @@
   "codeowners": ["@Niakman13"],
   "config_flow": true,
   "dependencies": ["frontend", "http", "recorder", "websocket_api"],
-  "documentation": "https://github.com/Niakman13/niak-weather-integration",
+  "documentation": "https://github.com/Niakman13/hestia-weather-integration",
   "integration_type": "service",
   "iot_class": "calculated",
-  "issue_tracker": "https://github.com/Niakman13/niak-weather-integration/issues",
+  "issue_tracker": "https://github.com/Niakman13/hestia-weather-integration/issues",
   "requirements": [],
   "version": "2.9.3"
 }

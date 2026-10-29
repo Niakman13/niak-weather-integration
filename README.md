@@ -1,7 +1,7 @@
 # Hestia Weather — intégration
 
-[![release](https://img.shields.io/github/v/release/Niakman13/niak-weather-integration?cacheSeconds=86400)](https://github.com/Niakman13/niak-weather-integration/releases)
-[![Validate](https://github.com/Niakman13/niak-weather-integration/actions/workflows/validate.yml/badge.svg)](https://github.com/Niakman13/niak-weather-integration/actions/workflows/validate.yml)
+[![release](https://img.shields.io/github/v/release/Niakman13/hestia-weather-integration?cacheSeconds=86400)](https://github.com/Niakman13/hestia-weather-integration/releases)
+[![Validate](https://github.com/Niakman13/hestia-weather-integration/actions/workflows/validate.yml/badge.svg)](https://github.com/Niakman13/hestia-weather-integration/actions/workflows/validate.yml)
 [![HACS](https://img.shields.io/badge/HACS-Custom-orange)](https://hacs.xyz)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
@@ -36,12 +36,12 @@ Tout est calculé une fois, dans Home Assistant : la carte affiche, vos automati
 
 ## Installation
 
-1. Dans HACS, ⋮ → **Dépôts personnalisés** : ajoutez `https://github.com/Niakman13/niak-weather-integration`, catégorie **Intégration**.
+1. Dans HACS, ⋮ → **Dépôts personnalisés** : ajoutez `https://github.com/Niakman13/hestia-weather-integration`, catégorie **Intégration**.
 2. Installez **Hestia Weather**, puis redémarrez Home Assistant.
 3. **Paramètres → Appareils et services → Ajouter une intégration → Hestia Weather.**
 4. Sur un tableau de bord : **Ajouter une carte → Hestia Weather**. La carte est fournie par l’intégration (depuis la 2.3) : rien d’autre à installer.
 
-[![Ouvrir dans HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Niakman13&repository=niak-weather-integration&category=integration)
+[![Ouvrir dans HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Niakman13&repository=hestia-weather-integration&category=integration)
 
 ## Configuration
 

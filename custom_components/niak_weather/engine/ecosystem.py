@@ -22,7 +22,7 @@ class Brick:
 
 BRICKS = (
     Brick("niak_comfort", "Hestia Confort", "votre station, vos alertes et vos prévisions, pour conseiller d’ouvrir ou de fermer au bon moment",
-          "https://github.com/Niakman13/niak-comfort-integration"),
+          "https://github.com/Niakman13/hestia-comfort-integration"),
     Brick("niak_heating", "Hestia Chauffage", "le froid à venir, l’ensoleillement et les degrés-jours, pour chauffer au bon moment"),
     Brick("niak_garden", "Hestia Jardin", "la pluie tombée et à venir, pour n’arroser que si c’est utile"),
     Brick("niak_energy", "Hestia Énergie", "l’ensoleillement prévu, pour estimer la production solaire"),

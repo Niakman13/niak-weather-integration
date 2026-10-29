@@ -30,7 +30,7 @@ const PROBLEMS: Record<Problem, { title: string; text: string; links?: [string, 
   // Home Assistant only starts an integration once it is added: downloaded from HACS but not added yet, it does not answer either.
   missing: { title: fr('Hestia Weather a besoin de son intégration'),
     text: fr('Depuis la version 2.0, la carte reçoit ses calculs de l’intégration Hestia Weather. Déjà téléchargée depuis HACS ? Ajoutez-la dans Paramètres → Appareils et services. Sinon, installez-la depuis HACS, redémarrez Home Assistant, puis ajoutez-la. Déjà ajoutée ? Elle n’a pas démarré : les journaux disent pourquoi (Paramètres → Système → Journaux, cherchez « niak »).'),
-    links: [[fr('Ajouter l’intégration'), '/config/integrations/dashboard/add?domain=niak_weather'], [fr('L’installer'), 'https://github.com/Niakman13/niak-weather-integration#installation']] },
+    links: [[fr('Ajouter l’intégration'), '/config/integrations/dashboard/add?domain=niak_weather'], [fr('L’installer'), 'https://github.com/Niakman13/hestia-weather-integration#installation']] },
   not_configured: { title: fr('Ajoutez l’intégration Hestia Weather'),
     text: fr('Elle est installée mais pas encore configurée. Elle peut reprendre les réglages de vos cartes.'),
     links: [[fr('Ajouter l’intégration'), '/config/integrations/dashboard/add?domain=niak_weather']] },

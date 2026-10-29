@@ -6,7 +6,7 @@ blueprint:
     Toute la météo est calculée par Hestia Weather ; cette automatisation ne fait que transmettre.
     Le message de fin remplace celui du début sur le téléphone.
   domain: automation
-  source_url: https://github.com/Niakman13/niak-weather-integration/blob/main/blueprints/automation/niak_weather/notifier_alertes.yaml
+  source_url: https://github.com/Niakman13/hestia-weather-integration/blob/main/blueprints/automation/niak_weather/notifier_alertes.yaml
   homeassistant:
     min_version: "2025.1.0"
   input:
