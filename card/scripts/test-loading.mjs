@@ -34,7 +34,7 @@ try {
     try {
       for (const bundle of [...bundles]) {
         currentBundle = bundle;
-        const tags = bundle.includes('weather') ? ['niak-weather-card'] : [
+        const tags = bundle.includes('weather') ? ['niak-weather-card', 'hestia-weather-card'] : [
           'niak-comfort-card', 'niak-comfort-home-card', 'niak-comfort-card-editor',
         ];
         for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
@@ -84,7 +84,8 @@ try {
                 document.body.append(card);
                 await card.updateComplete;
                 if (!card.shadowRoot?.childElementCount) throw new Error(`${tag} has no rendered content`);
-                if (window.customCards.filter(c => c.type === tag).length !== 1) throw new Error(`${tag} is missing or duplicated in the card picker`);
+                // Listed once, under its own name or under its Hestia name (Hestia Weather 2.9.4 offers hestia-weather-card).
+                if (window.customCards.filter(c => c.type === tag || c.type === tag.replace(/^niak-/, 'hestia-')).length !== 1) throw new Error(`${tag} is missing or duplicated in the card picker`);
               }
             }, tags);
             assert.deepEqual(errors, [], 'No browser errors');

@@ -1,3 +1,9 @@
+## 2.9.5 — Préversion : correctif d’affichage sur petit écran
+
+### Corrections
+
+- Sur un téléphone étroit (320 px), une ligne « À régler » avec un raccourci n’était plus lisible : le raccourci passe maintenant sous le texte.
+
 ## 2.9.4 — Préversion : le panneau de Hestia Weather en anglais, plus rapide
 
 **En bref**
