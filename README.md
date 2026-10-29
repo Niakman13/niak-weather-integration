@@ -15,7 +15,7 @@
 
 Elle donne le résultat à **sa carte**, fournie avec elle, et à vos automatisations.
 
-![Hestia Weather — la météo de chez vous, expliquée et anticipée : la synthèse sous l’orage, entre les cartes Pluie et Air et pollens](docs/carte/images/niak-weather-banner.png)
+![Hestia Weather — la météo de chez vous, expliquée et anticipée : la synthèse sous l’orage, entre les cartes Pluie et Air et pollens](docs/carte/images/hestia-weather-banner.png)
 
 ## Pourquoi
 
@@ -62,9 +62,9 @@ L’interface s’adapte au téléphone et remplit la hauteur disponible. Dans *
 
 ## La carte
 
-Douze cartes, rangées en trois types dans **Ajouter une carte** : **Hestia - Météo** (complète, tuile, tuile dépliée), **Hestia - À la pièce** (ressenti, pluie, vent, pression, éclairs, air et pollens, prévisions) et **Hestia - Petite carte** (mini, alerte). Chacune montre les parties que vous cochez. Toutes s’écrivent `type: custom:niak-weather-card`, seul `format` change. [La carte en détail : formats, réglages, visuel](docs/carte/README.md).
+Douze cartes, rangées en trois types dans **Ajouter une carte** : **Hestia - Météo** (complète, tuile, tuile dépliée), **Hestia - À la pièce** (ressenti, pluie, vent, pression, éclairs, air et pollens, prévisions) et **Hestia - Petite carte** (mini, alerte). Chacune montre les parties que vous cochez. Toutes s’écrivent `type: custom:hestia-weather-card`, seul `format` change. [La carte en détail : formats, réglages, visuel](docs/carte/README.md).
 
-![Hestia Weather — tuile pleine et demi-largeur repliées, puis tuile dépliée, par temps d’orage avec vigilance jaune](docs/carte/images/niak-weather-formats.png)
+![Hestia Weather — tuile pleine et demi-largeur repliées, puis tuile dépliée, par temps d’orage avec vigilance jaune](docs/carte/images/hestia-weather-formats.png)
 
 Vous aviez installé la carte depuis HACS ? **Retirez-la de HACS**, puis rechargez la page : vos cartes restent en place. Tant qu’elle reste installée, l’accueil du panneau **Hestia** l’indique en orange.
 
@@ -86,12 +86,12 @@ Hestia Weather dit ce que la météo implique ; vos automatisations décident qu
 
 Chaque entité dit **pourquoi** (attribut `raison`) et **d’où vient** sa valeur (`source`). En plus des capteurs :
 
-- l’évènement **`niak_weather_alerte`**, au début, au changement et à la fin de chaque alerte ;
+- l’évènement **`hestia_weather_alerte`**, au début, au changement et à la fin de chaque alerte ;
 - l’action **`niak_weather.prevision`**, qui répond à « quel temps entre 16 h 15 et 17 h ? » ;
-- l’entité **`weather.niak_weather`** (à activer) : le temps vu par votre station, avec les prévisions du fournisseur ;
+- l’entité **`weather.hestia_weather`** (à activer) : le temps vu par votre station, avec les prévisions du fournisseur ;
 - des **modèles d’automatisation** à importer en un clic : notifier les alertes, protéger avant le gel, le bulletin du matin.
 
-[Toutes les entités, leurs rôles et les modèles à importer](docs/capteurs.md). Un deuxième lieu ajoute son nom : `sensor.niak_weather_marseille_ressenti`. Une valeur inconnue reste **inconnue** : rien n’est inventé.
+[Toutes les entités, leurs rôles et les modèles à importer](docs/capteurs.md). Un deuxième lieu ajoute son nom : `sensor.hestia_weather_marseille_ressenti`. Une valeur inconnue reste **inconnue** : rien n’est inventé.
 
 ## Documentation
 
@@ -117,3 +117,12 @@ Le ressenti est une **estimation locale**, pas une mesure physiologique ni une v
 ### Formulaires harmonisés
 
 Les réglages du hub partagent les mêmes composants : blocs par sujet, titres et espacements cohérents, aides en info-bulles et avertissements visibles. Weather regroupe les prévisions, alertes et saison, mesures de la station, air, pollens et entités. Les réglages généraux de Confort présentent leurs capteurs en lignes ouvertes dans chaque groupe. Les détails avancés restent repliables.
+
+## Noms techniques
+
+Le projet s’appelait Niak Weather. Pour ne rien casser chez ceux qui l’utilisaient déjà, les noms internes gardent « niak » : le domaine `niak_weather` (services comme `niak_weather.prevision`, adresses du panneau, fichiers).
+
+- **Entités** : une nouvelle installation crée des `sensor.hestia_weather_…`. Si vous avez installé avant le changement de nom, vos entités s’appellent `sensor.niak_weather_…` : elles continuent de marcher et gardent ce nom.
+- **Carte** : ajoutez-la avec `custom:hestia-weather-card`. L’ancien `custom:niak-weather-card` marche toujours.
+- **Évènement d’alerte** : il existe sous deux noms, `hestia_weather_alerte` et `niak_weather_alerte`, avec le même contenu. Utilisez le premier dans vos nouvelles automatisations.
+- **Thème** : les variables `hestia-rain-color`… sont lues d’abord, puis les anciennes `niak-rain-color`….

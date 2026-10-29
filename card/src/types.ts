@@ -34,7 +34,7 @@ export type CardBlock = 'now' | 'chart' | 'radar' | 'stats' | 'ahead' | 'feel' |
 export type PressAction = 'popup' | 'page' | 'toggle' | 'none';
 
 export interface WeatherCardConfig {
-  type: 'custom:niak-weather-card';
+  type: 'custom:niak-weather-card' | 'custom:hestia-weather-card';
   /** The integration's place to show; may be left out when there is only one. */
   entry_id?: string;
   /** full (default): the weather page. tile: one band that unfolds on tap. intermediate: the same tile, unfolded at first.

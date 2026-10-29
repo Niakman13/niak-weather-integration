@@ -371,12 +371,19 @@ export class NiakWeatherCard extends LitElement {
 // classes them; the picker takes the type from getStubConfig, so dashboards never depend on these extra names.
 const FORMATS: Array<NonNullable<WeatherCardConfig['format']>> = ['full', 'tile', 'intermediate', 'mini', 'comfort', 'rain', 'wind', 'pressure', 'lightning', 'air', 'forecast', 'alert'];
 const elementOf = (format: NonNullable<WeatherCardConfig['format']>) => format === 'full' ? 'niak-weather-card' : `niak-weather-${format === 'intermediate' ? 'tile-open' : format}-card`;
+// The same elements under the Hestia name, what the picker offers now. The niak-… names stay defined: dashboards written before keep working.
+const hestiaElementOf = (format: NonNullable<WeatherCardConfig['format']>) => elementOf(format).replace('niak-', 'hestia-');
 for (const format of FORMATS) {
   const type = elementOf(format);
   if (format !== 'full' && !customElements.get(type)) customElements.define(type, class extends NiakWeatherCard {
     public static getStubConfig(): WeatherCardConfig { return { type: 'custom:niak-weather-card', format }; }
     // Written by hand as its own type, it keeps its format.
     public setConfig(config: WeatherCardConfig): void { super.setConfig({ format, ...config }); }
+  });
+  const twin = hestiaElementOf(format);
+  if (!customElements.get(twin)) customElements.define(twin, class extends NiakWeatherCard {
+    public static getStubConfig(): WeatherCardConfig { return format === 'full' ? { type: 'custom:hestia-weather-card' } : { type: 'custom:hestia-weather-card', format }; }
+    public setConfig(config: WeatherCardConfig): void { super.setConfig(format === 'full' ? config : { format, ...config }); }
   });
 }
 // The list is written once, at load: in the language the page was opened in.
@@ -388,8 +395,8 @@ const PICKER: Array<[NonNullable<WeatherCardConfig['format']>, string, string]> 
 guessLanguage();
 window.customCards = window.customCards || [];
 for (const [format, name, description] of PICKER) {
-  const type = elementOf(format);
-  // A card from HACS still installed next to the integration's has offered them already.
-  if (!window.customCards.some(card => card.type === type)) window.customCards.push({ type, name: t(name), description: t(description), preview: true });
+  const type = hestiaElementOf(format);
+  // A card from HACS still installed next to the integration's has offered them already, under the niak-… name.
+  if (!window.customCards.some(card => card.type === type || card.type === elementOf(format))) window.customCards.push({ type, name: t(name), description: t(description), preview: true });
 }
 declare global { interface Window { customCards: Array<Record<string, unknown>>; } }

@@ -31,7 +31,7 @@ Fichiers principaux du moteur : `feel.py` (ressenti et alerte de la station), `l
 
 ## Les capteurs
 
-Par lieu : 26 capteurs, 9 oui/non et une entité météo, aux identifiants fixes (`sensor.niak_weather_ressenti`, `binary_sensor.niak_weather_gel`, `weather.niak_weather`…). Pour un deuxième lieu, son nom s’ajoute : `sensor.niak_weather_marseille_ressenti`. La liste complète, rangée par famille, est dans [Les capteurs et les automatisations](capteurs.md). Les identifiants des onze capteurs de la 2.0.0 ne changent jamais.
+Par lieu : 26 capteurs, 9 oui/non et une entité météo, aux identifiants fixes (`sensor.hestia_weather_ressenti`, `binary_sensor.hestia_weather_gel`, `weather.hestia_weather`…). Pour un deuxième lieu, son nom s’ajoute : `sensor.hestia_weather_marseille_ressenti`. La liste complète, rangée par famille, est dans [Les capteurs et les automatisations](capteurs.md). Les identifiants des onze capteurs de la 2.0.0 ne changent jamais.
 
 Une valeur inconnue reste **inconnue** : rien n’est inventé. Les longs textes (synthèse, bulletin, raisons) sont en attributs, non enregistrés par le Recorder.
 

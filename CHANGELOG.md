@@ -4,6 +4,7 @@
 
 - **Le panneau de réglages parle anglais** à son tour, comme la carte depuis la 2.9.0.
 - **Le panneau Hestia est rangé comme celui de Hestia Confort** : Accueil, Réglages généraux, Extensions, puis les réglages de chaque lieu.
+- **Noms Hestia pour les nouvelles installations** : les entités s’appellent `hestia_weather_…` et la carte `custom:hestia-weather-card`. Rien ne change pour les installations existantes.
 
 ### Nouveautés
 
@@ -12,6 +13,10 @@
 
 ### Améliorations
 
+- Les noms Hestia existent à côté des anciens : la carte, l’évènement d’alerte `hestia_weather_alerte` et les variables de thème `hestia-…-color`. Les anciens noms `niak…` continuent de marcher.
+- Une installation qui a déjà des entités `niak_weather_…` les garde : vos automatisations et tableaux de bord ne bougent pas.
+- Les modèles d’automatisation ne proposent plus d’entité par défaut, et écoutent le nouvel évènement.
+- La documentation montre les noms Hestia, avec une section « Noms techniques ».
 - Le panneau répond plus vite : Home Assistant n’est plus relu plusieurs fois pour un même affichage.
 - La semaine de pluie et de vent est lue plus légèrement dans l’historique.
 - Les diagnostics masquent le lieu, les zones et les éclairs.

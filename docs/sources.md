@@ -104,7 +104,7 @@ Hestia Weather lit, pour aujourd’hui et pour demain, **19 mesures** : l’indi
 [Polleninformation EU](https://github.com/krissen/polleninformation) donne un capteur par espèce et un risque d’allergie global, aujourd’hui et demain. Choisissez **Polleninformation** dans **Qualité de l’air et pollens** : Hestia propose les capteurs de votre lieu, vous vérifiez, ajoutez ou retirez.
 
 - Échelle : **0 (aucun) à 4 (très élevé)**, gardée telle quelle : la carte affiche « Niveau 2 sur 4 ».
-- Le panneau Pollens de la carte, le capteur `sensor.niak_weather_pollens` et la synthèse les utilisent.
+- Le panneau Pollens de la carte, le capteur `sensor.hestia_weather_pollens` et la synthèse les utilisent.
 - Le niveau du jour est le risque d’allergie global quand il est choisi, sinon l’espèce la plus élevée.
 - Une seule source de pollens à la fois : Atmo France, Polleninformation, IRM KMI, Swiss Pollen ou Kleenex / Scottex.
 

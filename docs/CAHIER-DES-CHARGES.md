@@ -38,7 +38,7 @@ Corrections de la 2.3.1 (15 octobre 2026) : sans station, les courbes de vent et
 | Hestia Chauffage (futur) | prévisions (froid à venir, nuit, ensoleillement), degrés-jours de chauffe et de climatisation | forte |
 | Hestia Jardin (futur) | pluie tombée (24 h, 7 jours) et prévue (heure, 6 h, 24 h), et plus tard évapotranspiration et bilan hydrique | forte |
 | Hestia Énergie (futur) | ensoleillement prévu demain | moyenne |
-| Automatisations | capteurs, oui/non, évènement `niak_weather_alerte`, action `niak_weather.prevision`, blueprints | — |
+| Automatisations | capteurs, oui/non, évènement `hestia_weather_alerte`, action `niak_weather.prevision`, blueprints | — |
 
 **Partage des rôles** : les décisions qui concernent la maison appartiennent aux autres briques. « Aérer, rafraîchissement, apports solaires » (prévus à l'étape 3) relèvent de **Hestia Confort** ; « arrosage utile » relève de la future brique **Jardin** ; la production solaire estimée relève de la future brique **Énergie**. Hestia Weather leur fournit les données météo nécessaires.
 
@@ -46,10 +46,10 @@ Corrections de la 2.3.1 (15 octobre 2026) : sans station, les courbes de vent et
 
 Ces interfaces sont stables ; un changement incompatible change la version majeure.
 - **Interface Python versionnée** `hass.data["niak_weather_api"]` (version 1) : `places()`, `station()`, `hourly()`, `add_listener(…, brick=)`, `linked()` — détail dans [technique.md](technique.md). Une brique qui écoute un lieu donne son domaine (`brick`) : elle apparaît alors « reliée » dans **Configurer → Écosystème Hestia**, qui montre aussi les briques installées non reliées, absentes ou à venir (règle 4 de l'écosystème).
-- **Entités** : `sensor.niak_weather_<clé>` et `binary_sensor.niak_weather_<clé>` (deuxième lieu : `niak_weather_<lieu>_<clé>`). Identifiant interne stable : `<entrée>_<clé>`. Les autres briques les reconnaissent par cet identifiant, jamais par le nom. Liste et attributs communs (`raison`, `source`, `debut`, `fin`, `partiel`, `niveau`) : [capteurs.md](capteurs.md).
-- **Entité météo** `weather.niak_weather` (désactivée par défaut) : prévisions horaires et journalières.
+- **Entités** : `sensor.hestia_weather_<clé>` et `binary_sensor.hestia_weather_<clé>` (deuxième lieu : `hestia_weather_<lieu>_<clé>`). Identifiant interne stable : `<entrée>_<clé>`. Les autres briques les reconnaissent par cet identifiant, jamais par le nom. Liste et attributs communs (`raison`, `source`, `debut`, `fin`, `partiel`, `niveau`) : [capteurs.md](capteurs.md).
+- **Entité météo** `weather.hestia_weather` (désactivée par défaut) : prévisions horaires et journalières.
 - **Action** `niak_weather.prevision` (`debut`, `fin`, `lieu`) : la météo d'une fenêtre de temps.
-- **Évènement** `niak_weather_alerte` : début, changement, fin d'une alerte.
+- **Évènement** `hestia_weather_alerte` : début, changement, fin d'une alerte.
 - **API WebSocket** `niak_weather/entries`, `niak_weather/subscribe` (vue v1, réservée à la carte ; les autres briques utilisent les interfaces ci-dessus). Depuis 2.5.3, une lecture Atmo pollen peut préciser `unavailableReason: "no_index"` pour le code 0 : cet ajout facultatif distingue l’absence d’indice exploitable d’une entité indisponible, sans changer les valeurs ni les concentrations.
 
 ## 5. Feuille de route
@@ -57,7 +57,7 @@ Ces interfaces sont stables ; un changement incompatible change la version majeu
 | Étape | Contenu | État |
 |---|---|---|
 | 1 | Catalogue de capteurs (7 familles), évènement d'alerte, blueprints alertes / gel / bulletin | ✅ |
-| 2 | Action `niak_weather.prevision`, entité `weather.niak_weather` | ✅ |
+| 2 | Action `niak_weather.prevision`, entité `weather.hestia_weather` | ✅ |
 | **2 bis** | **Interfaces pour l'écosystème** : objet versionné `hass.data["niak_weather_api"]` (lieux, station par rôle dont la **direction du vent**, prévisions horaires avec direction du vent, abonnement) — voir [technique.md](technique.md) | ✅ 2.1.0b1 |
 | **2.4.0** | Pollens Swiss Pollen et Kleenex / Scottex, vigilances MeteoSwiss avec leurs degrés natifs, pays couverts indiqués dans les sources | ✅ 2.4.0 |
 | 2 ter | Écran **Écosystème Hestia** dans les réglages ; pollens **IRM KMI** (Belgique), 3ᵉ source à côté d'Atmo France et de Polleninformation | ✅ 2.1.0b2 |

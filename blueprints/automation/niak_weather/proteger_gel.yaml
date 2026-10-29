@@ -10,7 +10,6 @@ blueprint:
   input:
     gel:
       name: Capteur de gel
-      default: binary_sensor.niak_weather_gel
       selector:
         entity:
           filter:
@@ -18,7 +17,7 @@ blueprint:
             domain: binary_sensor
     givre:
       name: Givre sur le pare-brise (facultatif)
-      description: Activez d’abord l’entité binary_sensor.niak_weather_givre_pare_brise si vous voulez ce rappel.
+      description: Activez d’abord l’entité « Givre sur le pare-brise » (désactivée par défaut) si vous voulez ce rappel.
       default: ""
       selector:
         entity:
@@ -81,6 +80,6 @@ actions:
             title: Gel cette nuit
             message: "{{ texte }}"
             data:
-              tag: niak_weather_gel_rappel
+              tag: hestia_weather_gel_rappel
   - choose: []
     default: !input en_plus

@@ -250,6 +250,16 @@ def test_niak_weather_never_offers_its_own_sensors_or_device_as_a_station() -> N
     assert candidates(states, "dew_point_entity", registry) == []
 
 
+def test_hestia_weather_ids_are_never_offered_as_a_station_either() -> None:
+    @dataclass
+    class S:
+        entity_id: str
+        state: str
+        attributes: dict = field(default_factory=dict)
+    states = [S("sensor.hestia_weather_point_de_rosee", "12", {"unit_of_measurement": "°C", "device_class": "temperature", "friendly_name": "Hestia Weather Point de rosée"})]
+    assert candidates(states, "dew_point_entity", {}) == []
+
+
 # ── A Netatmo station: one device per module ─────────────────────────────────
 
 def netatmo_home(via: bool = True, enabled: tuple[str, ...] = ()) -> tuple[list[State], dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:

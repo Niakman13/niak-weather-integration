@@ -61,7 +61,7 @@ max: 10
 
 triggers:
   - trigger: event
-    event_type: niak_weather_alerte
+    event_type: hestia_weather_alerte
 
 variables:
   alertes: !input alertes
@@ -95,6 +95,6 @@ actions:
             title: "{{ titre }}"
             message: "{{ texte }}"
             data:
-              tag: "niak_weather_{{ type }}"
+              tag: "hestia_weather_{{ type }}"
   - choose: []
     default: !input en_plus
