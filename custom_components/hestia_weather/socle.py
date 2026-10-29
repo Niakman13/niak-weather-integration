@@ -20,7 +20,7 @@ from homeassistant.helpers.storage import Store
 
 from .engine import legacy
 
-SOCLE_VERSION = (1, 16)
+SOCLE_VERSION = (1, 17)
 # 1.1: an optional `tab`, the tab's own name when it is not the brick's (« Météo » for Hestia Weather).
 # 1.2: async_register_card, the brick's card on every dashboard, also as a dashboard resource.
 # 1.3: the home page says « À découvrir » and « Voir » for the bricks not installed (same contract as 1.2).
@@ -42,8 +42,9 @@ SOCLE_VERSION = (1, 16)
 #       The former names live in the brick's legacy.py only: its migration carries the settings over.
 # 1.16: a brick may give `migration(hass)`: the home page shows « Passage au nom Hestia » until every step is done and
 #       the user closes it (`hestia/close_migration`, kept with the panel settings).
+# 1.17: the hub speaks German (i18n-de.ts); a word a brick's dictionary lacks is read in English, not French.
 # The shell's custom element carries its version: two copies never fight over one name.
-ELEMENT = "hestia-socle-1-16"
+ELEMENT = "hestia-socle-1-17"
 KEY = "hestia_socle"
 STORE_VERSION = 1
 PANEL = "hestia"

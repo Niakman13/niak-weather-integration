@@ -1,9 +1,11 @@
 // The hub's words follow Home Assistant's language (socle 1.13). French is the source: each text is written in French in
 // the code, and `t()` gives it in the user's language from that language's dictionary, French when it lacks one.
-// Each brick adds its own dictionary (addDictionary) to the hub's; any language without one reads English.
+// Each brick adds its own dictionary (addDictionary) to the hub's; any language without one reads English, and a word
+// a dictionary lacks (a brick with no German, say) is read in English too (socle 1.17).
 import {SOCLE_EN} from './i18n-en';
+import {SOCLE_DE} from './i18n-de';
 
-const DICTIONARIES:Record<string,Record<string,string>>={en:{...SOCLE_EN}};
+const DICTIONARIES:Record<string,Record<string,string>>={en:{...SOCLE_EN},de:{...SOCLE_DE}};
 let language='fr';
 
 /** A brick's words for a language, beside the hub's. */
@@ -17,9 +19,9 @@ export function setLanguage(lang?:string|null):boolean{
 export const currentLanguage=()=>language;
 /** The locale numbers and dates are written in. */
 export const currentLocale=()=>language==='fr'?'fr-FR':language;
-/** A French text in the user's language; `{name}` takes the value of `vars.name`. */
+/** A French text in the user's language, else in English; `{name}` takes the value of `vars.name`. */
 export function t(french:string,vars?:Record<string,string|number>):string{
- const text=language==='fr'?french:DICTIONARIES[language]?.[french]??french;
+ const text=language==='fr'?french:DICTIONARIES[language]?.[french]??DICTIONARIES.en[french]??french;
  return vars?text.replace(/\{(\w+)\}/g,(all,name:string)=>name in vars?String(vars[name]):all):text;
 }
 /** Marks a French text kept in a list and translated where it is shown: the dictionary test finds it there too. */

@@ -5,13 +5,12 @@ import {customElement,property,state} from 'lit/decorators.js';
 import styles from './styles.css';
 import {frame,hubStyles,modernStyles,helpTip,pageHead,todoFrame,itemsFrame,stepMenu,stepFooter,leaveNotice,extensionsFrame,versionsFrame,extensionCard,removeBlock,pageStyles,setLanguage,addDictionary,t,fr,type NkLine,type NkLevel,type NkSwitch} from './socle/ui';
 import {PANEL_EN} from './i18n-en';
-import {PANEL_DE,SOCLE_DE} from './i18n-de';
+import {PANEL_DE} from './i18n-de';
 import {NONE,stages,intros,extensionGroups,extensionSwitch,enabledKeys,provenance,sameSet,entityLine,grouped,capital,type Change,type Choice,type DraftReply,type Field,type Hass,type Place,type Places,type Sources,type View,type Extension,type Official,type RenamePreview,type RenameReply,type RenameUse} from './model';
 
 // Weather's words beside the hub's (socle 1.13): French in the code, English for any language without a dictionary.
 addDictionary('en',PANEL_EN);
-// German: the hub has no German yet, so Weather brings the hub's words too (SOCLE_DE).
-addDictionary('de',{...SOCLE_DE,...PANEL_DE});
+addDictionary('de',PANEL_DE);
 const categories=['sources','station','air','pollens','entites','recapitulatif','eau-jardin','extensions'];
 // The extensions have their own page (socle 1.12): a place's steps no longer show them.
 const order=[0,1,2,3,6,4,5];

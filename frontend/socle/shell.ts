@@ -1,10 +1,10 @@
-// Hestia shared panel (socle v1.16): header, tabs and the home page listing every Hestia brick.
+// Hestia shared panel (socle v1.17): header, tabs and the home page listing every Hestia brick.
 // Copied unchanged into each brick from hestia-ecosysteme/socle/ (see ECOSYSTEME.md § 8).
 import {LitElement,html,css,nothing,type PropertyValues} from 'lit';
 import {frame,hubStyles,modernStyles,hubIcon,line,type NkLine} from './ui';
 import {t,fr,setLanguage} from './i18n';
 
-export const ELEMENT='hestia-socle-1-16';
+export const ELEMENT='hestia-socle-1-17';
 // The panel's address (socle 1.12): /hestia; the former address leads there, keeping the rest of the address.
 export const BASE='/hestia';
 // The Hestia logo (logo-github): its gradient reads on a light or a dark menu alike.
