@@ -311,9 +311,9 @@ ul{padding-left:22px}
     </div><nav class="dashboard-links" aria-label="Liens utiles">
      <a href="/config/integrations/integration/niak_weather">Intégration Home Assistant</a>
      <a href="/config/logs">Journaux Home Assistant</a>
-     <a href="https://github.com/Niakman13/hestia-weather-integration#readme" target="_blank" rel="noreferrer">Documentation</a>
-     <a href="https://github.com/Niakman13/hestia-weather-integration/releases" target="_blank" rel="noreferrer">Versions publiées</a>
-     <a href="https://github.com/Niakman13/hestia-weather-integration/issues" target="_blank" rel="noreferrer">Signaler un problème</a>
+     <a href="https://github.com/hestiaFB/hestia-weather-integration#readme" target="_blank" rel="noreferrer">Documentation</a>
+     <a href="https://github.com/hestiaFB/hestia-weather-integration/releases" target="_blank" rel="noreferrer">Versions publiées</a>
+     <a href="https://github.com/hestiaFB/hestia-weather-integration/issues" target="_blank" rel="noreferrer">Signaler un problème</a>
     </nav></div>`)}
    ${t.sensors.length?u("D\xE9tail des capteurs",o`<ul class="sensors">${t.sensors.map(h=>o`<li class=${h.level}><span class="dot"></span><span title=${h.name}>${h.label}</span><span class="v">${h.text}</span></li>`)}</ul>`,{collapsible:!0,open:!1,count:t.sensors.length}):p}
    ${t.tips.length?u("Possibilit\xE9s d\u2019am\xE9lioration",o`<ul class="lines">${t.tips.map(h=>this.line(e.entry_id,h))}</ul>`,{count:t.tips.length,collapsible:!0,open:!1}):p}

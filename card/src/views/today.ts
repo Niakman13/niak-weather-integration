@@ -39,7 +39,7 @@ export function comfortPanel(c: ComfortView, uid: string, station: boolean, part
   const explain = info(`${uid}-feel`, {
     title: t('Ressenti'),
     text: html`${t('C’est la température que le corps perçoit. L’humidité et le soleil la font monter, le vent la fait baisser.')}
-      ${t('C’est une estimation, pas un indice officiel.')} <a href="https://github.com/Niakman13/niak-weather#expliquer-le-ressenti" target="_blank" rel="noopener noreferrer">${t('En savoir plus')}</a>`,
+      ${t('C’est une estimation, pas un indice officiel.')} <a href="https://github.com/hestiaFB/niak-weather#expliquer-le-ressenti" target="_blank" rel="noopener noreferrer">${t('En savoir plus')}</a>`,
     example: c.example ? t('En ce moment : {example}.', { example: c.example }) : t('25 °C au thermomètre dans un air très humide se ressentent comme 30 °C.'),
   });
   return html`<section class="nw-panel" aria-label=${t('Ressenti')}>${panelHead('mdi:thermometer', 'heat', t('Ressenti'), c.source, explain)}

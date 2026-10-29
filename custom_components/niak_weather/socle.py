@@ -39,10 +39,10 @@ LEVELS = ("ok", "action", "unknown")
 CATALOGUE = (
     {"domain": "niak_weather", "name": "Hestia Weather",
      "pitch": "La météo de votre station : prévisions, alertes, qualité de l’air et pollens.",
-     "url": "https://github.com/Niakman13/hestia-weather-integration"},
+     "url": "https://github.com/hestiaFB/hestia-weather-integration"},
     {"domain": "niak_comfort", "name": "Hestia Confort",
      "pitch": "Le confort de chaque pièce et le bon moment pour ouvrir, fermer ou aérer.",
-     "url": "https://github.com/Niakman13/hestia-comfort-integration"},
+     "url": "https://github.com/hestiaFB/hestia-comfort-integration"},
 )
 _LOGGER = logging.getLogger(__name__)
 

@@ -343,9 +343,9 @@ export class WeatherSetup extends LitElement {
     </div><nav class="dashboard-links" aria-label="Liens utiles">
      <a href="/config/integrations/integration/niak_weather">Intégration Home Assistant</a>
      <a href="/config/logs">Journaux Home Assistant</a>
-     <a href="https://github.com/Niakman13/hestia-weather-integration#readme" target="_blank" rel="noreferrer">Documentation</a>
-     <a href="https://github.com/Niakman13/hestia-weather-integration/releases" target="_blank" rel="noreferrer">Versions publiées</a>
-     <a href="https://github.com/Niakman13/hestia-weather-integration/issues" target="_blank" rel="noreferrer">Signaler un problème</a>
+     <a href="https://github.com/hestiaFB/hestia-weather-integration#readme" target="_blank" rel="noreferrer">Documentation</a>
+     <a href="https://github.com/hestiaFB/hestia-weather-integration/releases" target="_blank" rel="noreferrer">Versions publiées</a>
+     <a href="https://github.com/hestiaFB/hestia-weather-integration/issues" target="_blank" rel="noreferrer">Signaler un problème</a>
     </nav></div>`)}
    ${h.sensors.length?frame('Détail des capteurs',html`<ul class="sensors">${h.sensors.map(x=>html`<li class=${x.level}><span class="dot"></span><span title=${x.name}>${x.label}</span><span class="v">${x.text}</span></li>`)}</ul>`,{collapsible:true,open:false,count:h.sensors.length}):nothing}
    ${h.tips.length?frame('Possibilités d’amélioration',html`<ul class="lines">${h.tips.map(l=>this.line(p.entry_id,l))}</ul>`,{count:h.tips.length,collapsible:true,open:false}):nothing}

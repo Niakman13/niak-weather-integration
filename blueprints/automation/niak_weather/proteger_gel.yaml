@@ -4,7 +4,7 @@ blueprint:
     La veille au soir, si Hestia Weather annonce du gel : un rappel avec la liste de ce qu’il faut rentrer,
     le givre sur le pare-brise s’il est prévu, et vos actions (hors-gel, chauffage de la serre…).
   domain: automation
-  source_url: https://github.com/Niakman13/hestia-weather-integration/blob/main/blueprints/automation/niak_weather/proteger_gel.yaml
+  source_url: https://github.com/hestiaFB/hestia-weather-integration/blob/main/blueprints/automation/niak_weather/proteger_gel.yaml
   homeassistant:
     min_version: "2025.1.0"
   input:

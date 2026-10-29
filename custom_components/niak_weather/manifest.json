@@ -2,13 +2,13 @@
   "domain": "niak_weather",
   "name": "Hestia Weather",
   "after_dependencies": ["lovelace"],
-  "codeowners": ["@Niakman13"],
+  "codeowners": ["@hestiaFB"],
   "config_flow": true,
   "dependencies": ["frontend", "http", "recorder", "websocket_api"],
-  "documentation": "https://github.com/Niakman13/hestia-weather-integration",
+  "documentation": "https://github.com/hestiaFB/hestia-weather-integration",
   "integration_type": "service",
   "iot_class": "calculated",
-  "issue_tracker": "https://github.com/Niakman13/hestia-weather-integration/issues",
+  "issue_tracker": "https://github.com/hestiaFB/hestia-weather-integration/issues",
   "requirements": [],
   "version": "2.9.3"
 }

@@ -49,7 +49,7 @@ def official(hass: HomeAssistant, entry_id: str | None) -> list[dict[str, Any]]:
              "linked": bool(entry_id) and chosen == entry_id, "elsewhere": other.title if other else "",
              "switchable": switchable,
              "description": "Vos pièces comparées au dehors de ce lieu : quand aérer, quand fermer, quand chauffer.",
-             "url": "https://github.com/Niakman13/hestia-comfort-integration"}]
+             "url": "https://github.com/hestiaFB/hestia-comfort-integration"}]
 
 
 async def set_official(hass: HomeAssistant, key: str, entry_id: str, enabled: bool) -> None:

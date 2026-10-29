@@ -9,7 +9,7 @@ def line(text, name):
 def test_every_brick_has_a_line_and_nothing_is_linked_by_default():
     text = links({}, set())
     assert len(text.splitlines()) == len(BRICKS)
-    assert "non installé" in line(text, "Hestia Confort") and "[L’installer](https://github.com/Niakman13/hestia-comfort-integration)" in text
+    assert "non installé" in line(text, "Hestia Confort") and "[L’installer](https://github.com/hestiaFB/hestia-comfort-integration)" in text
     assert "à venir" in line(text, "Hestia Chauffage")
     assert summary({}) == "aucune brique reliée"
 

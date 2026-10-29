@@ -6,7 +6,7 @@ Cette page s’adresse à qui veut modifier la carte. Elle explique où se déci
 
 | Dossier | Rôle | Ce qu’on y trouve |
 | --- | --- | --- |
-| [Intégration](https://github.com/Niakman13/hestia-weather-integration) | **Calculer**, sans rien afficher | Ressenti, conditions, brief, bulletin, alertes, historiques de la station, Atmo, saisons. Elle envoie à la carte tout ce qu’elle montre, en français clair ; `src/view.ts` décrit cet envoi. |
+| [Intégration](https://github.com/hestiaFB/hestia-weather-integration) | **Calculer**, sans rien afficher | Ressenti, conditions, brief, bulletin, alertes, historiques de la station, Atmo, saisons. Elle envoie à la carte tout ce qu’elle montre, en français clair ; `src/view.ts` décrit cet envoi. |
 | `src/ui` | **Les pièces** de la charte | `charter.ts` (jetons et pièces de base), `parts.ts` (bulles, pastilles, en-têtes de cadre, bouton « i »), `ticker.ts` (la bulle qui défile), `frise.ts` (la frise du bandeau), `weather-sky.ts` (le ciel animé). |
 | `src/views` | **Assembler** les écrans | `tile.ts` (tuile qui se déplie), `hero.ts` (bandeau de la carte complète), `today.ts`, `forecasts.ts`, `air.ts`, `full.ts` (la carte complète et ses sections repliables). |
 

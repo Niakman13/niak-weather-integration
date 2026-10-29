@@ -1,11 +1,11 @@
 # Hestia Weather — intégration
 
-[![release](https://img.shields.io/github/v/release/Niakman13/hestia-weather-integration?cacheSeconds=86400)](https://github.com/Niakman13/hestia-weather-integration/releases)
-[![Validate](https://github.com/Niakman13/hestia-weather-integration/actions/workflows/validate.yml/badge.svg)](https://github.com/Niakman13/hestia-weather-integration/actions/workflows/validate.yml)
+[![release](https://img.shields.io/github/v/release/hestiaFB/hestia-weather-integration?cacheSeconds=86400)](https://github.com/hestiaFB/hestia-weather-integration/releases)
+[![Validate](https://github.com/hestiaFB/hestia-weather-integration/actions/workflows/validate.yml/badge.svg)](https://github.com/hestiaFB/hestia-weather-integration/actions/workflows/validate.yml)
 [![HACS](https://img.shields.io/badge/HACS-Custom-orange)](https://hacs.xyz)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-[![Sponsor](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/Niakman13)
+[![Sponsor](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/hestiaFB)
 [![Buy me a coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-frankblemont-FFDD00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/frankblemont)
 [![PayPal](https://img.shields.io/badge/PayPal-Donate-00457C?logo=paypal&logoColor=white)](https://paypal.me/frankblemont)
 
@@ -36,12 +36,12 @@ Tout est calculé une fois, dans Home Assistant : la carte affiche, vos automati
 
 ## Installation
 
-1. Dans HACS, ⋮ → **Dépôts personnalisés** : ajoutez `https://github.com/Niakman13/hestia-weather-integration`, catégorie **Intégration**.
+1. Dans HACS, ⋮ → **Dépôts personnalisés** : ajoutez `https://github.com/hestiaFB/hestia-weather-integration`, catégorie **Intégration**.
 2. Installez **Hestia Weather**, puis redémarrez Home Assistant.
 3. **Paramètres → Appareils et services → Ajouter une intégration → Hestia Weather.**
 4. Sur un tableau de bord : **Ajouter une carte → Hestia Weather**. La carte est fournie par l’intégration (depuis la 2.3) : rien d’autre à installer.
 
-[![Ouvrir dans HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Niakman13&repository=hestia-weather-integration&category=integration)
+[![Ouvrir dans HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=hestiaFB&repository=hestia-weather-integration&category=integration)
 
 ## Configuration
 

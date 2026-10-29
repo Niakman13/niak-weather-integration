@@ -132,7 +132,7 @@
       },
       "summary": {
         "title": "Récapitulatif",
-        "description": "**Météo** : {weather}\n**Station** : {station}\n**Qualité de l’air** : {air}\n**Pollens** : {pollen}\n**Familles de capteurs** : {families}\n\nÀ savoir :\n{missing}\n\nValidez pour créer le lieu. Tout se modifie ensuite dans **Configurer**. Le détail de chaque capteur : [la documentation](https://github.com/Niakman13/hestia-weather-integration/blob/main/docs/capteurs.md)."
+        "description": "**Météo** : {weather}\n**Station** : {station}\n**Qualité de l’air** : {air}\n**Pollens** : {pollen}\n**Familles de capteurs** : {families}\n\nÀ savoir :\n{missing}\n\nValidez pour créer le lieu. Tout se modifie ensuite dans **Configurer**. Le détail de chaque capteur : [la documentation](https://github.com/hestiaFB/hestia-weather-integration/blob/main/docs/capteurs.md)."
       },
       "air_quality": {
         "title": "Étape 3 sur 4 · Qualité de l’air",

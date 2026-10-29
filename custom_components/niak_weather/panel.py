@@ -30,7 +30,7 @@ from .websocket import VERSION_KEY
 from .socle import async_register_brick, async_register_card, is_card_resource
 
 ASSETS = f"/{DOMAIN}-assets"
-CARD_REPOSITORY = "Niakman13/niak-weather"
+CARD_REPOSITORY = "hestiaFB/niak-weather"
 """The former card's repository: since 2.3 the card comes with the integration."""
 CARD_FILE = "niak-weather-card.js"
 CARD_URL = f"{ASSETS}/{CARD_FILE}"

@@ -4,7 +4,7 @@ blueprint:
     À l’heure du réveil, le bulletin du jour de Hestia Weather et la vigilance en cours, sur vos téléphones
     ou en annonce vocale.
   domain: automation
-  source_url: https://github.com/Niakman13/hestia-weather-integration/blob/main/blueprints/automation/niak_weather/bulletin_du_matin.yaml
+  source_url: https://github.com/hestiaFB/hestia-weather-integration/blob/main/blueprints/automation/niak_weather/bulletin_du_matin.yaml
   homeassistant:
     min_version: "2025.1.0"
   input:

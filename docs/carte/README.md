@@ -159,7 +159,7 @@ Variables : `niak-rain-color`, `niak-wind-color`, `niak-heat-color`, `niak-cold-
 
 | Message | Que faire |
 | --- | --- |
-| Hestia Weather a besoin de son intégration | Déjà téléchargée depuis HACS ? Ajoutez-la dans **Paramètres → Appareils et services** : Home Assistant ne la démarre qu’une fois ajoutée. Sinon, [installez-la](https://github.com/Niakman13/hestia-weather-integration#installation), redémarrez, puis ajoutez-la. |
+| Hestia Weather a besoin de son intégration | Déjà téléchargée depuis HACS ? Ajoutez-la dans **Paramètres → Appareils et services** : Home Assistant ne la démarre qu’une fois ajoutée. Sinon, [installez-la](https://github.com/hestiaFB/hestia-weather-integration#installation), redémarrez, puis ajoutez-la. |
 | Ajoutez l’intégration Hestia Weather | Elle est installée : ajoutez-la dans **Paramètres → Appareils et services**. |
 | Choisissez un lieu | Plusieurs lieux existent : choisissez celui de la carte dans ses réglages. |
 | Rechargez la page | L’intégration vient d’être mise à jour : rechargez la page (**Ctrl+F5** sur ordinateur). |
