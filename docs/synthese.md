@@ -78,4 +78,4 @@ Les références restent le [dispositif officiel Météo-France](https://vigilan
 
 Aucune alerte de Hestia Weather ne remplace les consignes officielles.
 
-[Les règles dans le code](../custom_components/niak_weather/engine/brief.py).
+[Les règles dans le code](../custom_components/hestia_weather/engine/brief.py).

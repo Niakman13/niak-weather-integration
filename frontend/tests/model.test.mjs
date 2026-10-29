@@ -5,7 +5,7 @@ import {mkdtemp,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
-const temp=await mkdtemp(join(tmpdir(),'niak-weather-'));
+const temp=await mkdtemp(join(tmpdir(),'hestia-weather-'));
 await build({entryPoints:['model.ts'],bundle:true,platform:'node',format:'esm',outfile:join(temp,'model.mjs')});
 const {provenance,grouped,enabledKeys,entityLine,sameSet,extensionGroups,extensionSwitch}=await import(pathToFileURL(join(temp,'model.mjs')));
 after(()=>rm(temp,{recursive:true,force:true}));

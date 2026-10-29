@@ -1,5 +1,5 @@
 // Regression for HA frontend#53890, using HA's actual scoped registry polyfill.
-// npm run test:loading [-- /absolute/path/to/another/niak-card.js]
+// npm run test:loading [-- /absolute/path/to/another/hestia-card.js]
 import { readFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
@@ -27,15 +27,15 @@ const server = createServer((req, res) => {
 server.listen(0, '127.0.0.1'); await once(server, 'listening');
 const origin = `http://127.0.0.1:${server.address().port}`;
 let currentBundle = bundles[0];
-const engines = process.env.NIAK_TEST_FIREFOX ? [chromium, firefox] : [chromium];
+const engines = process.env.HESTIA_TEST_FIREFOX ? [chromium, firefox] : [chromium];
 try {
   for (const engine of engines) {
     const browser = await engine.launch();
     try {
       for (const bundle of [...bundles]) {
         currentBundle = bundle;
-        const tags = bundle.includes('weather') ? ['niak-weather-card', 'hestia-weather-card'] : [
-          'niak-comfort-card', 'niak-comfort-home-card', 'niak-comfort-card-editor',
+        const tags = bundle.includes('weather') ? ['hestia-weather-card'] : [
+          'hestia-comfort-card', 'hestia-comfort-home-card', 'hestia-comfort-card-editor',
         ];
         for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
           const context = await browser.newContext({ viewport });
@@ -58,13 +58,13 @@ try {
               const response = page.waitForResponse(r => r.url().includes('/card.js'));
               await page.evaluate(() => { window.cardImport = import('/card.js?v=test'); });
               await response;
-              assert.deepEqual(await page.evaluate(() => ({ tags: customElements.get('niak-weather-card') || customElements.get('niak-comfort-card'), lit: window.litElementVersions })), { tags: undefined, lit: undefined }, 'Neither Lit nor the card executes early');
+              assert.deepEqual(await page.evaluate(() => ({ tags: customElements.get('hestia-weather-card') || customElements.get('hestia-comfort-card'), lit: window.litElementVersions })), { tags: undefined, lit: undefined }, 'Neither Lit nor the card executes early');
             }
             await page.addScriptTag({ url: `${origin}/polyfill.js` });
             await page.evaluate(() => customElements.define('home-assistant', class extends HTMLElement {}));
             if (!early) await page.evaluate(() => { window.cardImport = import('/card.js?v=test'); });
             // A gate stuck on the old registry must fail promptly, not hang the suite.
-            await page.waitForFunction(() => !!customElements.get('niak-weather-card') || !!customElements.get('niak-comfort-card'));
+            await page.waitForFunction(() => !!customElements.get('hestia-weather-card') || !!customElements.get('hestia-comfort-card'));
             await page.evaluate(() => window.cardImport);
             cachedLoads += await page.evaluate(() => Number(performance.getEntriesByType('resource').some(r => r.name.includes('/card.js?v=test') && r.transferSize === 0)));
             await page.evaluate(async tags => {
@@ -84,8 +84,8 @@ try {
                 document.body.append(card);
                 await card.updateComplete;
                 if (!card.shadowRoot?.childElementCount) throw new Error(`${tag} has no rendered content`);
-                // Listed once, under its own name or under its Hestia name (Hestia Weather 2.9.4 offers hestia-weather-card).
-                if (window.customCards.filter(c => c.type === tag || c.type === tag.replace(/^niak-/, 'hestia-')).length !== 1) throw new Error(`${tag} is missing or duplicated in the card picker`);
+                // Listed once in the card picker.
+                if (window.customCards.filter(c => c.type === tag).length !== 1) throw new Error(`${tag} is missing or duplicated in the card picker`);
               }
             }, tags);
             assert.deepEqual(errors, [], 'No browser errors');

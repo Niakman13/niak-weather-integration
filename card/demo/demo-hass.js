@@ -162,7 +162,7 @@ export function scenarioHass(s) {
       } finally { ready(); }
     },
   };
-  const callWS = async m => m.type === 'niak_weather/entries' ? [{ entry_id: 'demo', title: 'Gardanne' }] : {};
+  const callWS = async m => m.type === 'hestia_weather/entries' ? [{ entry_id: 'demo', title: 'Gardanne' }] : {};
   // ?lang=en shows the card in another language than French.
   const language = new URLSearchParams(location.search).get('lang') ?? 'fr';
   return { states: scenarioStates(s), language, locale: { language }, connection, callWS, ready: first };
@@ -170,5 +170,5 @@ export function scenarioHass(s) {
 
 /** Les réglages d'affichage de la carte pour un scénario. */
 export function scenarioConfig(s) {
-  return { type: 'custom:niak-weather-card', format: s.format ?? 'full', weather_path: '/meteo', weather_animations: s.animated ?? false };
+  return { type: 'custom:hestia-weather-card', format: s.format ?? 'full', weather_path: '/meteo', weather_animations: s.animated ?? false };
 }

@@ -1,0 +1,85 @@
+blueprint:
+  name: Hestia Weather · Protéger avant le gel
+  description: >-
+    La veille au soir, si Hestia Weather annonce du gel : un rappel avec la liste de ce qu’il faut rentrer,
+    le givre sur le pare-brise s’il est prévu, et vos actions (hors-gel, chauffage de la serre…).
+  domain: automation
+  source_url: https://github.com/hestiaFB/hestia-weather-integration/blob/main/blueprints/automation/hestia_weather/proteger_gel.yaml
+  homeassistant:
+    min_version: "2025.1.0"
+  input:
+    gel:
+      name: Capteur de gel
+      selector:
+        entity:
+          filter:
+            integration: hestia_weather
+            domain: binary_sensor
+    givre:
+      name: Givre sur le pare-brise (facultatif)
+      description: Activez d’abord l’entité « Givre sur le pare-brise » (désactivée par défaut) si vous voulez ce rappel.
+      default: ""
+      selector:
+        entity:
+          filter:
+            integration: hestia_weather
+            domain: binary_sensor
+    heure:
+      name: Heure du rappel
+      default: "19:00:00"
+      selector:
+        time:
+    a_rentrer:
+      name: À rentrer ou à protéger
+      description: Une ligne par chose, par exemple « le citronnier », « les géraniums ».
+      default: []
+      selector:
+        text:
+          multiple: true
+    notifier:
+      name: Actions de notification
+      description: Par exemple notify.mobile_app_telephone_de_frank ou notify.famille.
+      default: []
+      selector:
+        text:
+          multiple: true
+    en_plus:
+      name: Autres actions (facultatif)
+      description: Mettre le hors-gel, chauffer la serre… La variable texte contient le message.
+      default: []
+      selector:
+        action:
+
+mode: single
+
+triggers:
+  - trigger: time
+    at: !input heure
+
+variables:
+  gel: !input gel
+  givre: !input givre
+  a_rentrer: !input a_rentrer
+  notifier: !input notifier
+  liste: "{{ a_rentrer | join(', ') }}"
+  texte: >-
+    {{ state_attr(gel, 'raison') }}.
+    {%- if liste %} Pensez à rentrer : {{ liste }}.{% endif %}
+    {%- if givre and is_state(givre, 'on') %} Givre sur le pare-brise demain matin.{% endif %}
+
+conditions:
+  - condition: template
+    value_template: "{{ is_state(gel, 'on') }}"
+
+actions:
+  - repeat:
+      for_each: "{{ notifier }}"
+      sequence:
+        - action: "{{ repeat.item }}"
+          data:
+            title: Gel cette nuit
+            message: "{{ texte }}"
+            data:
+              tag: hestia_weather_gel_rappel
+  - choose: []
+    default: !input en_plus

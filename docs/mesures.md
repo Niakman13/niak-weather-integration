@@ -40,4 +40,4 @@ La tendance en °C par heure vient d’un capteur de la station s’il existe, s
 | Historique vent et pression (6 h) | Toutes les 5 minutes |
 | Historique et statistiques de pluie (8 jours, année) | Toutes les 15 minutes |
 
-[Les calculs dans le code](../custom_components/niak_weather/engine/station.py).
+[Les calculs dans le code](../custom_components/hestia_weather/engine/station.py).

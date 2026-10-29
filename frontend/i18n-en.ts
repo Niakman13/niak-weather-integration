@@ -99,9 +99,9 @@ export const PANEL_EN:Record<string,string>={
  "Supprimer « {name} » ?":"Remove “{name}”?",
  "Ce lieu ne sera plus suivi : ses entités et sa carte disparaissent. Les capteurs de votre station et le service météo restent dans Home Assistant.":"This place will no longer be followed: its entities and its card disappear. Your station’s sensors and the weather service stay in Home Assistant.",
  "Garder le lieu":"Keep the place","Supprimer le lieu":"Remove the place",
- // Renaming the entities « hestia_weather »
+ // Renaming the entities « hestia_weather » (the former root comes from the server: legacy.ENTITY_ROOT)
  "Nom des entités":"Entity names",
- "Vos entités portent encore l’ancien nom « niak_weather ».":"Your entities still have the old name “niak_weather”.",
+ "Vos entités portent encore l’ancien nom « {old} ».":"Your entities still have the old name “{old}”.",
  "Vous pouvez les renommer en « hestia_weather ».":"You can rename them “hestia_weather”.",
  "Rien ne change tant que vous ne validez pas.":"Nothing changes until you confirm.",
  "Voir ce qui change":"See what changes",
@@ -120,10 +120,10 @@ export const PANEL_EN:Record<string,string>={
  "Automatisations, scripts et scènes mis à jour.":"Automations, scripts and scenes updated.",
  "{n} tableaux de bord mis à jour.":"{n} dashboards updated.","{n} tableau de bord mis à jour.":"{n} dashboard updated.",
  "{n} assistants mis à jour.":"{n} helpers updated.","{n} assistant mis à jour.":"{n} helper updated.",
- "Vos entités ont repris l’ancien nom « niak_weather ».":"Your entities are back to the old name “niak_weather”.",
+ "Vos entités ont repris l’ancien nom « {old} ».":"Your entities are back to the old name “{old}”.",
  "Vos entités portent le nom « hestia_weather ».":"Your entities are named “hestia_weather”.",
  "Renommées le {date}.":"Renamed on {date}.",
- "Revenir à l’ancien nom « niak_weather » ?":"Go back to the old name “niak_weather”?",
+ "Revenir à l’ancien nom « {old} » ?":"Go back to the old name “{old}”?",
  "Les automatisations et tableaux de bord mis à jour reviennent aussi.":"The automations and dashboards that were updated go back too.",
  "Garder « hestia_weather »":"Keep “hestia_weather”","Revenir à l’ancien nom":"Go back to the old name",
 };

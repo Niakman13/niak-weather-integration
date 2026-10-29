@@ -1,5 +1,5 @@
 {
-  "name": "niak-weather-card",
+  "name": "hestia-weather-card",
   "version": "2.6.0",
   "private": true,
   "description": "The Hestia Weather card, served by the integration on every dashboard",

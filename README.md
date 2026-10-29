@@ -82,7 +82,7 @@ Hestia Weather dit ce que la météo implique ; vos automatisations décident qu
 Chaque entité dit **pourquoi** (attribut `raison`) et **d’où vient** sa valeur (`source`). En plus des capteurs :
 
 - l’évènement **`hestia_weather_alerte`**, au début, au changement et à la fin de chaque alerte ;
-- l’action **`niak_weather.prevision`**, qui répond à « quel temps entre 16 h 15 et 17 h ? » ;
+- l’action **`hestia_weather.prevision`**, qui répond à « quel temps entre 16 h 15 et 17 h ? » ;
 - l’entité **`weather.hestia_weather`** (à activer) : le temps vu par votre station, avec les prévisions du fournisseur ;
 - des **modèles d’automatisation** à importer en un clic : notifier les alertes, protéger avant le gel, le bulletin du matin.
 
@@ -117,9 +117,15 @@ Le ressenti est une **estimation locale**, pas une mesure physiologique ni une v
 
 ## Noms techniques
 
-Les noms techniques de la première version restent, pour ne rien casser chez ceux qui l’utilisaient déjà : le domaine `niak_weather` (l’action `niak_weather.prevision`, les adresses du panneau, les fichiers). Vous ne les voyez que là où il faut les écrire.
+Le nom technique de l’intégration est `hestia_weather` : l’action `hestia_weather.prevision`, la carte `custom:hestia-weather-card`, l’évènement `hestia_weather_alerte`, les variables de thème `hestia-rain-color`…
 
-- **Entités** : une nouvelle installation crée des `sensor.hestia_weather_…`. Installé avant la 2.9.4, vos entités s’appellent `sensor.niak_weather_…` : elles continuent de marcher. Pour leur donner le nom Hestia, **Réglages généraux → Nom des entités** (depuis la 2.9.6) : un aperçu d’abord, puis vos automatisations, scripts, scènes et tableaux de bord suivent, et un retour en arrière reste possible.
-- **Carte** : ajoutez-la avec `custom:hestia-weather-card`. L’ancien `custom:niak-weather-card` marche toujours.
-- **Évènement d’alerte** : il existe sous deux noms, `hestia_weather_alerte` et `niak_weather_alerte`, avec le même contenu. Utilisez le premier dans vos nouvelles automatisations.
-- **Thème** : les variables `hestia-rain-color`… sont lues d’abord, puis les anciennes `niak-rain-color`….
+Installée sous son nom technique d’origine, l’intégration passe seule au nouveau au premier démarrage de la mise à jour :
+
+- vos lieux, réglages, alertes en cours, historiques et statistiques sont gardés ;
+- vos entités gardent leur nom, et donc vos automatisations et vos tableaux de bord aussi ;
+- les automatisations, scripts, scènes et tableaux de bord faits dans l’interface sont mis à jour ;
+- ce qui est écrit à la main en YAML n’est jamais modifié : une réparation dans **Paramètres** liste les fichiers et les lignes à changer.
+
+Hestia Weather 3.x va avec Hestia Confort 2.x : mettez-les à jour ensemble.
+
+**Entités** : une nouvelle installation crée des `sensor.hestia_weather_…`. Installée avant la 2.9.4, vos entités gardent leur nom d’origine. Pour leur donner le nom Hestia, **Réglages généraux → Nom des entités** : un aperçu d’abord, puis vos automatisations, scripts, scènes et tableaux de bord suivent, et un retour en arrière reste possible.

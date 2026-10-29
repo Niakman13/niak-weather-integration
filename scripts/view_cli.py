@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "custom_components" / "niak_weather"))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "custom_components" / "hestia_weather"))
 
 from engine import lightning  # noqa: E402
 from engine.compute import compute  # noqa: E402
@@ -27,7 +27,7 @@ from engine.view import to_json  # noqa: E402
 from engine.i18n import localized  # noqa: E402
 
 VIEW_VERSION = 1
-INTEGRATION = json.loads((Path(__file__).resolve().parent.parent / "custom_components" / "niak_weather" / "manifest.json").read_text())["version"]
+INTEGRATION = json.loads((Path(__file__).resolve().parent.parent / "custom_components" / "hestia_weather" / "manifest.json").read_text())["version"]
 
 
 @dataclass
@@ -50,7 +50,7 @@ def main() -> None:
                for entity_id, rows in (data.get("history") or {}).items()}
     zone = ZoneInfo(data.get("time_zone") or "UTC")
     now = parse_time(data["now"]) or datetime.now(zone)
-    # The card's language, like the integration's niak_weather/subscribe.
+    # The card's language, like the integration's hestia_weather/subscribe.
     # Blitzortung's strikes, as [minutes ago, km, azimuth or null], when the scenario has some.
     seen = None
     if settings.lightning_entity:

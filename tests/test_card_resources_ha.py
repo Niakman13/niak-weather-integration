@@ -11,11 +11,11 @@ try:
 except ImportError:
     raise unittest.SkipTest('Home Assistant is not installed')
 
-from custom_components.niak_weather import socle
+from custom_components.hestia_weather import socle
 
 
 class CardResourceTests(unittest.IsolatedAsyncioTestCase):
-    URL = '/niak_weather-assets/niak-weather-card.js'
+    URL = '/hestia_weather-assets/hestia-weather-card.js'
 
     async def asyncSetUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -73,14 +73,14 @@ class CardResourceTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_only_the_exact_local_asset_is_owned(self):
         self.assertTrue(socle.is_card_resource(self.URL.replace('-', '%2d') + '?v=old#fragment', self.URL))
-        for value in ('https://example.org' + self.URL, '//example.org' + self.URL, self.URL + '.backup', '/hacsfiles/niak-weather-card.js'):
+        for value in ('https://example.org' + self.URL, '//example.org' + self.URL, self.URL + '.backup', '/hacsfiles/hestia-weather-card.js'):
             self.assertFalse(socle.is_card_resource(value, self.URL), value)
 
     async def test_encoded_workaround_is_not_an_old_hacs_install(self):
         if 'weather' not in self.URL:
             return
-        from custom_components.niak_weather.panel import card_twice
+        from custom_components.hestia_weather.panel import card_twice
         await self.resources.async_create_item({'url': self.URL.replace('-', '%2D') + '?v=old', 'res_type': 'module'})
         self.assertFalse(await card_twice(self.hass))
-        await self.resources.async_create_item({'url': '/hacsfiles/niak-weather/niak-weather-card.js', 'res_type': 'module'})
+        await self.resources.async_create_item({'url': '/hacsfiles/hestia-weather/hestia-weather-card.js', 'res_type': 'module'})
         self.assertTrue(await card_twice(self.hass))

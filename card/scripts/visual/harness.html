@@ -34,7 +34,7 @@
     document.documentElement.classList.toggle('dark', s.theme === 'dark');
     const stage = document.getElementById('stage'); stage.replaceChildren();
     const box = document.createElement('div'); box.style.width = `${s.width}px`; stage.append(box);
-    const card = document.createElement('niak-weather-card'); box.append(card);
+    const card = document.createElement('hestia-weather-card'); box.append(card);
     card.setConfig(scenarioConfig(s)); card.hass = scenarioHass(s);
     // The integration's view arrives through the connection, computed by its engine on the bench server.
     await card.hass.ready; await card.updateComplete;

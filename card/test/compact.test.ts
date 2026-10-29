@@ -35,7 +35,7 @@ describe('The alert card', () => {
 
 describe('The tile’s blocks', () => {
   const bulletin = { summary: 'Ce soir, pluie.', periods: [] };
-  const config = (extra: Partial<WeatherCardConfig>) => ({ type: 'custom:niak-weather-card', ...extra }) as WeatherCardConfig;
+  const config = (extra: Partial<WeatherCardConfig>) => ({ type: 'custom:hestia-weather-card', ...extra }) as WeatherCardConfig;
   it('keeps the bulletin for a tile whose blocks are chosen: the moments come from it', () => {
     const v = view({ bulletin, air: { today: [], tomorrow: [] } } as Partial<WeatherView>);
     expect(displayed(v, config({ format: 'tile', show_bulletin: false, tile_blocks: ['moments'] }), true).bulletin).toEqual(bulletin);

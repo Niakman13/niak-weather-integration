@@ -87,7 +87,7 @@ export function nowBlock(v: WeatherView, kicker: boolean, extra: unknown = nothi
 
 /** « Événements »: the timeline of the coming hours, with the points of now and of the next hours over the forecast sky. Shared with the banner. */
 export const frise = (v: WeatherView) => v.points.length || v.alerts.length || v.hours.length || v.timeline?.length
-  ? html`<div class="nw-events">${label(t('Événements'))}<niak-frise .points=${v.points} .alerts=${v.alerts} .hours=${v.hours} .timeline=${v.timeline}></niak-frise></div>` : nothing;
+  ? html`<div class="nw-events">${label(t('Événements'))}<hestia-frise .points=${v.points} .alerts=${v.alerts} .hours=${v.hours} .timeline=${v.timeline}></hestia-frise></div>` : nothing;
 
 export function renderTile(v: WeatherView, sky: TemplateResult, s: TileState): TemplateResult {
   // The top keeps the official vigilance, one pill folded, the others opening under it. What the station measures leads the scrolling bubble,
@@ -107,7 +107,7 @@ export function renderTile(v: WeatherView, sky: TemplateResult, s: TileState): T
     <div class="top">
       <div class="meta">${v.location ? html`<span class="place">${v.location}</span>` : nothing}${first ? alertPill(first) : nothing}
         ${more.map(a => html`<div class="reveal"><div>${alertPill(a)}</div></div>`)}</div>
-      <div class="brief"><div><div>${ticker.length ? html`<niak-ticker .points=${ticker}></niak-ticker>` : nothing}</div></div></div>
+      <div class="brief"><div><div>${ticker.length ? html`<hestia-ticker .points=${ticker}></hestia-ticker>` : nothing}</div></div></div>
       ${nowBlock(v, false)}
     </div>
     <div class="grabber" aria-hidden="true"><i></i></div>

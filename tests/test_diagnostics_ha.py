@@ -10,8 +10,8 @@ try:
 except ImportError:
     raise unittest.SkipTest('Home Assistant is not installed')
 
-from custom_components.niak_weather.diagnostics import async_get_config_entry_diagnostics
-from custom_components.niak_weather.engine.series import Change
+from custom_components.hestia_weather.diagnostics import async_get_config_entry_diagnostics
+from custom_components.hestia_weather.engine.series import Change
 
 
 class DiagnosticsTests(unittest.IsolatedAsyncioTestCase):
@@ -26,7 +26,7 @@ class DiagnosticsTests(unittest.IsolatedAsyncioTestCase):
         entry = SimpleNamespace(title='Maison', state=SimpleNamespace(value='loaded'), runtime_data=coordinator,
                                 options={'pressure_entity': 'sensor.pressure', 'missing_entity': 'sensor.gone', 'location': 'Marseille',
                                          'atmo_area': '13055', 'waqi_place': 'Marseille Thiers'})
-        with patch('custom_components.niak_weather.diagnostics.async_get_integration', AsyncMock(return_value=SimpleNamespace(version='2.9.3'))):
+        with patch('custom_components.hestia_weather.diagnostics.async_get_integration', AsyncMock(return_value=SimpleNamespace(version='2.9.3'))):
             result = await async_get_config_entry_diagnostics(hass, entry)
         json.dumps(result)  # Home Assistant writes it as JSON.
         self.assertEqual(result['states']['sensor.pressure']['attributes'], {'unit_of_measurement': 'hPa'})

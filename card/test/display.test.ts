@@ -11,7 +11,7 @@ const view = {
   brief: { title: 'Pluie', label: 'À surveiller', color: '', icon: '', summary: '', signals: [], caveats: [], available: true, severity: 1 },
   bulletin: { summary: 'Pluie ce soir.', periods: [] }, air: { today: [panel(false)], tomorrow: [panel(true)] },
 } as unknown as WeatherView;
-const config = (extra: Partial<WeatherCardConfig> = {}): WeatherCardConfig => ({ type: 'custom:niak-weather-card', ...extra });
+const config = (extra: Partial<WeatherCardConfig> = {}): WeatherCardConfig => ({ type: 'custom:hestia-weather-card', ...extra });
 
 describe('What the card shows of the integration’s view', () => {
   it('shows everything by default', () => {

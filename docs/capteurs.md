@@ -11,7 +11,7 @@ Il y a cinq façons de s’en servir :
 | **Des capteurs** | Des valeurs avec leur unité, à lire directement : `sensor.hestia_weather_pluie_6h`. |
 | **Des oui/non** | Prêts à servir de déclencheur ou de condition : `binary_sensor.hestia_weather_gel`. |
 | **Un évènement d’alerte** | À chaque alerte qui commence, change ou finit : `hestia_weather_alerte`. Une seule automatisation suffit pour toutes les notifications. |
-| **Une action qui répond** | « Quel temps entre 16 h 15 et 17 h ? » : `niak_weather.prevision`. |
+| **Une action qui répond** | « Quel temps entre 16 h 15 et 17 h ? » : `hestia_weather.prevision`. |
 | **Une entité météo** · *à activer* | Le temps vu par votre station, avec les prévisions du fournisseur : `weather.hestia_weather`. |
 
 ## Les mêmes attributs partout
@@ -136,12 +136,12 @@ actions:
       message: "{{ trigger.event.data.texte }}"
 ```
 
-## L’action `niak_weather.prevision`
+## L’action `hestia_weather.prevision`
 
 Une question précise, une réponse prête à utiliser. `debut` et `fin` acceptent une heure (`"16:15"`) ou une date et heure. Une heure déjà passée vaut pour demain. Une fin avant le début tombe le lendemain.
 
 ```yaml
-action: niak_weather.prevision
+action: hestia_weather.prevision
 data:
   debut: "16:15"
   fin: "17:00"
@@ -164,15 +164,19 @@ Ils sont sur GitHub, à importer en un clic. Vos réglages (téléphones, heure,
 
 | Modèle | Ce qu’il fait | |
 | --- | --- | --- |
-| **Notifier les alertes** | Un message au début, au changement et à la fin de chaque alerte choisie ; le message de fin remplace celui du début | [![Importer](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FhestiaFB%2Fhestia-weather-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fniak_weather%2Fnotifier_alertes.yaml) |
-| **Protéger avant le gel** | La veille au soir : ce qu’il faut rentrer, le givre du pare-brise, vos actions hors-gel | [![Importer](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FhestiaFB%2Fhestia-weather-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fniak_weather%2Fproteger_gel.yaml) |
-| **Le bulletin du matin** | À l’heure du réveil, le bulletin du jour et la vigilance en cours | [![Importer](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FhestiaFB%2Fhestia-weather-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fniak_weather%2Fbulletin_du_matin.yaml) |
+| **Notifier les alertes** | Un message au début, au changement et à la fin de chaque alerte choisie ; le message de fin remplace celui du début | [![Importer](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FhestiaFB%2Fhestia-weather-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fhestia_weather%2Fnotifier_alertes.yaml) |
+| **Protéger avant le gel** | La veille au soir : ce qu’il faut rentrer, le givre du pare-brise, vos actions hors-gel | [![Importer](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FhestiaFB%2Fhestia-weather-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fhestia_weather%2Fproteger_gel.yaml) |
+| **Le bulletin du matin** | À l’heure du réveil, le bulletin du jour et la vigilance en cours | [![Importer](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FhestiaFB%2Fhestia-weather-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fhestia_weather%2Fbulletin_du_matin.yaml) |
 
 ## Noms techniques
 
-Les noms techniques de la première version restent, pour ne rien casser chez ceux qui l’utilisaient déjà : le domaine `niak_weather` (l’action `niak_weather.prevision`, les adresses du panneau, les fichiers). Vous ne les voyez que là où il faut les écrire.
+Le nom technique de l’intégration est `hestia_weather` : l’action `hestia_weather.prevision`, la carte `custom:hestia-weather-card`, l’évènement `hestia_weather_alerte`, les variables de thème `hestia-rain-color`…
 
-- **Entités** : une nouvelle installation crée des `sensor.hestia_weather_…`. Installé avant la 2.9.4, vos entités s’appellent `sensor.niak_weather_…` : elles continuent de marcher. Pour leur donner le nom Hestia, **Réglages généraux → Nom des entités** (depuis la 2.9.6) : un aperçu d’abord, puis vos automatisations, scripts, scènes et tableaux de bord suivent, et un retour en arrière reste possible.
-- **Carte** : ajoutez-la avec `custom:hestia-weather-card`. L’ancien `custom:niak-weather-card` marche toujours.
-- **Évènement d’alerte** : il existe sous deux noms, `hestia_weather_alerte` et `niak_weather_alerte`, avec le même contenu. Utilisez le premier dans vos nouvelles automatisations.
-- **Thème** : les variables `hestia-rain-color`… sont lues d’abord, puis les anciennes `niak-rain-color`….
+Installée sous son nom technique d’origine, l’intégration passe seule au nouveau au premier démarrage de la mise à jour :
+
+- vos lieux, réglages, alertes en cours, historiques et statistiques sont gardés ;
+- vos entités gardent leur nom, et donc vos automatisations et vos tableaux de bord aussi ;
+- les automatisations, scripts, scènes et tableaux de bord faits dans l’interface sont mis à jour ;
+- ce qui est écrit à la main en YAML n’est jamais modifié : une réparation dans **Paramètres** liste les fichiers et les lignes à changer.
+
+**Entités** : une nouvelle installation crée des `sensor.hestia_weather_…`. Installée avant la 2.9.4, vos entités gardent leur nom d’origine. Pour leur donner le nom Hestia, **Réglages généraux → Nom des entités** : un aperçu d’abord, puis vos automatisations, scripts, scènes et tableaux de bord suivent, et un retour en arrière reste possible.

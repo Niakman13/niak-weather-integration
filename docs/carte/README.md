@@ -166,7 +166,7 @@ Variables : `hestia-rain-color`, `hestia-wind-color`, `hestia-heat-color`, `hest
 
 ## Développement
 
-Le code de la carte est dans [`card/`](../../card) ; il est compilé dans `custom_components/niak_weather/frontend/niak-weather-card.js`.
+Le code de la carte est dans [`card/`](../../card) ; il est compilé dans `custom_components/hestia_weather/frontend/hestia-weather-card.js`.
 
 ```sh
 cd card

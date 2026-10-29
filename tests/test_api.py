@@ -9,10 +9,10 @@ import importlib.util
 from engine.forecast import Hour
 from engine.settings import Settings
 
-_spec = importlib.util.spec_from_file_location("niak_weather_api", Path(__file__).resolve().parents[1] / "custom_components/niak_weather/api.py")
+_spec = importlib.util.spec_from_file_location("hestia_weather_api", Path(__file__).resolve().parents[1] / "custom_components/hestia_weather/api.py")
 _api = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_api)
-API_VERSION, NiakWeatherApi = _api.API_VERSION, _api.NiakWeatherApi
+API_VERSION, HestiaWeatherApi = _api.API_VERSION, _api.HestiaWeatherApi
 LOADED, NOT_LOADED = SimpleNamespace(value="loaded"), SimpleNamespace(value="not_loaded")
 
 
@@ -29,7 +29,7 @@ def hass_with(*entries):
 
 def test_station_is_published_by_role_without_empty_roles():
     s = Settings(weather_entity="weather.home", temperature_entity="sensor.out_t", humidity_entity="sensor.out_h", wind_bearing_entity="sensor.wind_dir")
-    api = NiakWeatherApi(hass_with(entry("e1", "Gardanne", s)))
+    api = HestiaWeatherApi(hass_with(entry("e1", "Gardanne", s)))
     assert api.version == API_VERSION == 1
     assert api.station() == {"entry_id": "e1", "title": "Gardanne",
                              "sensors": {"temperature": "sensor.out_t", "humidity": "sensor.out_h", "wind_bearing": "sensor.wind_dir"}}
@@ -38,7 +38,7 @@ def test_station_is_published_by_role_without_empty_roles():
 def test_several_places_need_an_explicit_choice_and_unloaded_ones_are_ignored():
     a, b = entry("a", "Maison", Settings(weather_entity="weather.home")), entry("b", "Chalet", Settings(weather_entity="weather.home"))
     off = entry("c", "Ancien", Settings(weather_entity="weather.home"), state=NOT_LOADED)
-    api = NiakWeatherApi(hass_with(a, b, off))
+    api = HestiaWeatherApi(hass_with(a, b, off))
     assert api.places() == [{"entry_id": "a", "title": "Maison"}, {"entry_id": "b", "title": "Chalet"}]
     assert api.station() is None
     assert api.station("b")["title"] == "Chalet"
@@ -48,14 +48,14 @@ def test_several_places_need_an_explicit_choice_and_unloaded_ones_are_ignored():
 def test_hourly_forecast_carries_wind_direction_and_skips_undated_hours():
     t = datetime(2026, 10, 14, 21, tzinfo=timezone.utc)
     hours = [Hour(time=t, temperature=18.2, humidity=70, precipitation=0, wind_speed=12, wind_gust=25, wind_bearing=270, condition="clear-night", cloud_coverage=12), Hour()]
-    api = NiakWeatherApi(hass_with(entry("e1", "Gardanne", Settings(weather_entity="weather.home"), hours)))
+    api = HestiaWeatherApi(hass_with(entry("e1", "Gardanne", Settings(weather_entity="weather.home"), hours)))
     assert api.hourly() == [{"time": "2026-10-14T21:00:00+00:00", "temperature": 18.2, "humidity": 70, "precipitation": 0,
                              "wind_speed": 12, "wind_gust": 25, "wind_bearing": 270, "condition": "clear-night", "cloud_coverage": 12}]
 
 
 def test_listeners_follow_the_place_and_can_be_removed():
     e = entry("e1", "Gardanne", Settings(weather_entity="weather.home"))
-    api = NiakWeatherApi(hass_with(e))
+    api = HestiaWeatherApi(hass_with(e))
     remove = api.add_listener(None, lambda: None)
     assert len(e.listeners) == 1
     remove()
@@ -65,10 +65,10 @@ def test_listeners_follow_the_place_and_can_be_removed():
 
 def test_a_brick_that_says_who_it_is_shows_linked_to_its_place_until_it_stops():
     a, b = entry("a", "Maison", Settings(weather_entity="weather.home")), entry("b", "Chalet", Settings(weather_entity="weather.home"))
-    api = NiakWeatherApi(hass_with(a, b))
-    stop = api.add_listener("a", lambda: None, brick="niak_comfort")
+    api = HestiaWeatherApi(hass_with(a, b))
+    stop = api.add_listener("a", lambda: None, brick="hestia_comfort")
     other = api.add_listener("a", lambda: None)
-    assert api.linked("a") == {"niak_comfort": 1, "": 1} and api.linked("b") == {}
+    assert api.linked("a") == {"hestia_comfort": 1, "": 1} and api.linked("b") == {}
     stop(); stop()  # a second stop changes nothing
     assert api.linked("a") == {"": 1} and a.listeners != []
     other()
@@ -82,18 +82,18 @@ def test_air_follows_the_chosen_source_on_atmo_scale():
                     atmo={"atmo_air_entity": "sensor.atmo_qualite_globale"})
     e = entry("e1", "Gardanne", waqi)
     e.runtime_data.data = SimpleNamespace(catalogue={"qualite_air": Item(2, "Moyen (2/6)", "waqi", extra={"libelle": "Moyen"})}, computed=at)
-    assert NiakWeatherApi(hass_with(e)).air() == {"entry_id": "e1", "source": "waqi", "provider": "WAQI", "entity_id": "sensor.gardanne_aqi",
+    assert HestiaWeatherApi(hass_with(e)).air() == {"entry_id": "e1", "source": "waqi", "provider": "WAQI", "entity_id": "sensor.gardanne_aqi",
                                                    "index": 2, "label": "Moyen", "at": "2026-10-18T13:00:00+00:00"}
     e.runtime_data.data = SimpleNamespace(catalogue={"qualite_air": Item(None, "Mesure WAQI indisponible", "waqi")}, computed=at)
-    assert NiakWeatherApi(hass_with(e)).air()["index"] is None  # the source does not answer
+    assert HestiaWeatherApi(hass_with(e)).air()["index"] is None  # the source does not answer
     atmo = entry("e2", "Gardanne", Settings(weather_entity="weather.home", atmo={"atmo_air_entity": "sensor.atmo_qualite_globale"}))
-    assert NiakWeatherApi(hass_with(atmo)).air()["entity_id"] == "sensor.atmo_qualite_globale"
-    assert NiakWeatherApi(hass_with(entry("e3", "Gardanne", Settings(weather_entity="weather.home")))).air() is None
+    assert HestiaWeatherApi(hass_with(atmo)).air()["entity_id"] == "sensor.atmo_qualite_globale"
+    assert HestiaWeatherApi(hass_with(entry("e3", "Gardanne", Settings(weather_entity="weather.home")))).air() is None
 
 
 def test_rain_ahead_is_published_once_computed():
     e = entry("e1", "Gardanne", Settings(weather_entity="weather.home"))
-    api = NiakWeatherApi(hass_with(e))
+    api = HestiaWeatherApi(hass_with(e))
     assert api.rain() is None
     at = datetime(2026, 10, 20, 11, 51, tzinfo=timezone.utc)
     e.runtime_data.data = SimpleNamespace(rain_ahead={"minutes": 29, "precision": "minute", "source": "radar", "amount": None, "dry_until": None},
@@ -108,12 +108,12 @@ def test_season_is_shared_with_the_other_bricks():
     states = {"sensor.season": SimpleNamespace(state="autumn")}
     hass = SimpleNamespace(config_entries=SimpleNamespace(async_entries=lambda domain: [e]), states=SimpleNamespace(get=states.get),
                            config=SimpleNamespace(latitude=43.45, elevation=100, time_zone="Europe/Paris"))
-    found = NiakWeatherApi(hass).season()
+    found = HestiaWeatherApi(hass).season()
     assert (found["entry_id"], found["season"], found["label"], found["from_sensor"]) == ("e1", "autumn", "Automne", True)
     assert found["day_length"] > 0
     states.clear()  # no sensor: the date decides
-    assert NiakWeatherApi(hass).season()["from_sensor"] is False
-    assert NiakWeatherApi(hass_with()).season() is None
+    assert HestiaWeatherApi(hass).season()["from_sensor"] is False
+    assert HestiaWeatherApi(hass_with()).season() is None
 
 
 def test_lightning_is_published_from_the_strikes_kept():
@@ -124,14 +124,14 @@ def test_lightning_is_published_from_the_strikes_kept():
     e.runtime_data.strikes = [Strike(at.timestamp() - 300, 14.0, 225.0), Strike(at.timestamp() - 60, 9.0, 230.0)]
     hass = hass_with(e)
     hass.states = SimpleNamespace(get=lambda entity_id: SimpleNamespace(state="9.0"))
-    seen = NiakWeatherApi(hass).lightning()
+    seen = HestiaWeatherApi(hass).lightning()
     assert seen["near"] and seen["overhead"] and seen["nearest_km"] == 9.0 and seen["direction"] == "au sud-ouest" and seen["count"] == 2
     assert seen["text"] == "Orage à 9 km au sud-ouest" and seen["last"] == "2026-10-21T13:59:00+00:00" and seen["available"]
     hass.states = SimpleNamespace(get=lambda entity_id: SimpleNamespace(state="unavailable"))
-    assert NiakWeatherApi(hass).lightning()["available"] is False
+    assert HestiaWeatherApi(hass).lightning()["available"] is False
     plain = entry("e2", "Gardanne", Settings(weather_entity="weather.home"))
     plain.runtime_data.data = SimpleNamespace(catalogue={}, computed=at)
-    assert NiakWeatherApi(hass_with(plain)).lightning() is None
+    assert HestiaWeatherApi(hass_with(plain)).lightning() is None
 
 
 def test_water_restrictions_are_published_with_watering():
@@ -140,8 +140,8 @@ def test_water_restrictions_are_published_with_watering():
     e = entry("e1", "Gardanne", Settings(weather_entity="weather.home", water_restriction_entity="sensor.vigieau"))
     e.runtime_data.data = SimpleNamespace(catalogue={"restrictions_eau": Item("alerte", "Alerte", "vigieau", extra={
         "niveau": 2, "libelle": "Alerte", "usages": ["Arrosage des pelouses"], "arrosage_restreint": True, "arrete": None})}, computed=at)
-    assert NiakWeatherApi(hass_with(e)).water() == {"entry_id": "e1", "entity_id": "sensor.vigieau", "level": 2, "state": "alerte", "label": "Alerte",
+    assert HestiaWeatherApi(hass_with(e)).water() == {"entry_id": "e1", "entity_id": "sensor.vigieau", "level": 2, "state": "alerte", "label": "Alerte",
                                                      "restricted": True, "watering_restricted": True, "usages": ["Arrosage des pelouses"],
                                                      "order": None, "at": "2026-08-12T08:00:00+00:00"}
     e.runtime_data.data = SimpleNamespace(catalogue={"restrictions_eau": Item(None, "Vigieau indisponible", "vigieau")}, computed=at)
-    assert NiakWeatherApi(hass_with(e)).water()["level"] is None  # the source does not answer
+    assert HestiaWeatherApi(hass_with(e)).water()["level"] is None  # the source does not answer

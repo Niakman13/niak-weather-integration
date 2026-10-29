@@ -1,5 +1,5 @@
 """Météo-France's « original condition » sensor, found beside the weather entity. Skipped without Home Assistant
-(the engine's tests run without it): ~/niak-ha-test/venv/bin/python -m unittest tests/test_original_condition_ha.py"""
+(the engine's tests run without it): ~/hestia-ha-test/venv/bin/python -m unittest tests/test_original_condition_ha.py"""
 from pathlib import Path
 import sys
 from types import SimpleNamespace
@@ -12,7 +12,7 @@ except ImportError:  # pragma: no cover - the engine's own test run
     raise unittest.SkipTest("Home Assistant is not installed")
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from custom_components.niak_weather import coordinator  # noqa: E402
+from custom_components.hestia_weather import coordinator  # noqa: E402
 
 
 def entry(entity_id: str, unique_id: str, platform: str = "meteo_france", disabled_by: str | None = None) -> SimpleNamespace:

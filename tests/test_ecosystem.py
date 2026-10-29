@@ -15,10 +15,10 @@ def test_every_brick_has_a_line_and_nothing_is_linked_by_default():
 
 
 def test_installed_is_not_linked_until_the_brick_listens_to_this_place():
-    assert "installé, pas relié à ce lieu" in line(links({}, {"niak_comfort"}), "Hestia Confort")
-    linked = links({"niak_comfort": 1}, {"niak_comfort"})
+    assert "installé, pas relié à ce lieu" in line(links({}, {"hestia_comfort"}), "Hestia Confort")
+    linked = links({"hestia_comfort": 1}, {"hestia_comfort"})
     assert line(linked, "Hestia Confort").startswith("- ✅ **Hestia Confort** · relié à ce lieu")
-    assert summary({"niak_comfort": 2}) == "Hestia Confort"
+    assert summary({"hestia_comfort": 2}) == "Hestia Confort"
 
 
 def test_a_listener_that_does_not_say_who_it_is_is_counted_apart():
@@ -27,9 +27,9 @@ def test_a_listener_that_does_not_say_who_it_is_is_counted_apart():
     assert summary({"": 2}) == "aucune brique reliée"
 
 
-def test_the_niak_panel_gets_the_same_states_one_brick_at_a_time():
+def test_the_hestia_panel_gets_the_same_states_one_brick_at_a_time():
     from engine.ecosystem import states
-    found = {b["domain"]: b["state"] for b in states({"niak_comfort": 1}, {"niak_comfort"})}
-    assert found["niak_comfort"] == "linked" and found["niak_heating"] == "future"
-    assert {b["domain"]: b["state"] for b in states({}, set())}["niak_comfort"] == "missing"
-    assert {b["domain"]: b["state"] for b in states({}, {"niak_comfort"})}["niak_comfort"] == "installed"
+    found = {b["domain"]: b["state"] for b in states({"hestia_comfort": 1}, {"hestia_comfort"})}
+    assert found["hestia_comfort"] == "linked" and found["hestia_heating"] == "future"
+    assert {b["domain"]: b["state"] for b in states({}, set())}["hestia_comfort"] == "missing"
+    assert {b["domain"]: b["state"] for b in states({}, {"hestia_comfort"})}["hestia_comfort"] == "installed"

@@ -67,4 +67,4 @@ Orage, canicule, gel et rafales dès 80 km/h sont **urgents** (attribut `level` 
 
 Le ressenti est une **estimation de l’ambiance extérieure** propre à Hestia Weather : pas un indice météorologique officiel, ni une mesure physiologique. Ces coefficients sont des règles d’estimation, pas une formule standard validée. Hestia Weather ne connaît ni vos vêtements, ni votre activité, ni votre exposition réelle : l’effet du soleil représente une ambiance exposée, pas forcément le ressenti à l’ombre.
 
-[Le calcul dans le code](../custom_components/niak_weather/engine/feel.py).
+[Le calcul dans le code](../custom_components/hestia_weather/engine/feel.py).

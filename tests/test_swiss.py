@@ -160,7 +160,7 @@ def test_upcoming_warnings_are_visible_before_their_start_time():
     assert read(s).extra["alertes"][0]["debut"] == (NOW + timedelta(minutes=30)).isoformat()
 
 
-def test_native_change_from_four_to_five_emits_an_alert_even_with_the_same_niak_color():
+def test_native_change_from_four_to_five_emits_an_alert_even_with_the_same_hestia_color():
     watch = AlertWatch()
     for degree in (4, 5):
         official = read(warnings((degree,)))

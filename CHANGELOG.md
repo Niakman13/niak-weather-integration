@@ -1,8 +1,29 @@
+## 3.0.0b1 — Bêta : le nom technique devient hestia_weather
+
+**En bref**
+
+- **Hestia Weather prend son nom technique Hestia : `hestia_weather`.** Au premier démarrage, votre installation passe seule au nouveau nom.
+- **Rien n’est perdu** : vos lieux, réglages, alertes en cours, historiques et statistiques restent, comme le nom, la pièce et l’icône de vos entités.
+
+### Avant de mettre à jour
+
+- Mettez à jour Hestia Confort en même temps (2.0.0b1), si vous l’avez.
+- Après le redémarrage, une réparation peut demander un second redémarrage : faites-le.
+- Si une réparation « quelques lignes à changer à la main » apparaît, elle liste les fichiers YAML et les lignes où remplacer l’ancien nom.
+
+### Améliorations
+
+- Les automatisations, scripts, scènes, tableaux de bord et blueprints faits dans l’interface sont mis à jour tout seuls.
+- L’action devient `hestia_weather.prevision`, la carte `custom:hestia-weather-card`, l’évènement d’alerte `hestia_weather_alerte`.
+- L’évènement d’alerte est encore envoyé sous son nom d’origine, pour les automatisations écrites à la main.
+- L’ancienne adresse du panneau mène toujours à `/hestia`.
+- Les variables de thème s’appellent `hestia-…-color`.
+
 ## 2.9.6 — Préversion : renommer ses entités en hestia_weather
 
 **En bref**
 
-- **Vos entités peuvent prendre le nom Hestia**, si vous le voulez : une installation qui a encore des entités `niak_weather_…` peut les renommer `hestia_weather_…` depuis le panneau, puis revenir en arrière.
+- **Vos entités peuvent prendre le nom Hestia**, si vous le voulez : une installation dont les entités portent encore le nom technique d’origine peut les renommer `hestia_weather_…` depuis le panneau, puis revenir en arrière.
 
 ### Nouveautés
 
@@ -33,8 +54,8 @@
 
 ### Améliorations
 
-- Les noms Hestia existent à côté des anciens : la carte, l’évènement d’alerte `hestia_weather_alerte` et les variables de thème `hestia-…-color`. Les anciens noms `niak…` continuent de marcher.
-- Une installation qui a déjà des entités `niak_weather_…` les garde : vos automatisations et tableaux de bord ne bougent pas.
+- Les noms Hestia existent à côté des anciens : la carte, l’évènement d’alerte `hestia_weather_alerte` et les variables de thème `hestia-…-color`. Les noms techniques d’origine continuent de marcher.
+- Une installation dont les entités portent le nom technique d’origine les garde : vos automatisations et tableaux de bord ne bougent pas.
 - Les modèles d’automatisation ne proposent plus d’entité par défaut, et écoutent le nouvel évènement.
 - La documentation montre les noms Hestia, avec une section « Noms techniques ».
 - Le panneau répond plus vite : Home Assistant n’est plus relu plusieurs fois pour un même affichage.
@@ -61,7 +82,7 @@
 
 - Nouveau logo du hub : un H à la place du N.
 - Dans « Ajouter une carte », les cartes s’appellent maintenant « Hestia - Météo », « Hestia - À la pièce » et « Hestia - Petite carte ».
-- Les noms internes (`niak_weather`, `niak-weather-card`) ne changent pas, pour ne rien casser chez vous.
+- Les noms techniques d’origine ne changent pas, pour ne rien casser chez vous.
 
 ## 2.9.1 — Stable : un bloc coché se range à sa place
 
@@ -253,7 +274,7 @@ Reprend les préversions 2.5.5b1 à 2.5.5b3 ci-dessous : panne d’une source d�
 
 ## 2.5.5b3 — Bulletin du jour et brouillard sous la pluie
 
-- Nouveau capteur **Bulletin du jour** (`sensor.niak_weather_bulletin_du_jour`) : le texte de la prévision, prêt à lire sur une enceinte ou à envoyer en notification. Le texte entier et chaque moment de la journée sont aussi en attributs.
+- Nouveau capteur **Bulletin du jour** (`sensor.hestia_weather_bulletin_du_jour`) : le texte de la prévision, prêt à lire sur une enceinte ou à envoyer en notification. Le texte entier et chaque moment de la journée sont aussi en attributs.
 - Correction : sans pluviomètre, une humidité de 99 % ne fait plus afficher « Brouillard » quand le bulletin annonce de la pluie ou de la neige. Un pluviomètre qui ne mesure rien garde le brouillard.
 
 ## 2.5.5b2 — WAQI, deuxième source pour l’air

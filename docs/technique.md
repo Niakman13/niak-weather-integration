@@ -8,7 +8,7 @@ Cette page s’adresse à qui veut comprendre ou modifier Hestia Weather.
 
 Hestia Weather est **le cerveau** : il lit les sources, calcule, et donne le résultat à ceux qui l’affichent ou s’en servent.
 
-- La [carte Hestia Weather](carte/README.md) ne fait qu’afficher ce qu’il lui envoie. Son code est dans `card/`, compilé dans `custom_components/niak_weather/frontend/niak-weather-card.js` ; l’intégration la charge sur chaque tableau de bord (depuis 2.3), à sa propre version.
+- La [carte Hestia Weather](carte/README.md) ne fait qu’afficher ce qu’il lui envoie. Son code est dans `card/`, compilé dans `custom_components/hestia_weather/frontend/hestia-weather-card.js` ; l’intégration la charge sur chaque tableau de bord (depuis 2.3), à sa propre version.
 - Les capteurs servent aux automatisations : volets, chauffage, arrosage, notifications.
 
 Les calculs sont faits **une fois, dans Home Assistant**, au lieu de l’être dans chaque navigateur ouvert.
@@ -17,8 +17,8 @@ Les calculs sont faits **une fois, dans Home Assistant**, au lieu de l’être d
 
 | Dossier | Rôle |
 | --- | --- |
-| `custom_components/niak_weather/engine` | **Le moteur**, en Python pur, sans Home Assistant : unités, humidité, ressenti, conditions, prévisions, tendances, historiques, saisons, Atmo, synthèse, bulletin, modèle de vue. Il se teste seul. |
-| `custom_components/niak_weather` | **La couche Home Assistant**, mince : parcours de configuration, coordinateur, capteurs, oui/non, entité météo, action, API websocket. |
+| `custom_components/hestia_weather/engine` | **Le moteur**, en Python pur, sans Home Assistant : unités, humidité, ressenti, conditions, prévisions, tendances, historiques, saisons, Atmo, synthèse, bulletin, modèle de vue. Il se teste seul. |
+| `custom_components/hestia_weather` | **La couche Home Assistant**, mince : parcours de configuration, coordinateur, capteurs, oui/non, entité météo, action, API websocket. |
 
 Fichiers principaux du moteur : `feel.py` (ressenti et alerte de la station), `local.py` (la météo locale assemblée), `brief.py` (synthèse), `alerts.py` (ce que montrent les bulles et la frise), `bulletin.py` (bulletin du jour), `station.py` et `series.py` (historiques), `view.py` (ce que reçoit la carte), `detection.py` (reconnaissance de la station et des sources), `catalogue.py` (les entités pour les automatisations), `watch.py` (début, changement et fin des alertes), `prevision.py` (la réponse de l’action).
 
@@ -35,14 +35,14 @@ Par lieu : 26 capteurs, 9 oui/non et une entité météo, aux identifiants fixes
 
 Une valeur inconnue reste **inconnue** : rien n’est inventé. Les longs textes (synthèse, bulletin, raisons) sont en attributs, non enregistrés par le Recorder.
 
-Les alertes en cours (`engine/watch.py`) sont gardées dans `.storage/niak_weather.alertes.<entry_id>` : un redémarrage ne renvoie pas l’évènement `debut`, et une valeur inconnue (station ou prévisions indisponibles) ne termine jamais une alerte.
+Les alertes en cours (`engine/watch.py`) sont gardées dans `.storage/hestia_weather.alertes.<entry_id>` : un redémarrage ne renvoie pas l’évènement `debut`, et une valeur inconnue (station ou prévisions indisponibles) ne termine jamais une alerte.
 
 ## L’API websocket
 
 | Commande | Réponse |
 | --- | --- |
-| `niak_weather/entries` | La liste des lieux configurés (`entry_id`, `title`). |
-| `niak_weather/subscribe` (`entry_id` facultatif avec un seul lieu) | Un message `{version, entryId, title, view}` à l’abonnement, puis à chaque changement de la vue. `{reload: true}` quand le lieu est reconfiguré. |
+| `hestia_weather/entries` | La liste des lieux configurés (`entry_id`, `title`). |
+| `hestia_weather/subscribe` (`entry_id` facultatif avec un seul lieu) | Un message `{version, entryId, title, view}` à l’abonnement, puis à chaque changement de la vue. `{reload: true}` quand le lieu est reconfiguré. |
 
 La **vue** contient tout ce que la carte affiche, déjà calculé et rédigé en français :
 
@@ -54,14 +54,14 @@ La **vue** contient tout ce que la carte affiche, déjà calculé et rédigé en
 
 ## L’interface pour les autres briques Hestia
 
-Hestia Weather publie pour les autres briques (Hestia Confort, futur Hestia Chauffage…) un objet versionné, `hass.data["niak_weather_api"]` (`api.py`, version 1). Les autres briques vérifient `version` et ne lisent jamais les réglages internes de Hestia Weather.
+Hestia Weather publie pour les autres briques (Hestia Confort, futur Hestia Chauffage…) un objet versionné, `hass.data["hestia_weather_api"]` (`api.py`, version 1). Les autres briques vérifient `version` et ne lisent jamais les réglages internes de Hestia Weather.
 
 | Méthode | Ce qu’elle donne |
 | --- | --- |
 | `places()` | Les lieux configurés (`entry_id`, `title`). |
 | `station(entry_id)` | Les capteurs de la station choisis dans Hestia Weather, par rôle : `temperature`, `humidity`, `rain_rate`, `wind_speed`, `wind_gust`, `wind_bearing`, `solar_radiation`, `uv_index`, `pressure`. |
 | `hourly(entry_id)` | Les prévisions horaires lues par Hestia Weather : heure ISO, °C, %, mm, km/h, direction du vent en degrés, condition. |
-| `add_listener(entry_id, rappel, brick=None)` | Prévient quand le lieu est recalculé ; renvoie la fonction qui arrête l’écoute. `brick` : le domaine de la brique qui écoute (`niak_comfort`), pour qu’elle apparaisse « reliée » dans les réglages de Hestia Weather. |
+| `add_listener(entry_id, rappel, brick=None)` | Prévient quand le lieu est recalculé ; renvoie la fonction qui arrête l’écoute. `brick` : le domaine de la brique qui écoute (`hestia_comfort`), pour qu’elle apparaisse « reliée » dans les réglages de Hestia Weather. |
 | `linked(entry_id)` | Les briques qui écoutent ce lieu, par domaine. |
 
 Dans Hestia Weather, **Configurer → Écosystème Hestia** montre chaque brique : reliée à ce lieu, installée mais pas reliée, non installée, ou à venir.
@@ -94,8 +94,8 @@ Hestia Weather parle français et anglais. Le français est écrit dans le code 
 | --- | --- |
 | `card/src/i18n/en.ts` | La carte |
 | `frontend/i18n-en.ts` et `frontend/socle/i18n-en.ts` | Le panneau Hestia |
-| `custom_components/niak_weather/engine/i18n_en.py` | Les textes calculés pour la carte et le panneau |
-| `custom_components/niak_weather/translations/en.json` | L’assistant de Paramètres et les noms des entités |
+| `custom_components/hestia_weather/engine/i18n_en.py` | Les textes calculés pour la carte et le panneau |
+| `custom_components/hestia_weather/translations/en.json` | L’assistant de Paramètres et les noms des entités |
 
 Les valeurs des capteurs restent en français : elles servent aux automatisations. Les tests vérifient qu’aucune phrase n’est oubliée et que les `{noms}` entre accolades sont gardés.
 
@@ -103,4 +103,4 @@ Pas à l’aise avec ces fichiers ? [Ouvrez une demande « Traduction »](https:
 
 ## L’icône
 
-`custom_components/niak_weather/brand/icon.png` : Home Assistant l’affiche pour l’intégration, à partir de la version 2026.
+`custom_components/hestia_weather/brand/icon.png` : Home Assistant l’affiche pour l’intégration, à partir de la version 2026.

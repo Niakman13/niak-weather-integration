@@ -37,4 +37,4 @@ Sans pluie sur les deux moments, la dernière phrase se termine par « sans plui
 
 Le bulletin **relit les prévisions du fournisseur** : il ne prévoit rien lui-même et ne corrige pas les prévisions avec la station. Sa justesse est celle des prévisions reçues.
 
-[Le rédacteur dans le code](../custom_components/niak_weather/engine/bulletin.py).
+[Le rédacteur dans le code](../custom_components/hestia_weather/engine/bulletin.py).

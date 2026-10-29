@@ -168,6 +168,6 @@ export interface WeatherView {
   lightning?: LightningView;
 }
 
-/** One message of the integration's `niak_weather/subscribe`. */
+/** One message of the integration's `hestia_weather/subscribe`. */
 /** `integration`: the integration's version (the card comes with it, since 2.3). */
 export interface ViewMessage { version: number; integration?: string; entryId: string; title: string; view: WeatherView }

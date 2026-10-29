@@ -36,7 +36,7 @@
   });
   customElements.define('ha-card',class extends HTMLElement {connectedCallback(){if(!this.shadowRoot)this.attachShadow({mode:'open'}).innerHTML='<style>:host{display:block;border-radius:22px;background:var(--card-background-color);box-shadow:0 8px 30px #132c4612;overflow:hidden;container-type:inline-size}</style><slot></slot>';}});
   await import('/card.js');
-  const card=document.createElement('niak-weather-card');document.querySelector('main').append(card);
+  const card=document.createElement('hestia-weather-card');document.querySelector('main').append(card);
   const $=id=>document.getElementById(id);
   const sensor=(id,value,unit)=>({entity_id:id,state:String(value),attributes:{unit_of_measurement:unit}});
   function refresh(){
@@ -55,7 +55,7 @@
       'sun.sun':{entity_id:'sun.sun',state:night?'below_horizon':'above_horizon',attributes:{elevation:night?-20:$('phase').value==='twilight'?1:35}}
     };
     const forecasts={hourly:Array.from({length:18},(_,i)=>({datetime:new Date(now.getTime()+(i+1)*3600000).toISOString(),temperature:temp+4*Math.sin(i/5),precipitation:rain&&i<3?rain:0,condition})),daily:Array.from({length:7},(_,i)=>({datetime:new Date(now.getTime()+i*86400000).toISOString(),temperature:25-i,templow:17-i,precipitation:i===2?4:0,condition:i===2?'rainy':'partlycloudy'}))};
-    card.setConfig({type:'custom:niak-weather-card',weather_entity:'weather.demo',temperature_entity:'sensor.temperature',humidity_entity:'sensor.humidity',humidex_entity:'sensor.humidex',wind_speed_entity:'sensor.wind',wind_gust_entity:'sensor.gust',rain_rate_entity:'sensor.rain',daily_rain_entity:'sensor.rain_day',pressure_entity:'sensor.pressure',solar_radiation_entity:'sensor.solar',forecast_source:'Démonstration',weather_animations:$('motion').checked,weather_animation_quality:$('quality').value});
+    card.setConfig({type:'custom:hestia-weather-card',weather_entity:'weather.demo',temperature_entity:'sensor.temperature',humidity_entity:'sensor.humidity',humidex_entity:'sensor.humidex',wind_speed_entity:'sensor.wind',wind_gust_entity:'sensor.gust',rain_rate_entity:'sensor.rain',daily_rain_entity:'sensor.rain_day',pressure_entity:'sensor.pressure',solar_radiation_entity:'sensor.solar',forecast_source:'Démonstration',weather_animations:$('motion').checked,weather_animation_quality:$('quality').value});
     card.hass={states,language:'fr',config:{time_zone:Intl.DateTimeFormat().resolvedOptions().timeZone},callWS:async message=>({response:{'weather.demo':{forecast:forecasts[message.service_data.type]}}})};
   }
   $('condition').addEventListener('change',()=>{if($('condition').value==='clear-night')$('phase').value='night';refresh();});

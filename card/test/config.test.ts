@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BLOCK_ORDERS, cardBlocks, cleanConfig, placeChecked } from '../src/config';
 import type { WeatherCardConfig } from '../src/types';
 
-const base: WeatherCardConfig = { type:'custom:niak-weather-card',weather_entity:'weather.city' };
+const base: WeatherCardConfig = { type:'custom:hestia-weather-card',weather_entity:'weather.city' };
 describe('Legacy display migration',()=>{
   it('removes compact and preserves hidden forecasts without mutating input',()=>{
     const legacy={...base,mode:'compact'};
@@ -23,7 +23,7 @@ describe('Legacy display migration',()=>{
 });
 
 describe('The cards on their own', () => {
-  const card = (extra: Partial<WeatherCardConfig>) => ({ type: 'custom:niak-weather-card', ...extra }) as WeatherCardConfig;
+  const card = (extra: Partial<WeatherCardConfig>) => ({ type: 'custom:hestia-weather-card', ...extra }) as WeatherCardConfig;
   it('show everything their format has until parts are chosen', () => {
     expect(cardBlocks(card({ format: 'wind' }))).toEqual(['now', 'chart', 'stats']);
     expect(cardBlocks(card({ format: 'air' }))).toEqual(['air_today', 'pollen_today', 'air_tomorrow', 'pollen_tomorrow']);

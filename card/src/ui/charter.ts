@@ -5,7 +5,7 @@ import { css } from 'lit';
  * Every view is built from these tokens and pieces; changing one here changes it in the tile, the unfolded tile and the full card.
  *
  * Base colours (background, texts, accent) follow the Home Assistant theme. Meaning colours (rain, wind, heat…) belong to the card,
- * so their meaning never changes from one theme to another, but a theme can still replace them with --hestia-rain-color (--niak-rain-color still works), --niak-level1-color…
+ * so their meaning never changes from one theme to another, but a theme can still replace them with --hestia-rain-color, --hestia-level1-color…
  */
 export const tokens = css`
   :host {
@@ -40,15 +40,15 @@ export const tokens = css`
 
     /* Meaning colours, « Aube » palette: OKLCH, same lightness and chroma, only the hue changes, so they always match.
        Pastel for surfaces; text in these colours uses the ink mix below, darker on light themes, lighter on dark ones. */
-    --nw-rain: var(--hestia-rain-color, var(--niak-rain-color, oklch(.8 .07 190)));
-    --nw-wind: var(--hestia-wind-color, var(--niak-wind-color, oklch(.79 .075 280)));
-    --nw-heat: var(--hestia-heat-color, var(--niak-heat-color, oklch(.83 .085 42)));
-    --nw-cold: var(--hestia-cold-color, var(--niak-cold-color, oklch(.85 .05 220)));
-    --nw-calm: var(--hestia-calm-color, var(--niak-calm-color, oklch(.83 .075 150)));
-    --nw-pressure: var(--hestia-pressure-color, var(--niak-pressure-color, oklch(.78 .07 315)));
-    --nw-level1: var(--hestia-level1-color, var(--niak-level1-color, oklch(.88 .1 96)));
-    --nw-level2: var(--hestia-level2-color, var(--niak-level2-color, oklch(.81 .105 64)));
-    --nw-level3: var(--hestia-level3-color, var(--niak-level3-color, oklch(.74 .115 18)));
+    --nw-rain: var(--hestia-rain-color, oklch(.8 .07 190));
+    --nw-wind: var(--hestia-wind-color, oklch(.79 .075 280));
+    --nw-heat: var(--hestia-heat-color, oklch(.83 .085 42));
+    --nw-cold: var(--hestia-cold-color, oklch(.85 .05 220));
+    --nw-calm: var(--hestia-calm-color, oklch(.83 .075 150));
+    --nw-pressure: var(--hestia-pressure-color, oklch(.78 .07 315));
+    --nw-level1: var(--hestia-level1-color, oklch(.88 .1 96));
+    --nw-level2: var(--hestia-level2-color, oklch(.81 .105 64));
+    --nw-level3: var(--hestia-level3-color, oklch(.74 .115 18));
     /* How much of the meaning colour goes into a coloured text: 34 % keeps even the light yellow readable (contrast 4.5:1) on its tinted pill. */
     --nw-ink: 34%;
 

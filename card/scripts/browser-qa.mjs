@@ -11,7 +11,7 @@ import { serveDemoView } from './demo-view.mjs';
 import { spawnSync } from 'node:child_process';
 
 const out = 'test-results'; mkdirSync(out, { recursive: true });
-const files = { '/': ['text/html; charset=utf-8', 'scripts/visual/harness.html'], '/card.js': ['text/javascript', '../custom_components/niak_weather/frontend/niak-weather-card.js'], '/demo-hass.js': ['text/javascript', 'demo/demo-hass.js'], '/panel.js': ['text/javascript', '../custom_components/niak_weather/frontend/panel.js'] };
+const files = { '/': ['text/html; charset=utf-8', 'scripts/visual/harness.html'], '/card.js': ['text/javascript', '../custom_components/hestia_weather/frontend/hestia-weather-card.js'], '/demo-hass.js': ['text/javascript', 'demo/demo-hass.js'], '/panel.js': ['text/javascript', '../custom_components/hestia_weather/frontend/panel.js'] };
 const icons = JSON.stringify(mdi);
 const server = createServer((req, res) => {
   const path = new URL(req.url, 'http://localhost').pathname, file = files[path];
@@ -29,7 +29,7 @@ const report = {};
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 /** Shows a scenario of demo-hass in the bench page and waits for forecasts, history and icons. */
 const show = async s => { await page.evaluate(s => window.show(s), s); await sleep(250); };
-const inCard = (fn, arg) => page.evaluate(([source, arg]) => new Function('root', 'card', 'arg', `return (${source})(root, card, arg)`)(document.querySelector('niak-weather-card').shadowRoot, document.querySelector('niak-weather-card'), arg), [fn.toString(), arg]);
+const inCard = (fn, arg) => page.evaluate(([source, arg]) => new Function('root', 'card', 'arg', `return (${source})(root, card, arg)`)(document.querySelector('hestia-weather-card').shadowRoot, document.querySelector('hestia-weather-card'), arg), [fn.toString(), arg]);
 
 try {
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
@@ -43,7 +43,7 @@ try {
       const overflow = await inCard(root => {
         const host = root.host.getBoundingClientRect();
         // The timeline draws in its own shadow root: its labels and hours are checked too.
-        const all = [...root.querySelectorAll('*'), ...[...root.querySelectorAll('niak-frise')].flatMap(f => [...f.shadowRoot.querySelectorAll('*')])];
+        const all = [...root.querySelectorAll('*'), ...[...root.querySelectorAll('hestia-frise')].flatMap(f => [...f.shadowRoot.querySelectorAll('*')])];
         return all.filter(e => { const r = e.getBoundingClientRect(); return r.width && !e.closest('.sky, dialog, .press-ring') && (r.right > host.right + 1 || r.left < host.left - 1); })
           .map(e => e.className || e.tagName).slice(0, 5);
       });
@@ -66,26 +66,26 @@ try {
   await page.evaluate(() => localStorage.clear());
   await show({ format: 'tile', width: 680, condition: 'pouring', vigilance: 'Jaune', animated: false });
   // Without a weather page of its own, a long press opens the full card over the page.
-  await page.evaluate(() => { const c = document.querySelector('niak-weather-card'), { weather_path, ...config } = c.config; c.setConfig(config); }); await sleep(50);
-  const tile = page.locator('niak-weather-card .nw-tilecard');
+  await page.evaluate(() => { const c = document.querySelector('hestia-weather-card'), { weather_path, ...config } = c.config; c.setConfig(config); }); await sleep(50);
+  const tile = page.locator('hestia-weather-card .nw-tilecard');
   const state = () => inCard(root => ({ open: root.querySelector('.nw-tilecard').classList.contains('open'), expanded: root.querySelector('.nw-tilecard').getAttribute('aria-expanded'),
     dialog: !!root.querySelector('dialog')?.open, inert: root.querySelector('.more').inert }));
   assert.deepEqual(await state(), { open: false, expanded: 'false', dialog: false, inert: true }, 'Tile starts folded');
   const folded = await inCard(root => ({ top: [...root.querySelectorAll('.meta .nw-alert')].map(a => a.textContent.replace(/\s+/g, ' ').trim()),
-    ticker: root.querySelector('niak-ticker').points.map(p => ['official' in p, p.official ?? false]) }));
+    ticker: root.querySelector('hestia-ticker').points.map(p => ['official' in p, p.official ?? false]) }));
   assert.deepEqual(folded.top, ['Vigilance jaune · Orages'], 'Folded: the official vigilance stays on top, as a compact pill');
   assert.deepEqual(folded.ticker[0], [true, false], 'Folded: what the station measures leads the scrolling bubble, in alert style');
   await tile.click({ position: { x: 120, y: 30 } }); await sleep(600);
   assert.deepEqual(await state(), { open: true, expanded: 'true', dialog: false, inert: false }, 'Tap unfolds');
   // Unfolded, the timeline takes over from the bubble: the measured alert leads the « Maintenant » label, with its halo, the vigilance rings the track.
-  const frise = await inCard(root => { const f = root.querySelector('niak-frise').shadowRoot, pin = f.querySelector('.pin');
+  const frise = await inCard(root => { const f = root.querySelector('hestia-frise').shadowRoot, pin = f.querySelector('.pin');
     return { bubble: getComputedStyle(root.querySelector('.brief > div')).opacity, first: pin.getAttribute('aria-label').split(' ; ')[0], alert: pin.classList.contains('al'),
       title: root.querySelector('.nw-events .nw-label')?.textContent, ring: !!f.querySelector('.ring'), lane: f.querySelectorAll('.seg').length > 0 }; });
   // The vigilance has its pill above: no ring on the track.
   assert.deepEqual({ ...frise, first: frise.first.startsWith('Maintenant : Forte pluie') }, { bubble: '0', first: true, alert: true, title: 'Événements', ring: false, lane: true }, 'Unfolded: the timeline');
-  assert.equal(await page.evaluate(() => Object.entries(localStorage).find(([k]) => k.startsWith('niak-weather:open:tile'))?.[1]), '1', 'Unfolded state remembered');
+  assert.equal(await page.evaluate(() => Object.entries(localStorage).find(([k]) => k.startsWith('hestia-weather:open:tile'))?.[1]), '1', 'Unfolded state remembered');
   // A tap on a label of the timeline shows its point and does not fold the tile.
-  await page.locator('niak-weather-card niak-frise .pin').last().click(); await sleep(100);
+  await page.locator('hestia-weather-card hestia-frise .pin').last().click(); await sleep(100);
   assert.equal((await state()).open, true, 'A label of the timeline does not fold the tile');
   // Long press.
   const box = await tile.boundingBox();
@@ -95,7 +95,7 @@ try {
   report.dialogScreenshot = `${out}/qa-dialog.png`; await page.screenshot({ path: report.dialogScreenshot });
   // A value opens its sensor's details, after closing the window (Home Assistant's window would be hidden under it).
   const detail = await page.evaluate(async () => {
-    const card = document.querySelector('niak-weather-card'); let id;
+    const card = document.querySelector('hestia-weather-card'); let id;
     card.addEventListener('hass-more-info', e => { id = e.detail.entityId; }, { once: true });
     card.shadowRoot.querySelector('dialog .nw-panel [data-entity]').click(); await new Promise(r => setTimeout(r, 50));
     return { id, open: !!card.shadowRoot.querySelector('dialog')?.open };
@@ -111,7 +111,7 @@ try {
   await page.keyboard.press('Escape'); await sleep(200);
   assert.equal((await state()).dialog, false, 'Escape closes it');
   // With a weather page, the long press goes there.
-  await page.evaluate(() => { const c = document.querySelector('niak-weather-card'); c.setConfig({ ...c.config, weather_path: '/meteo' }); });
+  await page.evaluate(() => { const c = document.querySelector('hestia-weather-card'); c.setConfig({ ...c.config, weather_path: '/meteo' }); });
   const went = page.evaluate(() => new Promise(r => window.addEventListener('location-changed', () => r(location.pathname), { once: true })));
   await page.mouse.move(box.x + 100, box.y + 30); await page.mouse.down(); await sleep(650); await page.mouse.up();
   assert.equal(await went, '/meteo', 'Long press opens the weather page when one is set');
@@ -127,18 +127,18 @@ try {
   await show({ format: 'full', width: 1180, animated: false });
   const sections = () => inCard(root => [...root.querySelectorAll('.fm-section')].map(s => s.classList.contains('folded')));
   assert.deepEqual(await sections(), [false, false], 'Unfolded by default');
-  await page.locator('niak-weather-card .fm-section .fm-head').first().click(); await sleep(50);
+  await page.locator('hestia-weather-card .fm-section .fm-head').first().click(); await sleep(50);
   assert.deepEqual(await sections(), [true, false], 'A tap on the title folds');
-  await page.evaluate(() => { const c = document.querySelector('niak-weather-card'); c.setConfig({ ...c.config, collapse_predictions: true }); }); await sleep(50);
+  await page.evaluate(() => { const c = document.querySelector('hestia-weather-card'); c.setConfig({ ...c.config, collapse_predictions: true }); }); await sleep(50);
   assert.deepEqual(await sections(), [false, true], 'collapse_predictions folds Prévisions at first');
-  await page.evaluate(() => { const c = document.querySelector('niak-weather-card'); c.setConfig({ ...c.config, collapse_predictions: false }); }); await sleep(50);
+  await page.evaluate(() => { const c = document.querySelector('hestia-weather-card'); c.setConfig({ ...c.config, collapse_predictions: false }); }); await sleep(50);
 
   // 6. The « i » bubbles open inside the screen, on a phone too.
   for (const width of [375, 1180]) {
     await page.setViewportSize({ width: Math.max(width + 40, 420), height: 900 });
     await show({ format: 'full', width, animated: false });
     for (const id of ['brief', 'feel']) {
-      const button = page.locator(`niak-weather-card [popovertarget$="-${id}"]`);
+      const button = page.locator(`hestia-weather-card [popovertarget$="-${id}"]`);
       await button.scrollIntoViewIfNeeded(); await button.click(); await sleep(80);
       const pop = await inCard((root, card, id) => { const p = root.querySelector(`[id$="-${id}"]`), r = p.getBoundingClientRect();
         return { open: p.matches(':popover-open'), inside: r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight, text: p.textContent.replace(/\s+/g, ' ') }; }, id);
@@ -156,9 +156,9 @@ try {
     const badges = [...root.querySelectorAll('.nw-badge')].map(b => [style(b).fontSize, style(b).paddingTop, style(b).borderTopLeftRadius].join(' '));
     const radii = [...root.querySelectorAll('.nw-panel, .nw-tile, .nw-bubble')].map(p => style(p).borderTopLeftRadius);
     const sizes = new Set([...root.querySelectorAll('.nw-full *')].filter(e => e.childNodes.length && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())).map(e => style(e).fontSize));
-    root.host.style.setProperty('--niak-rain-color', 'rgb(255, 0, 0)');
+    root.host.style.setProperty('--hestia-rain-color', 'rgb(255, 0, 0)');
     const themed = style(root.querySelector('.fc-bar, .bars i:not(.zero)')).backgroundColor;
-    root.host.style.removeProperty('--niak-rain-color');
+    root.host.style.removeProperty('--hestia-rain-color');
     return { badges: [...new Set(badges)], radii: [...new Set(radii)], sizes: [...sizes].sort(), themed };
   });
   assert.equal(charter.badges.length, 1, `One source pill style: ${charter.badges}`);
@@ -169,7 +169,7 @@ try {
 
   // 8. Two cards on one page never share their chart gradients.
   const ids = await page.evaluate(async () => {
-    const stage = document.getElementById('stage'), second = document.createElement('niak-weather-card'), first = document.querySelector('niak-weather-card');
+    const stage = document.getElementById('stage'), second = document.createElement('hestia-weather-card'), first = document.querySelector('hestia-weather-card');
     second.setConfig(first.config); second.hass = first.hass; stage.append(second); await second.updateComplete; await new Promise(r => setTimeout(r, 250));
     const all = [first, second].flatMap(c => [...c.shadowRoot.querySelectorAll('linearGradient')].map(g => g.id));
     second.remove(); return all;
@@ -181,8 +181,8 @@ try {
     if (!customElements.get('ha-form')) customElements.define('ha-form', class extends HTMLElement {});
     const names = schema => schema.flatMap(f => f.schema ? names(f.schema) : [f.name]);
     const run = async format => {
-      const e = document.createElement('niak-weather-card-editor'); document.body.append(e);
-      e.hass = document.querySelector('niak-weather-card').hass; e.setConfig({ type: 'custom:niak-weather-card', weather_entity: 'weather.demo', format });
+      const e = document.createElement('hestia-weather-card-editor'); document.body.append(e);
+      e.hass = document.querySelector('hestia-weather-card').hass; e.setConfig({ type: 'custom:hestia-weather-card', weather_entity: 'weather.demo', format });
       await e.updateComplete; await new Promise(r => setTimeout(r, 50));
       const forms = [...e.shadowRoot.querySelectorAll('ha-form')].flatMap(f => names(f.schema ?? []));
       e.remove(); return forms;
@@ -198,8 +198,8 @@ try {
   const problems = await page.evaluate(async () => {
     const stage = document.getElementById('stage'), result = {};
     for (const code of ['unknown_command', 'not_configured', 'choose_entry', 'unknown_error']) {
-      const card = document.createElement('niak-weather-card'); stage.replaceChildren(card);
-      card.setConfig({ type: 'custom:niak-weather-card' });
+      const card = document.createElement('hestia-weather-card'); stage.replaceChildren(card);
+      card.setConfig({ type: 'custom:hestia-weather-card' });
       card.hass = { states: {}, language: 'fr', locale: { language: 'fr' }, callWS: async () => ({}), connection: { subscribeMessage: () => Promise.reject({ code, message: 'Erreur de test' }) } };
       await new Promise(r => setTimeout(r, 50)); await card.updateComplete;
       const root = card.shadowRoot;
@@ -210,8 +210,8 @@ try {
   });
   assert.deepEqual(problems, {
     // Downloaded but not added, the integration is not started either: the message offers to add it first, then to install it.
-    unknown_command: ['Hestia Weather a besoin de son intégration', '/config/integrations/dashboard/add?domain=niak_weather', 'https://github.com/hestiaFB/hestia-weather-integration#installation'],
-    not_configured: ['Ajoutez l’intégration Hestia Weather', '/config/integrations/dashboard/add?domain=niak_weather'],
+    unknown_command: ['Hestia Weather a besoin de son intégration', '/config/integrations/dashboard/add?domain=hestia_weather', 'https://github.com/hestiaFB/hestia-weather-integration#installation'],
+    not_configured: ['Ajoutez l’intégration Hestia Weather', '/config/integrations/dashboard/add?domain=hestia_weather'],
     choose_entry: ['Choisissez un lieu'],
     // Any other answer is the integration's own error: shown as it is, with the way to the logs.
     unknown_error: ['L’intégration Hestia Weather a renvoyé une erreur', '/config/logs', '« Erreur de test · unknown_error »'] }, 'Messages without the integration');
@@ -242,13 +242,13 @@ try {
   for (const width of [375, 1180]) {
     await page.setViewportSize({ width, height: 1100 });
     await show({ format: 'full', width, animated: false });
-    const forecast = page.locator('niak-weather-card').locator('section[aria-label="Pollens demain"]');
+    const forecast = page.locator('hestia-weather-card').locator('section[aria-label="Pollens demain"]');
     assert.ok((await forecast.textContent()).includes('Prévision non disponible'));
     assert.ok((await forecast.textContent()).includes('Atmo France ne fournit pas d’indice pollen exploitable pour demain'));
     await forecast.locator('summary').click();
     assert.ok((await forecast.innerText()).includes('0 µg/m³'), 'Zero concentration is preserved');
     assert.ok((await forecast.innerText()).includes('peut être une valeur réelle ou remplacer une donnée manquante'));
-    const today = page.locator('niak-weather-card').locator('section[aria-label="Pollens aujourd’hui"]');
+    const today = page.locator('hestia-weather-card').locator('section[aria-label="Pollens aujourd’hui"]');
     assert.ok((await today.textContent()).includes('Très faible'));
     assert.ok(!(await today.textContent()).includes('peut être une valeur réelle'), 'Valid level and genuine zero are kept');
     const overflow = await forecast.evaluate(e => {
@@ -262,7 +262,7 @@ try {
   failedScenario.states['sensor.pollen_j_1'].state = 'unavailable';
   atmoResponse = atmoView(failedScenario);
   await show({ format: 'full', width: 1180, animated: false });
-  assert.ok(!(await page.locator('niak-weather-card').locator('section[aria-label="Pollens demain"]').textContent()).includes('Prévision non disponible'), 'Unavailable source is not presented as an Atmo code 0');
+  assert.ok(!(await page.locator('hestia-weather-card').locator('section[aria-label="Pollens demain"]').textContent()).includes('Prévision non disponible'), 'Unavailable source is not presented as an Atmo code 0');
   await page.unroute('**/demo/view');
   report.atmoMissingForecast = 'Atmo code 0, genuine zero concentrations and unavailable entities remain distinct, mobile and desktop';
 
@@ -310,7 +310,7 @@ try {
   await page.unroute('**/demo/view');
   report.kleenex = 'Current levels and dated tomorrow forecast';
 
-  const labels = spawnSync('python3', ['-c', 'import sys,json; sys.path.insert(0,"../custom_components/niak_weather"); from engine import polleninfo; print(json.dumps([{"value":p,"label":polleninfo.source_label(p),"available":True} for p in ("atmo",*polleninfo.PROVIDERS)]))'], { encoding: 'utf8' });
+  const labels = spawnSync('python3', ['-c', 'import sys,json; sys.path.insert(0,"../custom_components/hestia_weather"); from engine import polleninfo; print(json.dumps([{"value":p,"label":polleninfo.source_label(p),"available":True} for p in ("atmo",*polleninfo.PROVIDERS)]))'], { encoding: 'utf8' });
   assert.equal(labels.status, 0, labels.stderr);
   const choices = JSON.parse(labels.stdout);
   await page.evaluate(async choices => {
@@ -319,7 +319,7 @@ try {
     document.documentElement.style.setProperty('--primary-background-color', '#f1f3f6');
     const stage = document.getElementById('stage');
     stage.replaceChildren();
-    const panel = document.createElement('niak-weather-setup');
+    const panel = document.createElement('hestia-weather-setup');
     panel.places = { places: [], can_add: true };
     panel.hass = { themes: { darkMode: false }, callWS: async () => ({}) };
     panel.editing = true; panel.stage = 3;
@@ -334,12 +334,12 @@ try {
   }, choices);
   for (const width of [375, 1180]) {
     await page.setViewportSize({ width, height: 1100 });
-    await page.evaluate(width => { document.querySelector('niak-weather-setup').style.cssText = `display:block;width:${width - 48}px`; }, width);
-    const panel = page.locator('niak-weather-setup');
+    await page.evaluate(width => { document.querySelector('hestia-weather-setup').style.cssText = `display:block;width:${width - 48}px`; }, width);
+    const panel = page.locator('hestia-weather-setup');
     await panel.getByText(/Kleenex \/ Scottex \(France, Italie, Pays-Bas, Royaume-Uni, Irlande, États-Unis\)/).waitFor();
     assert.equal(await panel.locator('select').inputValue(), 'home');
     const overflow = await page.evaluate(() => {
-      const panel = document.querySelector('niak-weather-setup'), host = panel.getBoundingClientRect();
+      const panel = document.querySelector('hestia-weather-setup'), host = panel.getBoundingClientRect();
       return [...panel.shadowRoot.querySelectorAll('*')].filter(e => {
         const r = e.getBoundingClientRect();
         return r.width && (r.right > host.right + 1 || r.left < host.left - 1);

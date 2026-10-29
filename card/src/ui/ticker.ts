@@ -13,8 +13,8 @@ export type TickerItem = TickerPoint | (AlertPoint & { alert: true });
  * Shows the points one at a time, every 5 s. Hovering or focusing the card pauses it.
  * When the list changes (the tile unfolds), the bubble on screen stays if it is still in the list: nothing moves.
  */
-@define('niak-ticker')
-export class NiakTicker extends LitElement {
+@define('hestia-ticker')
+export class HestiaTicker extends LitElement {
   @property({ attribute: false }) points: TickerItem[] = [];
   @state() private index = 0;
   @state() private leaving = false;

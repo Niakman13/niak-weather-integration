@@ -7,7 +7,7 @@ import type { CardBlock } from '../types';
 import { chip, panelHead } from '../ui/parts';
 
 /** Where Blitzortung is chosen: the integration's settings. */
-const SETTINGS = '/config/integrations/integration/niak_weather';
+const SETTINGS = '/config/integrations/integration/hestia_weather';
 import { airPanel } from './air';
 import { rainComing, renderForecastCard } from './compact';
 import { comfortPanel, pressurePanel, rainPanel, windPanel } from './today';

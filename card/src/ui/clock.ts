@@ -5,8 +5,8 @@ import { define } from './define';
 import { dateFormat } from '../intl-cache';
 import { currentLocale } from '../i18n';
 
-@define('niak-clock')
-export class NiakClock extends LitElement {
+@define('hestia-clock')
+export class HestiaClock extends LitElement {
   @state() private now = new Date();
   private timer?: ReturnType<typeof setTimeout>;
 
@@ -30,4 +30,4 @@ export class NiakClock extends LitElement {
   `;
 }
 
-declare global { interface HTMLElementTagNameMap { 'niak-clock': NiakClock } }
+declare global { interface HTMLElementTagNameMap { 'hestia-clock': HestiaClock } }

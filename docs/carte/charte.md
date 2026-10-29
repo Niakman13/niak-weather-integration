@@ -10,7 +10,7 @@ Cette page s’adresse à qui veut modifier la carte. Elle explique où se déci
 | `src/ui` | **Les pièces** de la charte | `charter.ts` (jetons et pièces de base), `parts.ts` (bulles, pastilles, en-têtes de cadre, bouton « i »), `ticker.ts` (la bulle qui défile), `frise.ts` (la frise du bandeau), `weather-sky.ts` (le ciel animé). |
 | `src/views` | **Assembler** les écrans | `tile.ts` (tuile qui se déplie), `hero.ts` (bandeau de la carte complète), `today.ts`, `forecasts.ts`, `air.ts`, `full.ts` (la carte complète et ses sections repliables). |
 
-`src/niak-weather-card.ts` s’abonne à l’intégration, choisit le format et gère les gestes (appui, appui long, clavier, fenêtre complète). `src/display.ts` applique les réglages d’affichage, `src/ui/charts.ts` dessine les courbes à partir des points reçus, `src/frise.ts` prépare la frise (étiquettes, segments du ciel, heures). `src/editor` contient l’éditeur des réglages d’affichage.
+`src/hestia-weather-card.ts` s’abonne à l’intégration, choisit le format et gère les gestes (appui, appui long, clavier, fenêtre complète). `src/display.ts` applique les réglages d’affichage, `src/ui/charts.ts` dessine les courbes à partir des points reçus, `src/frise.ts` prépare la frise (étiquettes, segments du ciel, heures). `src/editor` contient l’éditeur des réglages d’affichage.
 
 Les vues ne lisent que le modèle de vue : elles ne connaissent ni les identifiants des capteurs, ni les unités à convertir, ni les noms internes du moteur. Ajouter une information, c’est l’ajouter au modèle de vue de l’intégration (`engine/view.py`, avec un test dans `tests/test_view.py`) et à `src/view.ts`, puis l’afficher avec les pièces existantes.
 
@@ -49,7 +49,7 @@ Variables disponibles : `hestia-rain-color`, `hestia-wind-color`, `hestia-heat-c
 | Étiquette en petites capitales | `.nw-label` | Partout |
 | Bulle du brief, bulle d’alerte | `.nw-bubble`, `.nw-bubble--alert` | Bulle qui défile de la tuile repliée |
 | Pastille de vigilance | `.nw-alert` avec `alertPill()` | Haut du bandeau et de la tuile |
-| Frise | `<niak-frise>` | Bandeau de la carte complète, tuile dépliée |
+| Frise | `<hestia-frise>` | Bandeau de la carte complète, tuile dépliée |
 | Pastille de source | `.nw-badge` | Un seul style pour toutes les sources |
 | Pastille d’info teintée | `.nw-chip` | Facteurs du ressenti, tendances, mesures en plus |
 | Cadre | `.nw-panel` avec `panelHead()` | Toute la carte complète |

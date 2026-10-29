@@ -10,7 +10,7 @@ import pytest
 from engine import i18n
 from engine.i18n_en import EN
 
-ROOT = Path(__file__).parent.parent / "custom_components" / "niak_weather"
+ROOT = Path(__file__).parent.parent / "custom_components" / "hestia_weather"
 
 
 def french_texts(source: str) -> set[str]:

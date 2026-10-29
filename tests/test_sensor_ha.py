@@ -11,8 +11,8 @@ except ImportError:  # pragma: no cover - the engine's own test run
     raise unittest.SkipTest("Home Assistant is not installed")
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from custom_components.niak_weather.engine import families  # noqa: E402
-from custom_components.niak_weather.sensor import OBJECT_IDS, SENSORS, NiakWeatherSensor  # noqa: E402
+from custom_components.hestia_weather.engine import families  # noqa: E402
+from custom_components.hestia_weather.sensor import OBJECT_IDS, SENSORS, HestiaWeatherSensor  # noqa: E402
 
 BULLETIN = next(d for d in SENSORS if d.key == "bulletin")
 TEXT = "Cet après-midi, pluie toute la journée (1,7 mm) ; jusqu’à 12 °C. Ce soir et cette nuit, la pluie cesse vers 19 h, puis ciel couvert."
@@ -44,7 +44,7 @@ class BulletinSensorTests(unittest.TestCase):
         self.assertEqual(OBJECT_IDS["bulletin"], "bulletin_du_jour")
         self.assertEqual(families.family_of("bulletin"), "prochaines_heures")
         self.assertIn("prochaines_heures", families.DEFAULT_FAMILIES)
-        self.assertTrue({"text", "periods"} <= NiakWeatherSensor._unrecorded_attributes)
+        self.assertTrue({"text", "periods"} <= HestiaWeatherSensor._unrecorded_attributes)
 
 
 if __name__ == "__main__":

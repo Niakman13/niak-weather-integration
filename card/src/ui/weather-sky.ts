@@ -20,8 +20,8 @@ const STRONG_WIND=40, STRONG_GUST=70;
 const BREEZE_WIND=25, BREEZE_GUST=45;
 
 /** Original vector/CSS weather scene. All artwork is bundled; no remote assets. */
-@define('niak-weather-sky')
-export class NiakWeatherSky extends LitElement {
+@define('hestia-weather-sky')
+export class HestiaWeatherSky extends LitElement {
   @property() condition='unknown';
   @property() phase='unknown';
   @property() quality:'low'|'standard'='standard';
@@ -128,7 +128,7 @@ export class NiakWeatherSky extends LitElement {
     return html`<svg class="frost-pane" viewBox="0 0 420 170" preserveAspectRatio="xMaxYMin meet" aria-hidden="true">
       <defs><radialGradient id="nw-bokeh"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
       ${bokeh.map(([x,y,r],k)=>svg`<circle class="frost-bokeh" fill="url(#nw-bokeh)" cx=${x} cy=${y} r=${r} style=${`--fd:${k*1.1}s`}/>`)}
-      ${flakes.map(([x,y,r,o,rot,d])=>svg`<g transform=${`translate(${x} ${y}) rotate(${rot})`}><path class="frost-flake" style=${`--fo:${o};--fd:${d}s;stroke-width:${Math.max(1.2,r*.11)}`} d=${NiakWeatherSky.flake(r)}/></g>`)}
+      ${flakes.map(([x,y,r,o,rot,d])=>svg`<g transform=${`translate(${x} ${y}) rotate(${rot})`}><path class="frost-flake" style=${`--fo:${o};--fd:${d}s;stroke-width:${Math.max(1.2,r*.11)}`} d=${HestiaWeatherSky.flake(r)}/></g>`)}
       ${sparks.map(([x,y],k)=>svg`<path class="frost-spark" style=${`--fd:${k*.7}s`} transform=${`translate(${x} ${y})`} d="M0 -6L1.2 -1.2L6 0L1.2 1.2L0 6L-1.2 1.2L-6 0L-1.2 -1.2Z"/>`)}
     </svg>`;
   }
@@ -138,7 +138,7 @@ export class NiakWeatherSky extends LitElement {
   }
   /** Plane-tree leaf in one of three autumn shades. */
   private static plane(k:number) {
-    return html`<svg class=${`plane plane-${k}`} viewBox="0 0 44 44"><defs>${NiakWeatherSky.planeTint(k)}</defs>
+    return html`<svg class=${`plane plane-${k}`} viewBox="0 0 44 44"><defs>${HestiaWeatherSky.planeTint(k)}</defs>
       <path class="stem" d="M22 30.5Q23 37 21 42.5"/><path class="blade" fill=${`url(#nw-plane-${k})`} d="M22 32Q14 34 8 31L4 28.5L7.5 27Q11 25.5 10 22.5L4.5 21L6.5 19.5L1 13L4.5 12.5L3 9Q8 9 10.5 12L11.5 10Q14.5 13 16 16Q15.3 11 16.8 7.6L15.4 6.2L18.8 5.3Q20.8 3.6 22 1Q23.2 3.6 25.2 5.3L28.6 6.2L27.2 7.6Q28.7 11 28 16Q29.5 13 32.5 10L33.5 12Q36 9 41 9L39.5 12.5L43 13L37.5 19.5L39.5 21L34 22.5Q33 25.5 36.5 27L40 28.5L36 31Q30 34 22 32Z"/><path class="veins" d="M22 31V4M22 31Q14 22 3.5 10M22 31Q30 22 40.5 10M22 31Q14 29 5 28.5M22 31Q30 29 39 28.5M22 19L17 13.5M22 19L27 13.5M22 12L19 8.5M22 12L25 8.5M13.5 21.5L8.5 18.5M30.5 21.5L35.5 18.5M10 17L6.5 12.5M34 17L37.5 12.5"/></svg>`;
   }
   /** Dandelion seed: a fine stem under a tuft of white rays. */
@@ -157,7 +157,7 @@ export class NiakWeatherSky extends LitElement {
     return Array.from({length:this.quality==='low'?2:count},(_,i)=>{
       const r=(k:number)=>{const v=Math.sin((i+1)*91.7+k*47.3)*24634.6345;return v-Math.floor(v);};
       const time=(3.2+r(1)*2.6)*slow, tinted=kind==='leaf'||kind==='dry';
-      const art=kind==='petal'?NiakWeatherSky.petal(i%2):kind==='plane'?NiakWeatherSky.plane(i%3):kind==='seed'?NiakWeatherSky.seed():NiakWeatherSky.leaf(kind==='dry');
+      const art=kind==='petal'?HestiaWeatherSky.petal(i%2):kind==='plane'?HestiaWeatherSky.plane(i%3):kind==='seed'?HestiaWeatherSky.seed():HestiaWeatherSky.leaf(kind==='dry');
       return html`<div class="leaf-track" style=${`--leaf-top:${(18+r(2)*62).toFixed(0)}%;--leaf-delay:${(-r(3)*time).toFixed(2)}s;--leaf-time:${time.toFixed(2)}s`}><div class="leaf-bob" style=${`--bob:${((.7+r(4)*.9)*slow).toFixed(2)}s;--lamp:${((6+r(5)*14)*slow).toFixed(0)}px;--bd:${(-r(6)*1.5).toFixed(2)}s`}><div class=${`leaf k-${kind}`} style=${`--spin:${((.9+r(7)*1.4)*spin).toFixed(2)}s;--ls:${(.7+r(8)*.55).toFixed(2)};--lh:${tinted?((r(9)-.5)*50).toFixed(0):0}deg;--dir:${r(10)<.5?'normal':'reverse'}`}>${art}</div></div></div>`;
     });
   }
@@ -176,9 +176,9 @@ export class NiakWeatherSky extends LitElement {
     // Storms and a steady breeze carry leaves and petals faster.
     const gusty=storm||this.wind>=30||this.gust>=BREEZE_GUST;
     const drift=(count:number,art:(i:number)=>unknown)=>Array.from({length:few?2:count},(_,i)=>html`<div class=${`drift${gusty?' drift--gusty':''}`} style=${`--dx:${46+(i*23)%50}%;--dt:${(gusty?5:11)+(i*7)%(gusty?4:7)}s;--dd:${-(i*3.1)%11}s;--rest:${12+(i*29)%70}%;--sw:${2.6+(i%3)*.5}s`}><i>${art(i)}</i></div>`);
-    if(this.season==='spring'&&!precip&&!storm&&!fog) return drift(6,i=>NiakWeatherSky.petal(i%2));
+    if(this.season==='spring'&&!precip&&!storm&&!fog) return drift(6,i=>HestiaWeatherSky.petal(i%2));
     // Autumn leaves fall in rain and storms too; only snow and hail hide them.
-    if(this.season==='autumn'&&!['snowy','snowy-rainy','hail'].includes(this.condition)) return drift(5,i=>NiakWeatherSky.plane(i%3));
+    if(this.season==='autumn'&&!['snowy','snowy-rainy','hail'].includes(this.condition)) return drift(5,i=>HestiaWeatherSky.plane(i%3));
     if(this.season==='summer'&&this.phase==='day'&&['sunny','partlycloudy'].includes(this.condition)) return html`<div class="heat">${Array.from({length:few?3:7},(_,i)=>html`<div class="heat-plume" style=${`--hx:${47+(i*13)%46}%;--hh:${70+(i*17)%45}px;--hd:${-(i*.9)%4.2}s;--hs:${1.6+(i%3)*.35}s`}><svg viewBox="0 0 24 120" preserveAspectRatio="none"><defs><linearGradient id=${`nw-heat-${i}`} x1="0" y1="1" x2="0" y2="0"><stop offset="0" class="heat-stop" stop-opacity="0"/><stop offset=".35" class="heat-stop" stop-opacity=".6"/><stop offset="1" class="heat-stop" stop-opacity="0"/></linearGradient></defs><path stroke=${`url(#nw-heat-${i})`} d="M12 120C4 104 20 92 12 76S4 48 12 32S20 10 12 0"/></svg></div>`)}</div>`;
     if(this.season==='winter') return this.frostPane();
     return nothing;

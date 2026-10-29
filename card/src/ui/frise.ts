@@ -17,8 +17,8 @@ const GAP = 6, EDGE = 10;
 const tone = (i: FriseItem) => `--tone:var(--nw-${i.theme ?? (i.alert ? `level${i.alert}` : 'calm')})`;
 const stop = (e: Event) => e.stopPropagation();
 
-@define('niak-frise')
-export class NiakFrise extends LitElement {
+@define('hestia-frise')
+export class HestiaFrise extends LitElement {
   @property({ attribute: false }) points: TickerPoint[] = [];
   @property({ attribute: false }) alerts: AlertPoint[] = [];
   @property({ attribute: false }) hours: Slot[] = [];
@@ -235,4 +235,4 @@ export class NiakFrise extends LitElement {
   `;
 }
 
-declare global { interface HTMLElementTagNameMap { 'niak-frise': NiakFrise } }
+declare global { interface HTMLElementTagNameMap { 'hestia-frise': HestiaFrise } }

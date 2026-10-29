@@ -14,13 +14,13 @@ except ImportError:  # pragma: no cover - the engine's own test run
     raise unittest.SkipTest("Home Assistant is not installed")
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from custom_components.niak_weather import socle  # noqa: E402
-from custom_components.niak_weather import draft as draft_module  # noqa: E402
-from custom_components.niak_weather.draft import Draft  # noqa: E402
-from custom_components.niak_weather.panel import weather_status  # noqa: E402
-from custom_components.niak_weather.engine.families import needs  # noqa: E402
-from custom_components.niak_weather.engine.settings import Settings  # noqa: E402
-from custom_components.niak_weather.engine.i18n import speaking  # noqa: E402
+from custom_components.hestia_weather import socle  # noqa: E402
+from custom_components.hestia_weather import draft as draft_module  # noqa: E402
+from custom_components.hestia_weather.draft import Draft  # noqa: E402
+from custom_components.hestia_weather.panel import weather_status  # noqa: E402
+from custom_components.hestia_weather.engine.families import needs  # noqa: E402
+from custom_components.hestia_weather.engine.settings import Settings  # noqa: E402
+from custom_components.hestia_weather.engine.i18n import speaking  # noqa: E402
 
 STATION = {
     "sensor.gw2000a_outdoor_temperature": ("14.2", {"unit_of_measurement": "°C", "device_class": "temperature"}),
@@ -55,7 +55,7 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
         from datetime import timedelta
         from homeassistant.config_entries import ConfigEntryState
         from homeassistant.util import dt as dt_util
-        from custom_components.niak_weather.panel import facts, place
+        from custom_components.hestia_weather.panel import facts, place
         now = dt_util.utcnow()
         coordinator = SimpleNamespace(forecast_at=now-timedelta(minutes=4), hours=[1, 2, 3], days=[1, 2],
                                       data=SimpleNamespace(computed=now), history={"sensor.t": [1]},
@@ -73,7 +73,7 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(pending.forecast_hours)  # retained arrays are not a received forecast after startup
 
     async def test_meteo_france_installation_and_saved_sources_are_distinct(self):
-        from custom_components.niak_weather.extensions import inventory
+        from custom_components.hestia_weather.extensions import inventory
         registry = er.async_get(self.hass)
         def meteo(options):
             return next(e for e in inventory(self.hass, options) if e["id"] == "meteo_france")
@@ -92,7 +92,7 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_extensions_distinguish_saved_selection_from_detection(self):
         from types import SimpleNamespace
-        from custom_components.niak_weather.extensions import inventory
+        from custom_components.hestia_weather.extensions import inventory
         registry = er.async_get(self.hass)
         e = registry.async_get_or_create("sensor", "blitzortung", "home-distance", translation_key="distance")
         self.hass.states.async_set(e.entity_id, "unknown", {"unit_of_measurement": "km"})
@@ -109,7 +109,7 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(proposed["blitzortung"]["configured"])
 
     async def test_atmo_reports_air_and_pollen_selection_independently(self):
-        from custom_components.niak_weather.extensions import inventory
+        from custom_components.hestia_weather.extensions import inventory
         extensions = inventory(self.hass, {"air_source": "atmo", "atmo_air_entity": "sensor.air", "pollen_source": "none"})
         atmo = next(x for x in extensions if x["id"] == "atmo")
         self.assertTrue(atmo["air_configured"])
@@ -117,7 +117,7 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_hacs_download_counts_as_installed_before_an_integration_is_added(self):
         from types import SimpleNamespace
-        from custom_components.niak_weather.extensions import inventory
+        from custom_components.hestia_weather.extensions import inventory
         self.hass.data["hacs"] = SimpleNamespace(repositories=SimpleNamespace(get_by_full_name=lambda repo:
             SimpleNamespace(data=SimpleNamespace(installed=True)) if repo == "kamaradclimber/vigieau" else None))
         extensions = {x["id"]: x for x in inventory(self.hass, {})}
@@ -207,7 +207,7 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([p["id"] for p in draft.sources["pollens"]], [bern])
 
     async def test_swiss_pollen_single_station_is_proposed_and_settings_keep_diagnostics(self):
-        from custom_components.niak_weather.engine.settings import Settings
+        from custom_components.hestia_weather.engine.settings import Settings
         bas, health = self.swiss_pollen()
         draft = Draft.start(self.hass, None)
         self.assertEqual(draft.view()["pollen"]["station"], "BAS")
@@ -218,10 +218,10 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(draft.view()["pollen"]["value"], "none")
 
     async def test_swiss_pollen_in_the_existing_configuration_assistant(self):
-        from custom_components.niak_weather.config_flow import NiakWeatherConfigFlow
+        from custom_components.hestia_weather.config_flow import HestiaWeatherConfigFlow
         bas, health = self.swiss_pollen()
         self.swiss_pollen(station="BER")
-        flow = NiakWeatherConfigFlow()
+        flow = HestiaWeatherConfigFlow()
         flow.hass = self.hass
         flow.sources = {"weather_entity": "weather.maison"}
         form = await flow.async_step_pollen({"pollen_source": "swiss_pollen"})
@@ -233,14 +233,14 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(flow.sources["pollens"][0]["station_state_entity"], health)
 
     async def test_swissweather_is_proposed_in_the_panel_and_the_assistant(self):
-        from custom_components.niak_weather.config_flow import NiakWeatherConfigFlow
+        from custom_components.hestia_weather.config_flow import HestiaWeatherConfigFlow
         registry = er.async_get(self.hass)
         warning = registry.async_get_or_create("sensor", "swissweather", "2829.warnings")
         self.hass.states.async_set(warning.entity_id, "0", {"warning_types": [], "warning_levels_numeric": []})
         draft = Draft.start(self.hass, None)
         field = next(f for f in draft.view()["prevision"]["fields"] if f["key"] == "vigilance_entity")
         self.assertIn(warning.entity_id, [e["id"] for e in field["options"]])
-        flow = NiakWeatherConfigFlow()
+        flow = HestiaWeatherConfigFlow()
         flow.hass = self.hass
         flow.sources = {"weather_entity": "weather.maison"}
         form = await flow.async_step_weather()
@@ -293,9 +293,9 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(draft.change({"op": "pollens", "value": [home["trees"]]}))
 
     async def test_kleenex_is_available_in_the_existing_assistant(self):
-        from custom_components.niak_weather.config_flow import NiakWeatherConfigFlow
+        from custom_components.hestia_weather.config_flow import HestiaWeatherConfigFlow
         ids = self.kleenex_pollen()
-        flow = NiakWeatherConfigFlow()
+        flow = HestiaWeatherConfigFlow()
         flow.hass = self.hass
         flow.sources = {"weather_entity": "weather.maison"}
         result = await flow.async_step_pollen({"pollen_source": "kleenex_pollenradar"})
@@ -342,14 +342,14 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(draft.view()["summary"]["air"], "Atmo France · CC Sud Retz Atlantique")
 
     async def test_assistant_always_offers_a_separate_pollen_zone(self):
-        from custom_components.niak_weather.config_flow import NiakWeatherConfigFlow, _clean
+        from custom_components.hestia_weather.config_flow import HestiaWeatherConfigFlow, _clean
         for entity, name, zone, kind in (
             ("sensor.atmo_air", "Qualité globale", "CC Sud Retz Atlantique", "EPCI"),
             ("sensor.atmo_pollen", "Qualité globale Pollen", "Legé", "commune"),
         ):
             self.hass.states.async_set(entity, "2", {"friendly_name": name, "attribution": "Atmo France",
                                                    "Nom de la zone": zone, "Type de zone": kind})
-        flow = NiakWeatherConfigFlow()
+        flow = HestiaWeatherConfigFlow()
         flow.hass = self.hass
         flow.sources = {"weather_entity": "weather.maison", "atmo_area": "zone:epci:cc sud retz atlantique",
                         "air_source": "atmo"}
@@ -369,10 +369,10 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_a_place_is_removed_from_the_panel_and_only_a_place(self):
         from homeassistant.config_entries import ConfigEntry
-        from custom_components.niak_weather.panel import ws_remove
-        place = ConfigEntry(domain="niak_weather", title="Maison", unique_id="maison", version=1, minor_version=1, source="user",
+        from custom_components.hestia_weather.panel import ws_remove
+        place = ConfigEntry(domain="hestia_weather", title="Maison", unique_id="maison", version=1, minor_version=1, source="user",
                             data={}, options={"weather_entity": "weather.maison"}, discovery_keys={}, subentries_data=[])
-        other = ConfigEntry(domain="niak_comfort", title="Salon", unique_id="salon", version=1, minor_version=1, source="user",
+        other = ConfigEntry(domain="hestia_comfort", title="Salon", unique_id="salon", version=1, minor_version=1, source="user",
                             data={}, options={}, discovery_keys={}, subentries_data=[])
         for entry in (place, other):
             self.hass.config_entries._entries[entry.entry_id] = entry
@@ -396,14 +396,14 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
         from types import SimpleNamespace
         from unittest.mock import patch
         from homeassistant.config_entries import ConfigEntryState
-        from custom_components.niak_weather.engine.health import Facts
-        from custom_components.niak_weather.engine.home import status
-        from custom_components.niak_weather.engine.families import STATION_DEPENDENT
-        from custom_components.niak_weather.panel import place
+        from custom_components.hestia_weather.engine.health import Facts
+        from custom_components.hestia_weather.engine.home import status
+        from custom_components.hestia_weather.engine.families import STATION_DEPENDENT
+        from custom_components.hestia_weather.panel import place
         f = Facts(title='Gardanne', weather='Météo-France', forecast_age=5,
                   entities=tuple((k, k, 'Maintenant', True, False) for k in STATION_DEPENDENT),
                   needs={k: 'un capteur facultatif' for k in STATION_DEPENDENT})
-        with patch('custom_components.niak_weather.panel.facts', return_value=f):
+        with patch('custom_components.hestia_weather.panel.facts', return_value=f):
             info, overview = place(self.hass, SimpleNamespace(entry_id='test', title='Gardanne', state=ConfigEntryState.LOADED, options={}))
         self.assertEqual(info['health']['level'], 'ok')
         self.assertEqual(status([overview])['level'], 'ok')
@@ -412,9 +412,9 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
     async def test_entity_settings_describe_station_sources_as_optional(self):
         from types import SimpleNamespace
         from unittest.mock import patch
-        from custom_components.niak_weather.engine.families import STATION_DEPENDENT
+        from custom_components.hestia_weather.engine.families import STATION_DEPENDENT
         draft = Draft(self.hass, {'weather_entity':'weather.maison'}, SimpleNamespace())
-        with patch('custom_components.niak_weather.draft.entity_keys', return_value={k:True for k in STATION_DEPENDENT}):
+        with patch('custom_components.hestia_weather.draft.entity_keys', return_value={k:True for k in STATION_DEPENDENT}):
             entities = [e for f in draft.entities()['families'] for e in f['entities']]
             self.assertEqual(draft.needs(), [])
         self.assertTrue(entities)
@@ -424,10 +424,10 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
         async def ok(hass):
             return {"level": "ok", "summary": "", "details": [], "links": []}
         base = {"version": "1", "icon": "mdi:x", "module_url": "/x.js", "status": ok}
-        await socle.async_register_brick(self.hass, {**base, "domain": "niak_comfort", "name": "Hestia Confort", "slug": "confort",
-                                                     "element": "niak-comfort-setup", "legacy_path": None}, "/c/niak-socle.js")
-        await socle.async_register_brick(self.hass, {**base, "domain": "niak_weather", "name": "Hestia Weather", "slug": "meteo",
-                                                     "element": "niak-weather-setup", "status": weather_status, "legacy_path": ""}, "/w/niak-socle.js")
+        await socle.async_register_brick(self.hass, {**base, "domain": "hestia_comfort", "name": "Hestia Confort", "slug": "confort",
+                                                     "element": "hestia-comfort-setup", "legacy_path": None}, "/c/hestia-socle.js")
+        await socle.async_register_brick(self.hass, {**base, "domain": "hestia_weather", "name": "Hestia Weather", "slug": "meteo",
+                                                     "element": "hestia-weather-setup", "status": weather_status, "legacy_path": ""}, "/w/hestia-socle.js")
         overview = await socle.async_overview(self.hass)
         self.assertEqual([b["slug"] for b in overview["bricks"]], ["meteo", "confort"])
         self.assertEqual(overview["others"], [])
@@ -513,25 +513,25 @@ class OfficialLinkTests(unittest.IsolatedAsyncioTestCase):
     asyncSetUp = PanelTests.asyncSetUp
     asyncTearDown = PanelTests.asyncTearDown
 
-    async def test_niak_confort_link_is_read_and_set_through_its_interface(self):
+    async def test_hestia_confort_link_is_read_and_set_through_its_interface(self):
         """One link for both bricks: Hestia Confort keeps it, Weather's switch changes it there and reads it back."""
-        from custom_components.niak_weather.extensions import official, set_official
+        from custom_components.hestia_weather.extensions import official, set_official
         self.assertEqual(official(self.hass, "nw1")[0]["installed"], False)
         class Comfort:
             version = 1
             chosen = None
             def weather(self): return self.chosen
             async def set_weather(self, entry_id): self.chosen = entry_id; return entry_id
-        comfort = self.hass.data["niak_comfort_api"] = Comfort()
+        comfort = self.hass.data["hestia_comfort_api"] = Comfort()
         first = official(self.hass, "nw1")[0]
         self.assertEqual((first["installed"], first["linked"], first["switchable"]), (True, False, True))
-        await set_official(self.hass, "niak_comfort", "nw1", True)
+        await set_official(self.hass, "hestia_comfort", "nw1", True)
         self.assertTrue(official(self.hass, "nw1")[0]["linked"])
-        await set_official(self.hass, "niak_comfort", "nw2", False)  # another place cannot cut this one's link
+        await set_official(self.hass, "hestia_comfort", "nw2", False)  # another place cannot cut this one's link
         self.assertEqual(comfort.chosen, "nw1")
         comfort.chosen = None  # turned off in Confort's own settings
         self.assertFalse(official(self.hass, "nw1")[0]["linked"])
         del Comfort.set_weather  # an older Hestia Confort: shown, but not switchable from here
         self.assertFalse(official(self.hass, "nw1")[0]["switchable"])
         with self.assertRaises(ValueError):
-            await set_official(self.hass, "niak_comfort", "nw1", True)
+            await set_official(self.hass, "hestia_comfort", "nw1", True)

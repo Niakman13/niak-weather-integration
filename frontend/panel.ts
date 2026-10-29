@@ -16,10 +16,10 @@ const sections=[{stage:0,label:fr('Sources météo'),icon:'weather'},{stage:1,la
 const repository='https://github.com/hestiaFB/hestia-weather-integration';
 const sectionStage=(section:string)=>categories.indexOf(section);
 // The same words and colours as Hestia Confort's general settings: blue when used, orange when something is to do.
-const extIcon:Record<string,string>={niak_comfort:'home',meteo_france:'weather',atmo:'air',waqi:'air',vigieau:'pollen',blitzortung:'weather',polleninformation:'pollen',irm_kmi:'pollen',swiss_pollen:'pollen',kleenex_pollenradar:'pollen'};
+const extIcon:Record<string,string>={hestia_comfort:'home',meteo_france:'weather',atmo:'air',waqi:'air',vigieau:'pollen',blitzortung:'weather',polleninformation:'pollen',irm_kmi:'pollen',swiss_pollen:'pollen',kleenex_pollenradar:'pollen'};
 const hacsUrl=(url:string)=>{const [owner,repository]=url.replace('https://github.com/','').split('/');return `https://my.home-assistant.io/redirect/hacs_repository/?owner=${owner}&repository=${repository}&category=integration`;};
 
-@customElement('niak-weather-setup')
+@customElement('hestia-weather-setup')
 export class WeatherSetup extends LitElement {
  static styles=[unsafeCSS(styles),hubStyles,modernStyles,pageStyles];
  @property({attribute:false}) hass?:Hass;
@@ -74,7 +74,7 @@ export class WeatherSetup extends LitElement {
  private message(e:unknown){return typeof e==='object'&&e&&'message' in e?String((e as {message:unknown}).message):t('Home Assistant ne répond pas. Réessayez.');}
  private async load(){
   this.busy=true;
-  try{this.places=await this.ws<Places>({type:'niak_weather/panel/places'});this.error='';await this.followRoute();}
+  try{this.places=await this.ws<Places>({type:'hestia_weather/panel/places'});this.error='';await this.followRoute();}
   catch(e){this.error=this.message(e);}
   finally{this.busy=false;}
   // A place restarting after a save: look again in a moment, a few times at most.
@@ -109,7 +109,7 @@ export class WeatherSetup extends LitElement {
   const generation=this.routeGeneration;
   this.busy=true;this.error='';this.saved='';
   try{
-   const reply=await this.ws<DraftReply&{saved:Sources|null}>({type:'niak_weather/panel/open',...(entryId?{entry_id:entryId}:{})});
+   const reply=await this.ws<DraftReply&{saved:Sources|null}>({type:'hestia_weather/panel/open',...(entryId?{entry_id:entryId}:{})});
    if(generation!==this.routeGeneration)return;
    this.placeTitle=this.places?.places.find(p=>p.entry_id===entryId)?.title??'';
    this.entryId=entryId;this.draft=reply.draft;this.view=reply.view;this.stage=stage;this.editing=true;this.touched=new Set();
@@ -127,7 +127,7 @@ export class WeatherSetup extends LitElement {
   const generation=++this.generation,owner=this.entryId??'nouveau';this.busy=true;this.error='';
   if(change.key)this.touched.add(change.key);
   try{
-   const reply=await this.ws<DraftReply>({type:'niak_weather/panel/change',draft:this.draft,change,...(this.entryId?{entry_id:this.entryId}:{})});
+   const reply=await this.ws<DraftReply>({type:'hestia_weather/panel/change',draft:this.draft,change,...(this.entryId?{entry_id:this.entryId}:{})});
    if(!this.editing||(this.entryId??'nouveau')!==owner){const cached=this.drafts.get(owner);if(cached)this.drafts.set(owner,{...cached,draft:reply.draft,view:reply.view,error:reply.error});return;}
    if(generation!==this.generation)return;
    this.draft=reply.draft;this.view=reply.view;this.error=reply.error;
@@ -139,7 +139,7 @@ export class WeatherSetup extends LitElement {
   if(!this.draft)return;
   const generation=this.routeGeneration;this.busy=true;this.error='';
   try{
-   await this.ws({type:'niak_weather/panel/save',draft:this.draft,...(this.entryId?{entry_id:this.entryId,enabled:this.enabled}:{})});
+   await this.ws({type:'hestia_weather/panel/save',draft:this.draft,...(this.entryId?{entry_id:this.entryId,enabled:this.enabled}:{})});
    if(generation!==this.routeGeneration){this.places=undefined;return;}
    const title=this.view?.title??'',created=!this.entryId;
    this.close();
@@ -153,7 +153,7 @@ export class WeatherSetup extends LitElement {
  private async removePlace(){
   if(!this.entryId)return;const title=this.placeTitle||this.view?.title||'';
   this.busy=true;this.error='';
-  try{await this.ws({type:'niak_weather/panel/remove',entry_id:this.entryId});this.confirmRemove=false;this.close();this.saved=t('« {name} » est supprimé. Les capteurs de votre station n’ont pas été touchés.',{name:title});this.places=undefined;}
+  try{await this.ws({type:'hestia_weather/panel/remove',entry_id:this.entryId});this.confirmRemove=false;this.close();this.saved=t('« {name} » est supprimé. Les capteurs de votre station n’ont pas été touchés.',{name:title});this.places=undefined;}
   catch(e){this.error=this.message(e);}finally{this.busy=false;}
  }
  private close(){this.confirmRemove=false;this.drafts.delete(this.entryId??'nouveau');this.path('reglages');this.editing=false;this.draft=undefined;this.view=undefined;this.confirmLeave=false;this.error='';void this.updateComplete.then(()=>{this.top();});}
@@ -271,7 +271,7 @@ export class WeatherSetup extends LitElement {
  private async loadExtensions(){
   const places=this.places?.places??[],views=new Map<string,{draft:Sources;view:View;enabled:string[]}>();
   this.busy=true;
-  try{for(const p of places){const reply=await this.ws<DraftReply>({type:'niak_weather/panel/open',entry_id:p.entry_id});views.set(p.entry_id,{draft:reply.draft,view:reply.view,enabled:enabledKeys(reply.view)});}
+  try{for(const p of places){const reply=await this.ws<DraftReply>({type:'hestia_weather/panel/open',entry_id:p.entry_id});views.set(p.entry_id,{draft:reply.draft,view:reply.view,enabled:enabledKeys(reply.view)});}
    this.extViews=views;this.error='';}
   catch(e){this.error=this.message(e);}finally{this.busy=false;}
  }
@@ -280,8 +280,8 @@ export class WeatherSetup extends LitElement {
   const current=this.extViews.get(entryId);if(!current)return;
   this.busy=true;this.error='';this.saved='';
   try{let draft=current.draft,view=current.view;
-   for(const change of changes){const reply=await this.ws<DraftReply>({type:'niak_weather/panel/change',draft,change,entry_id:entryId});if(reply.error)throw new Error(reply.error);draft=reply.draft;view=reply.view;}
-   await this.ws({type:'niak_weather/panel/save',draft,entry_id:entryId,enabled:current.enabled});
+   for(const change of changes){const reply=await this.ws<DraftReply>({type:'hestia_weather/panel/change',draft,change,entry_id:entryId});if(reply.error)throw new Error(reply.error);draft=reply.draft;view=reply.view;}
+   await this.ws({type:'hestia_weather/panel/save',draft,entry_id:entryId,enabled:current.enabled});
    this.extViews=new Map(this.extViews).set(entryId,{draft,view,enabled:current.enabled});
    this.saved=t('Enregistré : « {name} » redémarre avec ce changement.',{name:view.title});}
   catch(e){this.error=this.message(e);}finally{this.busy=false;}
@@ -289,7 +289,7 @@ export class WeatherSetup extends LitElement {
  /** Links a place to a Hestia brick or unlinks it: the brick saves it, then both pages read it back. */
  private async link(entryId:string,brick:string,enabled:boolean){
   this.busy=true;this.error='';
-  try{const reply=await this.ws<{official:Official[]}>({type:'niak_weather/panel/link',entry_id:entryId,brick,enabled});
+  try{const reply=await this.ws<{official:Official[]}>({type:'hestia_weather/panel/link',entry_id:entryId,brick,enabled});
    const p=this.places?.places.find(x=>x.entry_id===entryId);if(p)p.official=reply.official;
    const v=this.extViews.get(entryId);if(v)this.extViews=new Map(this.extViews).set(entryId,{...v,view:{...v.view,official:reply.official}});}
   catch(e){this.error=this.message(e);}finally{this.busy=false;}
@@ -369,7 +369,7 @@ export class WeatherSetup extends LitElement {
    ${itemsFrame({title:t('Vos lieux'),items:p.places.map(x=>({name:x.title,detail:this.placeDetail(x),pill:{text:this.placeState(x),level:this.placeLevel(x)}}))})}
    ${p.places.map(x=>this.place(x,p.places.length>1))}
    ${extensionsFrame(this.extensionRows(),{label:t('Gérer les extensions'),onClick:()=>this.path('extensions')})}
-   ${versionsFrame([[t('Intégration'),version],[t('Carte'),version],['API',tech?`niak_weather_api v${tech.interface_version}`:t('Version non reçue')],[t('Liaisons'),tech?.links.length?tech.links.join(' · '):t('Aucune brique reliée')]],repository,'niak_weather')}
+   ${versionsFrame([[t('Intégration'),version],[t('Carte'),version],['API',tech?`hestia_weather_api v${tech.interface_version}`:t('Version non reçue')],[t('Liaisons'),tech?.links.length?tech.links.join(' · '):t('Aucune brique reliée')]],repository,'hestia_weather')}
   </main>`;
  }
  /** Each extension in one word, over every place: used by one at least, installed only, or not installed. */
@@ -417,16 +417,16 @@ export class WeatherSetup extends LitElement {
  }
  // ---- Renaming the entities « hestia_weather » (migration.py): a preview first, nothing changes before « Renommer » ----
  private async readRename(){
-  try{this.rename=await this.ws<RenamePreview>({type:'niak_weather/rename/preview'});}
+  try{this.rename=await this.ws<RenamePreview>({type:'hestia_weather/rename/preview'});}
   catch{this.rename=undefined;}  // An older Hestia Weather, or Home Assistant busy: the frame does not show.
  }
- private async runRename(type:'niak_weather/rename/apply'|'niak_weather/rename/undo'){
+ private async runRename(type:'hestia_weather/rename/apply'|'hestia_weather/rename/undo'){
   if(this.busy)return;
   this.busy=true;this.error='';this.renameDone=[];
   try{
    const reply=await this.ws<RenameReply>({type}),d=reply.done;
    this.rename=reply.preview;this.renameShown=false;this.renameAsk=false;
-   this.renameDone=type==='niak_weather/rename/undo'?[t('Vos entités ont repris l’ancien nom « niak_weather ».')]:[
+   this.renameDone=type==='hestia_weather/rename/undo'?[t('Vos entités ont repris l’ancien nom « {old} ».',{old:reply.preview.old})]:[
     d.entities>1?t('{n} entités renommées.',{n:d.entities}):t('{n} entité renommée.',{n:d.entities}),
     ...(d.files?[t('Automatisations, scripts et scènes mis à jour.')]:[]),
     ...(d.dashboards?[d.dashboards>1?t('{n} tableaux de bord mis à jour.',{n:d.dashboards}):t('{n} tableau de bord mis à jour.',{n:d.dashboards})]:[]),
@@ -445,12 +445,12 @@ export class WeatherSetup extends LitElement {
   if(!r.entities.length){
    const when=r.renamed_at?new Date(r.renamed_at).toLocaleDateString(this.hass?.language):'';
    return frame(t('Nom des entités'),html`${done}<p>${t('Vos entités portent le nom « hestia_weather ».')}</p>${when?html`<p class="hint">${t('Renommées le {date}.',{date:when})}</p>`:nothing}
-    ${this.renameAsk?html`<div class="notice" role="alertdialog"><p>${t('Revenir à l’ancien nom « niak_weather » ?')}</p><p class="hint">${t('Les automatisations et tableaux de bord mis à jour reviennent aussi.')}</p>
-     <div class="actions"><button @click=${()=>{this.renameAsk=false;}}>${t('Garder « hestia_weather »')}</button><button class="primary" ?disabled=${this.busy} @click=${()=>void this.runRename('niak_weather/rename/undo')}>${t('Revenir à l’ancien nom')}</button></div></div>`
+    ${this.renameAsk?html`<div class="notice" role="alertdialog"><p>${t('Revenir à l’ancien nom « {old} » ?',{old:r.old})}</p><p class="hint">${t('Les automatisations et tableaux de bord mis à jour reviennent aussi.')}</p>
+     <div class="actions"><button @click=${()=>{this.renameAsk=false;}}>${t('Garder « hestia_weather »')}</button><button class="primary" ?disabled=${this.busy} @click=${()=>void this.runRename('hestia_weather/rename/undo')}>${t('Revenir à l’ancien nom')}</button></div></div>`
     :html`<button class="link" ?disabled=${this.busy} @click=${()=>{this.renameAsk=true;}}>${t('Revenir à l’ancien nom')}</button>`}`);
   }
   const n=r.entities.length;
-  const intro=html`${done}<p>${t('Vos entités portent encore l’ancien nom « niak_weather ».')}</p><p>${t('Vous pouvez les renommer en « hestia_weather ».')}</p><p class="hint">${t('Rien ne change tant que vous ne validez pas.')}</p>`;
+  const intro=html`${done}<p>${t('Vos entités portent encore l’ancien nom « {old} ».',{old:r.old})}</p><p>${t('Vous pouvez les renommer en « hestia_weather ».')}</p><p class="hint">${t('Rien ne change tant que vous ne validez pas.')}</p>`;
   if(!this.renameShown)return frame(t('Nom des entités'),html`${intro}<button ?disabled=${this.busy} @click=${()=>{this.renameShown=true;}}>${t('Voir ce qui change')}</button>`);
   return frame(t('Nom des entités'),html`${intro}
    <h3>${n>1?t('{n} entités renommées',{n}):t('{n} entité renommée',{n})}</h3>
@@ -463,7 +463,7 @@ export class WeatherSetup extends LitElement {
    <p class="hint">${t('Hors de Home Assistant (Node-RED, applications…), changez les noms vous-même.')}</p>
    <p class="warn">${t('Faites une sauvegarde de Home Assistant avant.')}</p>
    <div class="actions"><button @click=${()=>{this.renameShown=false;}}>${t('Annuler')}</button>
-    <button class="primary" ?disabled=${this.busy} @click=${()=>void this.runRename('niak_weather/rename/apply')}>${t('Renommer')}</button></div>`);
+    <button class="primary" ?disabled=${this.busy} @click=${()=>void this.runRename('hestia_weather/rename/apply')}>${t('Renommer')}</button></div>`);
  }
  private editor(){
   const v=this.view!;

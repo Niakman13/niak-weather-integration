@@ -58,7 +58,7 @@
     document.documentElement.classList.toggle('dark',$('theme').value==='dark');document.body.classList.toggle('phone',$('width').value==='phone');
     const scenario={condition,phase,vigilance:$('vigilance').value||undefined,season:'autumn',station:$('station').value==='yes',animated:$('motion').checked};
     for(const slot of slots){
-      const card=document.createElement('niak-weather-card');slot.replaceChildren(card);
+      const card=document.createElement('hestia-weather-card');slot.replaceChildren(card);
       const config={...scenarioConfig({...scenario,format:slot.dataset.format})};delete config.weather_path;
       card.setConfig(config);card.hass=scenarioHass(scenario);
     }

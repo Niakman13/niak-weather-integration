@@ -9,9 +9,9 @@ try:
 except ImportError:
     raise unittest.SkipTest('Home Assistant is not installed')
 
-from custom_components.niak_weather.coordinator import NiakWeatherCoordinator
-from custom_components.niak_weather.engine.series import weather_history_key
-from custom_components.niak_weather.engine.settings import Settings
+from custom_components.hestia_weather.coordinator import HestiaWeatherCoordinator
+from custom_components.hestia_weather.engine.series import weather_history_key
+from custom_components.hestia_weather.engine.settings import Settings
 
 
 class WeatherHistoryTests(unittest.IsolatedAsyncioTestCase):
@@ -24,9 +24,9 @@ class WeatherHistoryTests(unittest.IsolatedAsyncioTestCase):
             return job()
         recorder = SimpleNamespace(async_add_executor_job=AsyncMock(side_effect=execute))
         subject = SimpleNamespace(hass=object(), settings=Settings(weather_entity='weather.home'))
-        with patch('custom_components.niak_weather.place.recorder.get_instance', return_value=recorder), \
-             patch('custom_components.niak_weather.place.recorder.history.get_significant_states', return_value={'weather.home': rows}) as query:
-            result = await NiakWeatherCoordinator._states_during(subject, now - timedelta(hours=6), ['weather.home'])
+        with patch('custom_components.hestia_weather.place.recorder.get_instance', return_value=recorder), \
+             patch('custom_components.hestia_weather.place.recorder.history.get_significant_states', return_value={'weather.home': rows}) as query:
+            result = await HestiaWeatherCoordinator._states_during(subject, now - timedelta(hours=6), ['weather.home'])
         self.assertFalse(query.call_args.kwargs['no_attributes'])
         self.assertFalse(query.call_args.kwargs['significant_changes_only'])
         self.assertFalse(query.call_args.kwargs['minimal_response'])
@@ -35,7 +35,7 @@ class WeatherHistoryTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_weather_only_place_still_requests_history(self):
         subject = SimpleNamespace(settings=Settings(weather_entity='weather.home'), history={}, _states_during=AsyncMock(return_value={}))
-        await NiakWeatherCoordinator._load_history(subject)
+        await HestiaWeatherCoordinator._load_history(subject)
         self.assertEqual(subject._states_during.call_args.args[1], ['weather.home'])
 
     async def test_rain_history_does_not_fetch_unneeded_attributes(self):
@@ -43,9 +43,9 @@ class WeatherHistoryTests(unittest.IsolatedAsyncioTestCase):
             return job()
         recorder = SimpleNamespace(async_add_executor_job=AsyncMock(side_effect=execute))
         subject = SimpleNamespace(hass=object(), settings=Settings(weather_entity='weather.home'))
-        with patch('custom_components.niak_weather.place.recorder.get_instance', return_value=recorder), \
-             patch('custom_components.niak_weather.place.recorder.history.get_significant_states', return_value={}) as query:
-            await NiakWeatherCoordinator._states_during(subject, datetime.now(timezone.utc), ['sensor.rain'])
+        with patch('custom_components.hestia_weather.place.recorder.get_instance', return_value=recorder), \
+             patch('custom_components.hestia_weather.place.recorder.history.get_significant_states', return_value={}) as query:
+            await HestiaWeatherCoordinator._states_during(subject, datetime.now(timezone.utc), ['sensor.rain'])
         self.assertTrue(query.call_args.kwargs['no_attributes'])
 
 
@@ -62,8 +62,8 @@ class CompactWeekTests(unittest.IsolatedAsyncioTestCase):
             return job(*args)
         recorder = SimpleNamespace(async_add_executor_job=AsyncMock(side_effect=execute))
         subject = SimpleNamespace(hass=object())
-        with patch('custom_components.niak_weather.place.recorder.get_instance', return_value=recorder), \
+        with patch('custom_components.hestia_weather.place.recorder.get_instance', return_value=recorder), \
              patch('homeassistant.components.recorder.history.get_significant_states', significant) as query:
-            changes = await NiakWeatherCoordinator._compact_states(subject, start, now, 'sensor.p')
+            changes = await HestiaWeatherCoordinator._compact_states(subject, start, now, 'sensor.p')
         self.assertLess(len(changes), 7 * 24 * 60 + 10)  # 60 480 rows read, about one a minute kept
         self.assertEqual(changes[0].state, '1012.0')

@@ -46,11 +46,11 @@ export function renderHero(v: WeatherView, sky: TemplateResult, uid: string, blo
     <div class="sky" aria-hidden="true">${sky}</div><div class="veil" aria-hidden="true"></div>
     <header class="fm-head"><h2>${t('Synthèse')}</h2>${briefInfo(v, uid)}<span>${[v.location, v.dateLabel].filter(Boolean).join(' · ')}</span>${season}</header>
     <div class="hero-main">
-      ${clock === 'left' ? html`<niak-clock class="hero-clock"></niak-clock>` : nothing}
+      ${clock === 'left' ? html`<hestia-clock class="hero-clock"></hestia-clock>` : nothing}
       ${official.length ? html`<div class="nw-alerts">${official.map(a => alertPill(a))}</div>` : nothing}
       ${blocks[0] === 'bulletin' ? bulletin : nothing}
     </div>
-    ${nowBlock(v, true, trend, clock === 'right' ? html`<niak-clock class="now-clock"></niak-clock>` : nothing)}
+    ${nowBlock(v, true, trend, clock === 'right' ? html`<hestia-clock class="now-clock"></hestia-clock>` : nothing)}
     ${rest.length ? html`<div class="hero-blocks">${rest.map(draw)}</div>` : nothing}
   </section>`;
 }

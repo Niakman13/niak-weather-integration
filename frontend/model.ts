@@ -39,9 +39,9 @@ export interface View {
 export type Sources=Record<string,unknown>;
 export interface DraftReply {draft:Sources;view:View;error:string}
 export type Change={op:string;key?:string;value?:unknown;area?:string};
-// Renaming the « niak_weather… » entities « hestia_weather… » (migration.py): what it would change, then what it changed.
+// Renaming the former entity ids (legacy.ENTITY_ROOT…) « hestia_weather… » (migration.py): what it would change, then what it changed.
 export interface RenameUse {kind:'automation'|'script'|'scene'|'dashboard'|'helper'|'file';name:string;lines?:number[]}
-export interface RenamePreview {entities:{from:string;to:string}[];taken:string[];auto:RenameUse[];manual:RenameUse[];undo:boolean;renamed_at:string|null}
+export interface RenamePreview {entities:{from:string;to:string}[];taken:string[];auto:RenameUse[];manual:RenameUse[];undo:boolean;renamed_at:string|null;old:string}
 export interface RenameReply {done:{entities:number;files:number;dashboards:number;helpers:number};preview:RenamePreview}
 
 export const NONE='none';

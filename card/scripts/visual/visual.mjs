@@ -1,5 +1,5 @@
 // Banc visuel de Hestia Weather.
-//   node scripts/visual/visual.mjs capture [--card ../custom_components/niak_weather/frontend/niak-weather-card.js] [--out actuel] [--only ciel,alertes]
+//   node scripts/visual/visual.mjs capture [--card ../custom_components/hestia_weather/frontend/hestia-weather-card.js] [--out actuel] [--only ciel,alertes]
 //   node scripts/visual/visual.mjs compare reference actuel     → images de différences + rapport
 //   node scripts/visual/visual.mjs sheet actuel                 → une planche PNG par groupe
 //   node scripts/visual/visual.mjs docs                         → les images du README (docs/images), en haute définition
@@ -38,7 +38,7 @@ function serve(cardPath) {
 }
 
 async function capture() {
-  const card = resolve(root, option('card', '../custom_components/niak_weather/frontend/niak-weather-card.js')), out = join(RESULTS, option('out', 'actuel'));
+  const card = resolve(root, option('card', '../custom_components/hestia_weather/frontend/hestia-weather-card.js')), out = join(RESULTS, option('out', 'actuel'));
   const only = option('only')?.split(','), scenes = SCENES.filter(s => !only || only.includes(s.group));
   if (!existsSync(card)) throw new Error(`Carte introuvable : ${card} (lancer npm run build)`);
   const server = await serve(card), browser = await chromium.launch();
@@ -101,7 +101,7 @@ async function sheet() {
 
 /** Les images du README : la carte complète (deux vues), les trois cadres de mesures et les formats de la page d'accueil. */
 async function docs() {
-  const card = resolve(root, '../custom_components/niak_weather/frontend/niak-weather-card.js'), dir = join(root, '../docs/carte/images');
+  const card = resolve(root, '../custom_components/hestia_weather/frontend/hestia-weather-card.js'), dir = join(root, '../docs/carte/images');
   const server = await serve(card), browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1300, height: 900 }, deviceScaleFactor: 2 });
   await page.clock.install({ time: FIXED_TIME });
@@ -112,12 +112,12 @@ async function docs() {
   // Carte complète : pluie en cours sous une vigilance jaune, pour montrer les deux alertes ensemble.
   await page.evaluate(s => window.show(s), { format: 'full', width: 1180, condition: 'rainy', vigilance: 'Jaune', phenomenon: 'Pluie-inondation', animated: false });
   await settle();
-  const full = page.locator('niak-weather-card'), box = await full.boundingBox();
+  const full = page.locator('hestia-weather-card'), box = await full.boundingBox();
   const bottom = async selector => { const b = await page.locator(selector).first().boundingBox(); return b.y + b.height; };
-  const predictions = await page.locator('niak-weather-card .fm-section').nth(1).boundingBox();
+  const predictions = await page.locator('hestia-weather-card .fm-section').nth(1).boundingBox();
   await page.screenshot({ ...page_, path: join(dir, '1.png'), clip: { x: box.x, y: box.y, width: box.width, height: predictions.y - box.y } });
-  await page.screenshot({ ...page_, path: join(dir, '2.png'), clip: { x: box.x, y: predictions.y, width: box.width, height: await bottom('niak-weather-card .nw-full') - predictions.y } });
-  await page.locator('niak-weather-card .grid3').screenshot({ ...shot, path: join(dir, '3.png') });
+  await page.screenshot({ ...page_, path: join(dir, '2.png'), clip: { x: box.x, y: predictions.y, width: box.width, height: await bottom('hestia-weather-card .nw-full') - predictions.y } });
+  await page.locator('hestia-weather-card .grid3').screenshot({ ...shot, path: join(dir, '3.png') });
   // Formats : tuile pleine et demi-largeur repliées, tuile dépliée, par temps d'orage avec vigilance jaune.
   await page.evaluate(async () => {
     const { scenarioHass, scenarioConfig } = await import('/demo-hass.js');
@@ -126,12 +126,12 @@ async function docs() {
     stage.style.cssText = 'display:grid;grid-template-columns:680px 332px;gap:16px;align-items:start;padding:16px';
     for (const [format, width, column] of [['tile', 680, '1'], ['tile', 332, '2'], ['intermediate', 680, '1']]) {
       const box = document.createElement('div'); box.style.cssText = `width:${width}px;grid-column:${column}`;
-      const card = document.createElement('niak-weather-card'); box.append(card); stage.append(box);
+      const card = document.createElement('hestia-weather-card'); box.append(card); stage.append(box);
       card.setConfig(scenarioConfig({ ...s, format })); card.hass = scenarioHass(s);
     }
   });
   await settle();
-  await page.locator('#stage').screenshot({ ...shot, path: join(dir, 'niak-weather-formats.png') });
+  await page.locator('#stage').screenshot({ ...shot, path: join(dir, 'hestia-weather-formats.png') });
   // Bannière GitHub : titre, slogan, pastilles et bandeau de la carte complète, par temps d'orage avec vigilance jaune.
   await page.setViewportSize({ width: 1672, height: 767 });
   await page.evaluate(async () => {
@@ -146,11 +146,11 @@ async function docs() {
       <div style="display:flex;gap:12px;margin:22px 0 34px">${['Station locale', 'Prévisions', 'Vigilance Météo-France', 'Air et pollens', 'Ciel animé']
         .map(t => `<span style="padding:6px 16px;border-radius:999px;border:1px solid #d5dce6;background:#fffc;font-size:18px;color:#3c495c">${t}</span>`).join('')}</div>
       <div id="banner-card" style="width:1500px;border-radius:22px;overflow:hidden;box-shadow:0 18px 50px #1d2a3d22"></div>`;
-    const card = document.createElement('niak-weather-card'); document.getElementById('banner-card').append(card);
+    const card = document.createElement('hestia-weather-card'); document.getElementById('banner-card').append(card);
     card.setConfig({ ...scenarioConfig({ ...s, format: 'full' }), show_today: false, show_predictions: false }); card.hass = scenarioHass(s);
   });
   await settle();
-  await page.locator('#stage').screenshot({ ...shot, path: join(dir, 'niak-weather-banner.png') });
+  await page.locator('#stage').screenshot({ ...shot, path: join(dir, 'hestia-weather-banner.png') });
   await browser.close(); server.close();
   console.log(`Images du README mises à jour dans ${dir}`);
 }

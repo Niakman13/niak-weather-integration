@@ -14,17 +14,17 @@ except ImportError:  # pragma: no cover - the engine's own test run
     raise unittest.SkipTest("Home Assistant is not installed")
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from custom_components.niak_weather.coordinator import NiakWeatherCoordinator, blitzortung_counter  # noqa: E402
-from custom_components.niak_weather.engine import lightning  # noqa: E402
-from custom_components.niak_weather.engine.settings import Settings  # noqa: E402
-from custom_components.niak_weather.engine.trends import Change  # noqa: E402
+from custom_components.hestia_weather.coordinator import HestiaWeatherCoordinator, blitzortung_counter  # noqa: E402
+from custom_components.hestia_weather.engine import lightning  # noqa: E402
+from custom_components.hestia_weather.engine.settings import Settings  # noqa: E402
+from custom_components.hestia_weather.engine.trends import Change  # noqa: E402
 
 DISTANCE = "sensor.blitzortung_distance"
 
 
-def coordinator(states: dict[str, State] | None = None) -> NiakWeatherCoordinator:
+def coordinator(states: dict[str, State] | None = None) -> HestiaWeatherCoordinator:
     """Only what the strikes need: the settings, the home's position, the states."""
-    c = object.__new__(NiakWeatherCoordinator)
+    c = object.__new__(HestiaWeatherCoordinator)
     c.settings = Settings(weather_entity="weather.home", lightning_entity=DISTANCE)
     c.strikes, c.data = [], None
     c.hass = SimpleNamespace(config=SimpleNamespace(latitude=43.455, longitude=5.469), states=SimpleNamespace(get=(states or {}).get))

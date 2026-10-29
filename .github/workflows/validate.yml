@@ -35,7 +35,7 @@ jobs:
         working-directory: frontend
       - run: npm run validate
         working-directory: frontend
-      - run: git diff --exit-code -- custom_components/niak_weather/frontend/
+      - run: git diff --exit-code -- custom_components/hestia_weather/frontend/
 
   card:
     runs-on: ubuntu-latest
@@ -50,7 +50,7 @@ jobs:
         working-directory: card
       - run: npm run validate
         working-directory: card
-      - run: git diff --exit-code -- custom_components/niak_weather/frontend/niak-weather-card.js
+      - run: git diff --exit-code -- custom_components/hestia_weather/frontend/hestia-weather-card.js
       # The bench shows what the integration computes: its engine draws the demonstration views.
       - uses: actions/setup-python@v5
         with:
