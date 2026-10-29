@@ -36,11 +36,11 @@ Les couleurs de fond, de texte et d’accent suivent le thème Home Assistant. L
 
 ```yaml
 # Dans un thème Home Assistant
-niak-rain-color: "#4fb3bf"
-niak-level1-color: "#f2c94c"
+hestia-rain-color: "#4fb3bf"
+hestia-level1-color: "#f2c94c"
 ```
 
-Variables disponibles : `niak-rain-color`, `niak-wind-color`, `niak-heat-color`, `niak-cold-color`, `niak-calm-color`, `niak-pressure-color`, `niak-level1-color`, `niak-level2-color`, `niak-level3-color`.
+Variables disponibles : `hestia-rain-color`, `hestia-wind-color`, `hestia-heat-color`, `hestia-cold-color`, `hestia-calm-color`, `hestia-pressure-color`, `hestia-level1-color`, `hestia-level2-color`, `hestia-level3-color`.
 
 ## Les pièces
 

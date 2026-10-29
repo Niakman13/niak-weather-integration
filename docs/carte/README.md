@@ -8,15 +8,15 @@ Correction du chargement (2.3.1) : la carte attend l’initialisation de l’int
 
 Sans station (depuis la 2.3.1), les courbes de vent et de pression utilisent les attributs historiques du service météo sélectionné, si Home Assistant les a enregistrés. Elles conservent le nom du service météo et ne deviennent pas des mesures locales. Si cet historique est absent, exclu de Recorder ou trop court, la carte le précise ; elle n’invente pas de valeurs passées. Les cumuls de pluie mesurés restent un enrichissement facultatif fourni par un pluviomètre. Retirer la station ne crée plus d’alertes « À régler » pour les entités restées actives qui dépendent de ses capteurs.
 
-Vous aviez installé la carte depuis HACS ? Retirez-la (HACS → Hestia Weather → ⋮ → **Supprimer**), puis rechargez la page. Vos cartes restent en place : elles s’écrivent toujours `type: custom:niak-weather-card`. Tant qu’elle reste installée, l’accueil du panneau **Hestia** l’indique en orange.
+Vous aviez installé la carte depuis HACS ? Retirez-la (HACS → Hestia Weather → ⋮ → **Supprimer**), puis rechargez la page. Vos cartes restent en place : elles s’écrivent toujours `type: custom:hestia-weather-card`. Tant qu’elle reste installée, l’accueil du panneau **Hestia** l’indique en orange.
 
 Dans l’application Home Assistant, une carte reste invisible juste après une mise à jour ? Réinitialisez son cache : **Paramètres → Application compagnon → Dépannage → Réinitialiser le cache du frontend**.
 
-![Hestia Weather — votre station météo et les prévisions, réunies en une carte qui parle](images/niak-weather-banner.png)
+![Hestia Weather — votre station météo et les prévisions, réunies en une carte qui parle](images/hestia-weather-banner.png)
 
 ## Douze cartes à choisir
 
-Dans **Ajouter une carte**, cherchez « Hestia » : trois entrées, une par type de carte — **Hestia - Météo** (complète ou tuile), **Hestia - À la pièce** (ressenti, pluie, vent, pression, éclairs, air et pollens, prévisions) et **Hestia - Petite carte** (mini ou alerte). Dans les réglages de la carte, choisissez d’abord le **type**, puis le **format**. Toutes s’écrivent `type: custom:niak-weather-card`, seul `format` change.
+Dans **Ajouter une carte**, cherchez « Hestia » : trois entrées, une par type de carte — **Hestia - Météo** (complète ou tuile), **Hestia - À la pièce** (ressenti, pluie, vent, pression, éclairs, air et pollens, prévisions) et **Hestia - Petite carte** (mini ou alerte). Dans les réglages de la carte, choisissez d’abord le **type**, puis le **format**. Toutes s’écrivent `type: custom:hestia-weather-card`, seul `format` change.
 
 | Carte | Pour quoi |
 | --- | --- |
@@ -43,7 +43,7 @@ Dans **Ajouter une carte**, cherchez « Hestia » : trois entrées, une par type
   - **Aujourd’hui** : pluie, vent, pression (et ressenti, pastilles, air et pollens du jour) ;
   - **Prévisions** : les 18 prochaines heures, les 7 prochains jours (et l’air et les pollens de demain).
 
-![Hestia Weather — tuile pleine et demi-largeur repliées, puis tuile dépliée, par temps d’orage avec vigilance jaune](images/niak-weather-formats.png)
+![Hestia Weather — tuile pleine et demi-largeur repliées, puis tuile dépliée, par temps d’orage avec vigilance jaune](images/hestia-weather-formats.png)
 
 ## Le bandeau
 
@@ -110,13 +110,13 @@ Tout se règle dans l’éditeur de la carte, rangé en blocs : le lieu et le fo
 Configuration minimale, avec un seul lieu :
 
 ```yaml
-type: custom:niak-weather-card
+type: custom:hestia-weather-card
 ```
 
 Une tuile qui mène à votre page météo :
 
 ```yaml
-type: custom:niak-weather-card
+type: custom:hestia-weather-card
 format: tile
 hold_action: page
 weather_path: /meteo
@@ -125,7 +125,7 @@ weather_path: /meteo
 Une tuile dépliée comme en 1.20, avec les moments et les prévisions :
 
 ```yaml
-type: custom:niak-weather-card
+type: custom:hestia-weather-card
 format: intermediate
 tile_blocks: [bulletin, moments, forecast]
 ```
@@ -133,7 +133,7 @@ tile_blocks: [bulletin, moments, forecast]
 La pression seule, sa courbe sur 7 jours, sans les chiffres :
 
 ```yaml
-type: custom:niak-weather-card
+type: custom:hestia-weather-card
 format: pressure
 card_blocks: [now, chart]
 pressure_span: 7d
@@ -147,11 +147,11 @@ pressure_span: 7d
 - **Les couleurs de sens** se remplacent dans un thème Home Assistant, si vous le souhaitez :
 
 ```yaml
-niak-rain-color: "#4fb3bf"
-niak-level1-color: "#f2c94c"
+hestia-rain-color: "#4fb3bf"
+hestia-level1-color: "#f2c94c"
 ```
 
-Variables : `niak-rain-color`, `niak-wind-color`, `niak-heat-color`, `niak-cold-color`, `niak-calm-color`, `niak-pressure-color`, `niak-level1-color`, `niak-level2-color`, `niak-level3-color`.
+Variables : `hestia-rain-color`, `hestia-wind-color`, `hestia-heat-color`, `hestia-cold-color`, `hestia-calm-color`, `hestia-pressure-color`, `hestia-level1-color`, `hestia-level2-color`, `hestia-level3-color`.
 
 [La charte en détail](charte.md).
 

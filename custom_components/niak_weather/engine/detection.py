@@ -224,7 +224,7 @@ DERIVED = ("thermal_comfort", "niak_weather")
 
 
 def _is_thermal(state: StateLike, entry: Mapping[str, Any] | None) -> bool:
-    return ((entry or {}).get("platform") in DERIVED or state.entity_id.startswith(("sensor.niak_weather_", "binary_sensor.niak_weather_"))
+    return ((entry or {}).get("platform") in DERIVED or state.entity_id.startswith(("sensor.niak_weather_", "binary_sensor.niak_weather_", "sensor.hestia_weather_", "binary_sensor.hestia_weather_"))
             or bool(re.search(r"thermal.*comfort", sensor_text(state, entry))))
 
 

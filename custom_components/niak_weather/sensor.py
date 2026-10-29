@@ -22,7 +22,8 @@ from .engine.feel import Alert
 from .engine.moisture import humidex
 
 ALERTS = ["none", *(a.value for a in Alert)]
-# Entity ids that say what they are, the same in every home: sensor.niak_weather_ressenti, sensor.niak_weather_pluie_24h…
+# Entity ids that say what they are, the same in every home: sensor.hestia_weather_ressenti, sensor.hestia_weather_pluie_24h…
+# (homes set up before the Hestia name keep sensor.niak_weather_…)
 OBJECT_IDS = {"feels_like": "ressenti", "dew_point": "point_de_rosee", "frost_point": "point_de_givre", "humidex": "humidex", "alert": "alerte",
               "brief": "en_bref", "bulletin": "bulletin_du_jour", "next_rain": "pluie_dans", "pressure_trend": "tendance_pression", "rain_24h": "pluie_24h",
               "max_gust_today": "rafale_max_jour", "temperature_trend": "tendance_temperature"}
@@ -142,7 +143,7 @@ def item_attributes(item: Item) -> dict[str, Any]:
 
 @dataclass(frozen=True, kw_only=True)
 class CatalogueSensorDescription(SensorEntityDescription):
-    """An entry of the catalogue whose value is a number or a word. The key is also its entity id: sensor.niak_weather_<key>."""
+    """An entry of the catalogue whose value is a number or a word. The key is also its entity id: sensor.hestia_weather_<key>."""
 
 
 _MM = {"device_class": SensorDeviceClass.PRECIPITATION, "native_unit_of_measurement": UnitOfPrecipitationDepth.MILLIMETERS,
@@ -177,14 +178,25 @@ CATALOGUE_SENSORS: tuple[CatalogueSensorDescription, ...] = (
 )
 
 
+ID_ROOT = "hestia_weather"
+
+
+def _has_legacy_ids(hass: HomeAssistant, entry: NiakWeatherConfigEntry) -> bool:
+    """A home set up under the old name already has « niak_weather… » ids: they stay, or automations and dashboards would break."""
+    registry = er.async_get(hass)
+    return any(e.entity_id.split(".", 1)[1].startswith(DOMAIN) for e in er.async_entries_for_config_entry(registry, entry.entry_id))
+
+
 def prefix(hass: HomeAssistant, entry: NiakWeatherConfigEntry) -> str:
-    """« niak_weather » for the first place; the next places add their name: « niak_weather_marseille »."""
+    """« hestia_weather » for the first place of a new home (« niak_weather » when the home already has those ids);
+    the next places add their name: « hestia_weather_marseille »."""
+    root = DOMAIN if _has_legacy_ids(hass, entry) else ID_ROOT
     earlier = [e for e in hass.config_entries.async_entries(DOMAIN) if e.entry_id != entry.entry_id and e.created_at < entry.created_at]
-    return f"{DOMAIN}_{slugify(entry.title)}" if earlier else DOMAIN
+    return f"{root}_{slugify(entry.title)}" if earlier else root
 
 
 def device_name(hass: HomeAssistant, entry: NiakWeatherConfigEntry) -> str:
-    return "Hestia Weather" if prefix(hass, entry) == DOMAIN else f"Hestia Weather {entry.title}"
+    return "Hestia Weather" if prefix(hass, entry) in (DOMAIN, ID_ROOT) else f"Hestia Weather {entry.title}"
 
 
 def rename_place_ids(hass: HomeAssistant, entry: NiakWeatherConfigEntry) -> None:

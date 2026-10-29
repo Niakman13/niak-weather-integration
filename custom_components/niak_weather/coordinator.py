@@ -45,6 +45,7 @@ from .engine.view import to_json
 from .engine.watch import AlertState, AlertWatch
 
 ALERT_EVENT = f"{DOMAIN}_alerte"
+ALERT_EVENT_HESTIA = "hestia_weather_alerte"   # the new name; the old one keeps firing so existing automations keep working
 
 RAIN_UNITS = ("mm", "in", "inch")
 FORECAST_KINDS = (("daily", 1), ("hourly", 2))
@@ -244,8 +245,10 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         if events:
             self._store.async_delay_save(self.watch.as_dict, 10)
         for event in events:
-            hass.bus.async_fire(ALERT_EVENT, {"lieu": self.config_entry.title, "entry_id": self.config_entry.entry_id, "type": event.type,
-                                              "etat": event.phase, "niveau": event.level, "source": event.source, "texte": event.text})
+            payload = {"lieu": self.config_entry.title, "entry_id": self.config_entry.entry_id, "type": event.type,
+                       "etat": event.phase, "niveau": event.level, "source": event.source, "texte": event.text}
+            hass.bus.async_fire(ALERT_EVENT_HESTIA, payload)
+            hass.bus.async_fire(ALERT_EVENT, payload)
         radar = hass.states.get(radar_rain(er.async_get(hass), settings.weather_entity) or "")
         ahead = rain_ahead(radar.attributes if radar else None, self.hours, now)
         return Snapshot(result.local, result.brief, result.derived, to_json(result.view), result.catalogue, self.watch.states(), now, ahead)

@@ -10,7 +10,6 @@ blueprint:
   input:
     en_bref:
       name: Capteur « En bref »
-      default: sensor.niak_weather_en_bref
       selector:
         entity:
           filter:
@@ -18,7 +17,7 @@ blueprint:
             domain: sensor
     vigilance:
       name: Vigilance (facultatif)
-      default: sensor.niak_weather_vigilance
+      default: ""
       selector:
         entity:
           filter:
@@ -86,6 +85,6 @@ actions:
             title: Météo du jour
             message: "{{ texte }}"
             data:
-              tag: niak_weather_bulletin
+              tag: hestia_weather_bulletin
   - choose: []
     default: !input en_plus

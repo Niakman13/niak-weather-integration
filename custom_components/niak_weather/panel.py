@@ -214,7 +214,7 @@ async def weather_status(hass: HomeAssistant) -> dict[str, Any]:
 
 
 def _has_weather(hass: HomeAssistant) -> bool:
-    return any(not s.entity_id.startswith(f"weather.{DOMAIN}") for s in hass.states.async_all("weather"))
+    return any(not s.entity_id.startswith((f"weather.{DOMAIN}", "weather.hestia_weather")) for s in hass.states.async_all("weather"))
 
 
 @websocket_api.websocket_command({vol.Required("type"): "niak_weather/panel/places"})

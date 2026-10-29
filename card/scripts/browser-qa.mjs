@@ -223,7 +223,7 @@ try {
   assert.equal(await inCard(root => root.querySelectorAll('[aria-label="Pluie"] .nw-chip').length), 0, 'No « no rain » chip while dry');
   await page.evaluate(() => import('/card.js?twice'));
   const offered = await page.evaluate(() => window.customCards.map(c => c.type));
-  assert.deepEqual(offered, ['niak-weather-card', 'niak-weather-comfort-card', 'niak-weather-mini-card'], 'Three cards in « Add card », one per kind');
+  assert.deepEqual(offered, ['hestia-weather-card', 'hestia-weather-comfort-card', 'hestia-weather-mini-card'], 'Three cards in « Add card », one per kind');
   assert.equal(new Set(offered).size, offered.length, 'Each kind offered once, though the card loaded twice');
   await show({ format: 'tile', width: 768, condition: 'sunny', animated: false });
   assert.ok(await inCard(root => !!root.querySelector('.hero-main, .nw-tile, ha-card')), 'The card still draws after loading twice');
