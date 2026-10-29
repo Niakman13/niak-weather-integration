@@ -18,6 +18,7 @@ from homeassistant.helpers.selector import (BooleanSelector, EntitySelector, Ent
                                             SelectSelectorConfig, SelectSelectorMode, TextSelector)
 
 from .const import CARD_TYPE, DOMAIN, LOGGER
+from .domain_migration import async_resume
 from .engine import atmo, detection, families, polleninfo, waqi
 from .engine.i18n import t
 from .engine.settings import ATMO_KEYS, WAQI_KEYS, Settings, atmo_key
@@ -409,7 +410,10 @@ class HestiaWeatherConfigFlow(_SourceSteps, ConfigFlow, domain=DOMAIN):
         return HestiaWeatherOptionsFlow()
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Welcome: what Hestia Weather does and the four steps; an existing card's settings can be the starting point."""
+        """Welcome: what Hestia Weather does and the four steps; an existing card's settings can be the starting point.
+        A home installed under the former name is resumed instead (domain_migration.async_resume): nothing is set up twice."""
+        if await async_resume(self.hass):
+            return self.async_abort(reason="migrated")
         self._cards = await find_cards(self.hass)
         return self.async_show_menu(step_id="user", menu_options=["import_card", "weather"] if self._cards else ["weather"])
 

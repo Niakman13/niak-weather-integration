@@ -28,7 +28,7 @@ from .engine import atmo, detection, families, health, home, polleninfo
 from .engine.settings import Settings
 from .engine.i18n import speaking, t
 from .extensions import inventory, official, set_official
-from . import migration
+from . import domain_migration, migration
 from .engine import legacy
 from .websocket import VERSION_KEY
 from .socle import async_register_brick, async_register_card, is_card_resource
@@ -54,6 +54,7 @@ async def async_setup_panel(hass: HomeAssistant, version: str) -> None:
     await async_register_brick(hass, {
         "domain": DOMAIN, "name": "Hestia Weather", "slug": "meteo", "tab": "Météo", "version": version, "icon": "mdi:weather-partly-cloudy",
         "navigation": 3, "module_url": f"{ASSETS}/panel.js?v={version}", "element": "hestia-weather-setup", "status": weather_status, "legacy_path": "",
+        "migration": migration_status,
     }, f"{ASSETS}/hestia-socle.js?v={version}")
 
 
@@ -215,6 +216,18 @@ async def card_twice(hass: HomeAssistant) -> bool:
     except Exception:  # noqa: BLE001 - Lovelace's and HACS's insides may change: nothing is then said
         LOGGER.debug("Former card not looked for", exc_info=True)
         return False
+
+
+async def migration_status(hass: HomeAssistant) -> dict[str, Any] | None:
+    """Hestia Weather's lines in the hub's « Passage au nom Hestia » (socle 1.16): its places and its entities' names."""
+    status = await domain_migration.async_status(hass)
+    if status is None:
+        return None
+    mapping, _ = migration.plan(hass)
+    renamed = await migration._store(hass).async_load()  # noqa: SLF001 - the renaming tool's own record
+    status["summary"] = {"places": status["entries"]}
+    status["names"] = {"left": len(mapping), "old": legacy.ENTITY_ROOT, "renamed_at": (renamed or {}).get("at")}
+    return status
 
 
 async def weather_status(hass: HomeAssistant, language: str | None = None) -> dict[str, Any]:

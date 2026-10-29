@@ -1,10 +1,10 @@
-// Hestia shared panel (socle v1.15): header, tabs and the home page listing every Hestia brick.
+// Hestia shared panel (socle v1.16): header, tabs and the home page listing every Hestia brick.
 // Copied unchanged into each brick from hestia-ecosysteme/socle/ (see ECOSYSTEME.md § 8).
 import {LitElement,html,css,nothing,type PropertyValues} from 'lit';
-import {frame,hubStyles,modernStyles,hubIcon} from './ui';
+import {frame,hubStyles,modernStyles,hubIcon,line,type NkLine} from './ui';
 import {t,fr,setLanguage} from './i18n';
 
-export const ELEMENT='hestia-socle-1-15';
+export const ELEMENT='hestia-socle-1-16';
 // The panel's address (socle 1.12): /hestia; the former address leads there, keeping the rest of the address.
 export const BASE='/hestia';
 // The Hestia logo (logo-github): its gradient reads on a light or a dark menu alike.
@@ -14,7 +14,11 @@ type Level='ok'|'action'|'unknown';
 export interface BrickStatus {level:Level;summary:string;details:string[];links:string[]}
 export interface Brick {domain:string;name:string;slug:string;version:string;icon:string;module_url:string;element:string;status:BrickStatus;tab?:string|null;navigation?:number|null}
 export interface Other {domain:string;name:string;pitch:string;url:string;installed:boolean;settings_path:string}
-export interface Overview {version:1;socle:number[];bricks:Brick[];others:Other[];sidebar?:boolean;theme?:'ha'|'hestia'}
+// What one brick says about its move to the Hestia name (socle 1.16, domain_migration.async_status and the brick's own lines).
+export interface Migration {domain:string;state:'done'|'running'|'failed';entries:number;entities:number;devices:number;stores:number;
+ updated:{files:number;dashboards:number;helpers:number;blueprints:number};dashboards?:string[];manual:{name:string;lines:number[]}[];restart:boolean;
+ summary?:{places?:number;rooms?:number;learning?:number};names?:{left:number;old:string;renamed_at:string|null}}
+export interface Overview {version:1;socle:number[];bricks:Brick[];others:Other[];sidebar?:boolean;theme?:'ha'|'hestia';migration?:Migration[]}
 interface Hass {callWS<T>(msg:Record<string,unknown>):Promise<T>;themes?:{darkMode?:boolean};language?:string}
 type Tab=HTMLElement&{hass?:unknown;narrow?:boolean;route?:unknown};
 
@@ -33,11 +37,12 @@ function navigate(path:string,replace=false){
 }
 
 export class HestiaShell extends LitElement {
- static properties={hass:{attribute:false},narrow:{type:Boolean},route:{attribute:false},panel:{attribute:false},overview:{state:true},error:{state:true},saving:{state:true},menuOpen:{state:true}};
+ static properties={hass:{attribute:false},narrow:{type:Boolean},route:{attribute:false},panel:{attribute:false},overview:{state:true},error:{state:true},saving:{state:true},menuOpen:{state:true},restartAsk:{state:true}};
  // Declared, not initialised as fields: whatever the brick's compiler options, Lit keeps its accessors.
  declare hass?:Hass;declare narrow:boolean;declare route?:{prefix:string;path:string};declare panel?:{config?:{redirect?:string}};
- declare menuOpen:boolean;declare overview?:Overview;declare error:string;declare saving:boolean;
- constructor(){super();this.narrow=false;this.error='';this.saving=false;this.menuOpen=false;this.fonts();}
+ declare menuOpen:boolean;declare overview?:Overview;declare error:string;declare saving:boolean;declare restartAsk:boolean;
+ private migrationTimer=0;
+ constructor(){super();this.narrow=false;this.error='';this.saving=false;this.menuOpen=false;this.restartAsk=false;this.fonts();}
  private fonts(){if(document.getElementById('hestia-hub-fonts'))return;const style=document.createElement('style');style.id='hestia-hub-fonts';style.textContent=[400,500,600,700].map(w=>`@font-face{font-family:Manrope;src:url('${new URL('./manrope-'+w+'.ttf',import.meta.url).href}');font-weight:${w};font-display:swap}`).join('');document.head.append(style);}
  private tabs=new Map<string,Tab>();
  private loading=false;
@@ -106,8 +111,53 @@ export class HestiaShell extends LitElement {
    <button role="switch" aria-checked=${on?'true':'false'} aria-labelledby="sidebar-label" ?disabled=${this.saving} @click=${()=>this.setSidebar(!on)}><span class="track"><span class="thumb"></span></span>${on?t('Affiché'):t('Masqué')}</button></section>`)} `;}
  private menu(){this.dispatchEvent(new CustomEvent('hass-toggle-menu',{bubbles:true,composed:true}));}
  private go(slug:string){this.menuOpen=false;navigate(BASE+(slug?'/'+slug:''));}
+ // « Passage au nom Hestia » (socle 1.16): each step of the move from the former technical name, until the user closes it.
+ private migration(){const all=this.overview?.migration??[];if(!all.length)return nothing;
+  const count=(n:number,one:string,many:string)=>n>1?many:one;
+  const running=all.some(m=>m.state==='running'),failed=all.some(m=>m.state==='failed');
+  const sum=(f:(m:Migration)=>number|undefined)=>all.reduce((n,m)=>n+(f(m)??0),0);
+  const lines:NkLine[]=[];
+  if(failed)lines.push({level:'todo',text:t('Le passage n’est pas terminé'),why:t('Rien n’est perdu : il reprendra au prochain redémarrage de Home Assistant.')});
+  else if(running)lines.push({level:'todo',text:t('Passage en cours…'),why:t('Vos réglages passent au nom Hestia. Cette page se met à jour toute seule.')});
+  lines.push({level:'ok',text:t('Nouvelle version installée'),why:this.overview!.bricks.filter(b=>all.some(m=>m.domain===b.domain)).map(b=>`${t(b.name)} ${b.version}`).join(' · ')});
+  const places=sum(m=>m.summary?.places),rooms=sum(m=>m.summary?.rooms),learning=sum(m=>m.summary?.learning);
+  const kept=[places?count(places,t('{n} lieu',{n:places}),t('{n} lieux',{n:places})):'',rooms?count(rooms,t('{n} pièce',{n:rooms}),t('{n} pièces',{n:rooms})):'',learning?t('apprentissages'):''].filter(Boolean);
+  lines.push({level:'ok',text:t('Vos réglages sont repris'),why:kept.join(' · ')||null});
+  const entities=sum(m=>m.entities);
+  lines.push({level:'ok',text:t('Entités, historiques et statistiques gardés'),why:entities?count(entities,t('{n} entité',{n:entities}),t('{n} entités',{n:entities})):null});
+  // The same dashboard updated by two bricks counts once.
+  const dashboards=new Set(all.flatMap(m=>m.dashboards??[])).size||sum(m=>m.updated.dashboards),files=sum(m=>m.updated.files+m.updated.helpers+m.updated.blueprints);
+  const updated=[dashboards?count(dashboards,t('{n} tableau de bord',{n:dashboards}),t('{n} tableaux de bord',{n:dashboards})):'',files?count(files,t('{n} automatisation, script ou modèle',{n:files}),t('{n} automatisations, scripts ou modèles',{n:files})):''].filter(Boolean);
+  lines.push({level:'ok',text:t('Tableaux de bord et automatisations mis à jour'),why:updated.join(' · ')||t('Rien à mettre à jour')});
+  const manual=all.flatMap(m=>m.manual);
+  lines.push(manual.length?{level:'todo',text:t('Quelques lignes à changer à la main'),why:t('Remplacez l’ancien nom par le nouveau dans : {files}',{files:manual.map(m=>m.lines.length?`${m.name} (${m.lines.join(', ')})`:m.name).join(' ; ')})}
+   :{level:'ok',text:t('Rien à changer à la main')});
+  if(all.some(m=>m.restart))lines.push({level:'todo',text:t('Redémarrer Home Assistant pour terminer'),why:t('L’ancienne version est encore en mémoire jusqu’au redémarrage.'),
+   go:{label:this.restartAsk?t('Confirmer le redémarrage'):t('Redémarrer maintenant'),disabled:this.saving,onClick:()=>{if(this.restartAsk)void this.restart();else this.restartAsk=true;}}});
+  else if(!running&&!failed)lines.push({level:'ok',text:t('Home Assistant a redémarré')});
+  const names=all.find(m=>m.names)?.names;
+  if(names)lines.push(names.left?{level:'ok',text:t('Nom des entités : l’ancien nom est gardé'),why:t('Facultatif : vos entités peuvent prendre le nom « hestia_weather ».'),go:{label:t('Choisir'),onClick:()=>this.go('meteo/reglages')}}
+   :{level:'ok',text:t('Nom des entités : « hestia_weather »'),why:names.renamed_at?t('Renommées le {date}.',{date:new Date(names.renamed_at).toLocaleDateString(this.hass?.language)}):null,go:{label:t('Voir'),onClick:()=>this.go('meteo/reglages')}});
+  const done=!lines.some(l=>l.level==='todo');
+  return frame(done?t('Tout est passé au nom Hestia'):t('Passage au nom Hestia'),html`<ul class="nk-lines">${lines.map(line)}</ul>
+   ${done?html`<p class="muted">${t('Ce cadre ne reviendra plus une fois fermé.')}</p><button class="primary" ?disabled=${this.saving} @click=${()=>void this.closeMigration()}>${t('J’ai compris')}</button>`:nothing}`,{className:done?'':'todo'});
+ }
+ private async restart(){
+  this.saving=true;
+  try{await this.hass!.callWS({type:'call_service',domain:'homeassistant',service:'restart'});}
+  catch(e){this.error=typeof e==='object'&&e&&'message' in e?String(e.message):t('Le redémarrage n’a pas été lancé.');}
+  finally{this.saving=false;this.restartAsk=false;}
+ }
+ private async closeMigration(){
+  this.saving=true;
+  try{await this.hass!.callWS({type:'hestia/close_migration'});if(this.overview)this.overview={...this.overview,migration:[]};}
+  catch(e){this.error=typeof e==='object'&&e&&'message' in e?String(e.message):t('Le réglage n’a pas été enregistré.');}
+  finally{this.saving=false;}
+ }
  private home(){const o=this.overview!;
-  return html`<main><div class="nk-home-head"><div><h1>${t('Votre logement, connecté')}</h1><p>${t('Vos briques Hestia et les points à compléter, au même endroit.')}</p></div></div><div class="nk-bricks">
+  // While the move runs, the page reads it again every 5 seconds.
+  if(o.migration?.some(m=>m.state==='running')&&!this.migrationTimer)this.migrationTimer=window.setTimeout(()=>{this.migrationTimer=0;void this.load();},5000);
+  return html`<main><div class="nk-home-head"><div><h1>${t('Votre logement, connecté')}</h1><p>${t('Vos briques Hestia et les points à compléter, au même endroit.')}</p></div></div>${this.migration()}<div class="nk-bricks">
    ${o.bricks.map(b=>html`${frame(t(b.name),html`<section class="brick ${b.status.level}"><p class="version">${t('Version {version}',{version:b.version})}</p>
     <p class="level"><span class="dot"></span>${t(levelText[b.status.level])}${b.status.summary?html`<span class="summary">${b.status.summary}</span>`:nothing}</p>
     ${b.status.details.length?html`<ul>${b.status.details.map(d=>html`<li>${d}</li>`)}</ul>`:nothing}
@@ -170,6 +220,9 @@ export class HestiaShell extends LitElement {
   @media(min-width:760px){header{display:grid;grid-template-columns:auto 1fr;gap:32px;align-items:center;padding:8px 28px}.bar{padding:0}nav a{margin:0}}
   .other{border-top:0;padding:0}.other+.other{margin-top:20px;padding-top:20px;border-top:1px solid var(--nk-border)}
  `,modernStyles,css`
+  .nk-lines{list-style:none;margin:0;padding:0}.nk-line{display:flex;flex-wrap:wrap;align-items:flex-start;gap:12px;padding:12px 0;border-top:1px solid var(--nk-border)}.nk-line:first-child{border-top:0;padding-top:0}
+  .nk-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;background:var(--nk-muted);margin-top:8px}.ok>.nk-dot{background:var(--nk-ok)}.todo>.nk-dot{background:var(--nk-todo)}
+  .nk-line>div{flex:1 1 180px;min-width:0;display:flex;flex-direction:column}.nk-why{font-size:13px;color:var(--nk-muted)}.nk-go{white-space:normal;flex-shrink:0;max-width:100%;margin-left:auto}
  :host{position:relative;display:grid;grid-template-columns:264px minmax(0,1fr);height:var(--nk-viewport-height,100dvh);min-height:0;grid-template-rows:minmax(0,1fr)}aside{padding:28px 18px 20px;border-right:1px solid var(--nk-border);overflow:auto;background:var(--nk-surface)}.brand{display:flex;align-items:center;gap:8px;padding:0 4px 26px}.brand strong{font-size:25px;letter-spacing:-.04em}.brand button{border:0;padding:8px;min-width:44px}.brand svg{width:25px;height:25px}.brand .nk-logo{width:40px;height:40px;margin:-6px 0 -6px -4px;flex-shrink:0}.brand button{margin-left:auto}.mobile-bar .nk-logo{width:30px;height:30px;flex-shrink:0;margin-right:-4px}nav{display:block;overflow:visible;margin:0 0 20px}nav+nav{border-top:1px solid var(--nk-border);padding-top:18px}.nav-label{margin:0 12px 9px;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--nk-muted)}nav a{display:flex;gap:12px;align-items:center;border:0;border-radius:24px;margin:3px 0;min-height:44px;padding:9px 13px;font-size:13px;white-space:normal}nav a svg{width:19px;height:19px;flex-shrink:0}nav a[aria-current=page]{background:var(--nk-selected);border:0;color:var(--primary-text-color);font-weight:600}nav a:hover{background:var(--nk-selected)}.content{min-width:0;overflow:auto;height:100%;grid-column:2}.content>*:not(main){height:100%}.mobile-bar,.backdrop{display:none}.theme-label{display:block;margin-bottom:6px}select{width:100%;max-width:460px;min-height:44px;padding:10px 14px;border:1px solid var(--nk-border);border-radius:15px;background:var(--nk-surface);color:inherit;font:inherit}.other{padding:0}.other+ .other{margin-top:20px;padding-top:20px}.nk-home-head{margin-top:0}
  @media(max-width:760px){:host{display:flex;flex-direction:column}.mobile-bar{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--nk-border);padding:7px 14px;flex-shrink:0}.mobile-bar strong{margin-right:auto;font-size:20px}.mobile-bar button{border:0;padding:8px;min-width:44px}aside{display:none;position:absolute;inset:0 auto 0 0;width:min(290px,86vw);z-index:21;border-radius:0 24px 24px 0;box-shadow:0 12px 40px #0003}aside.open{display:block}.backdrop{display:block;position:absolute;inset:0;border:0;border-radius:0;background:#0006;z-index:20;width:100%;height:100%;padding:0}.content{flex:1;height:auto}.other{gap:12px}.brand{padding-bottom:20px}}
  `];

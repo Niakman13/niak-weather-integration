@@ -72,6 +72,12 @@ class DomainMigrationTests(unittest.IsolatedAsyncioTestCase):
         (old / "sensor.py").write_text(OLD_SENSOR.format(domain=OLD))
         (old / "config_flow.py").write_text(f"from homeassistant import config_entries\nclass Flow(config_entries.ConfigFlow, domain={OLD!r}):\n    VERSION = 1\n")
         (self.config / "custom_components" / "hestia_weather").symlink_to(ROOT / "custom_components" / "hestia_weather")
+        # Hestia Confort's new version, installed next to it but not started yet: it only says when it is.
+        sibling = self.config / "custom_components" / "hestia_comfort"
+        sibling.mkdir()
+        (sibling / "manifest.json").write_text(json.dumps({"domain": "hestia_comfort", "name": "Hestia Confort", "codeowners": [],
+                                                           "version": "2.0.0b2", "dependencies": []}))
+        (sibling / "__init__.py").write_text("async def async_setup(hass, config):\n    hass.data['comfort started'] = True\n    return True\n")
         sys.path.insert(0, str(self.config))
         self.old_id = await self.first_home()
 
@@ -105,6 +111,11 @@ class DomainMigrationTests(unittest.IsolatedAsyncioTestCase):
         await hass.config_entries.async_add(entry)
         await hass.async_block_till_done()
         self.assertIs(entry.state, ConfigEntryState.LOADED)
+        # Hestia Confort, still under its former name too (its code is not part of this test).
+        comfort = ConfigEntry(domain=legacy.COMFORT_DOMAIN, title="Mon logement", data={"home": True}, options={}, unique_id="home",
+                              version=1, minor_version=1, source="user", discovery_keys={}, subentries_data=None)
+        hass.config_entries._entries[comfort.entry_id] = comfort
+        hass.config_entries._async_schedule_save()
         area = ar.async_get(hass).async_create("Jardin")
         devices, entities = dr.async_get(hass), er.async_get(hass)
         [device] = dr.async_entries_for_config_entry(devices, entry.entry_id)
@@ -200,6 +211,34 @@ class DomainMigrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn(("hestia_weather", "migration_failed"), issues)
         # The shared table says which id the place took, for the other bricks.
         self.assertEqual(await domain_migration.async_entry_ids(hass), {self.old_id: entry.entry_id})
+        await self.stop(hass)
+
+    async def test_add_an_integration_resumes_the_home(self):
+        """The situation after an update without the bridge: the former code runs, the new one is installed but nothing
+        starts it. « Add an integration → Hestia Weather » resumes the home instead of setting up a new place."""
+        hass = await self.start()
+        await hass.config_entries.async_setup(self.old_id)
+        await hass.async_block_till_done()
+        hass.set_state(CoreState.running)
+        hass.config.components.update({"frontend", "http", "recorder", "websocket_api", "lovelace"})  # there in a real home
+        loads, refresh = mocked_loads()
+        with loads, refresh:
+            self.assertNotIn("hestia_weather", hass.config.components)
+            result = await hass.config_entries.flow.async_init("hestia_weather", context={"source": "user"})
+            await hass.async_block_till_done()
+        self.assertEqual((result["type"], result["reason"]), ("abort", "migrated"))
+        self.assertEqual(hass.config_entries.async_entries(OLD), [])
+        [entry] = hass.config_entries.async_entries("hestia_weather")
+        self.assertEqual(entry.title, "Gardanne")
+        self.assertIs(entry.state, ConfigEntryState.LOADED)
+        self.assertEqual(er.async_get(hass).async_get(f"sensor.{OLD}_humidex").config_entry_id, entry.entry_id)
+        # Hestia Confort, installed and still under its former name, was started too: it carries itself over.
+        self.assertTrue(hass.data.get("comfort started"))
+        # What the hub shows: done, a restart to finish, one place.
+        from custom_components.hestia_weather.panel import migration_status
+        status = await migration_status(hass)
+        self.assertEqual((status["state"], status["restart"], status["summary"], status["entities"]), ("done", True, {"places": 1}, 2))
+        self.assertGreater(status["names"]["left"], 0)  # the home keeps its former ids until the user renames them
         await self.stop(hass)
 
     async def test_a_second_start_changes_nothing(self):

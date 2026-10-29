@@ -122,7 +122,7 @@ export const PANEL_EN:Record<string,string>={
  "{n} assistants mis à jour.":"{n} helpers updated.","{n} assistant mis à jour.":"{n} helper updated.",
  "Vos entités ont repris l’ancien nom « {old} ».":"Your entities are back to the old name “{old}”.",
  "Vos entités portent le nom « hestia_weather ».":"Your entities are named “hestia_weather”.",
- "Renommées le {date}.":"Renamed on {date}.",
+ 
  "Revenir à l’ancien nom « {old} » ?":"Go back to the old name “{old}”?",
  "Les automatisations et tableaux de bord mis à jour reviennent aussi.":"The automations and dashboards that were updated go back too.",
  "Garder « hestia_weather »":"Keep “hestia_weather”","Revenir à l’ancien nom":"Go back to the old name",

@@ -1,7 +1,8 @@
 {
   "config": {
     "abort": {
-      "no_weather": "No weather source found. Add a weather integration first (Météo-France for instance)."
+      "no_weather": "No weather source found. Add a weather integration first (Météo-France for instance).",
+      "migrated": "Your installation was resumed under the new name. Follow the next steps in Hestia → Home."
     },
     "step": {
       "user": {

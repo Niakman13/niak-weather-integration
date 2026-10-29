@@ -15,6 +15,11 @@ Nothing the user has is lost:
 Entry ids change with the entries. A shared table (.storage/hestia_migration) keeps which new id each former one took,
 so that every brick can mend what points to another brick's entry (Hestia Confort's link to a Hestia Weather place).
 A run cut short starts again where it stopped at the next start: the table says which entries already exist.
+
+Home Assistant only starts an integration that has entries: under the former name, none has yet. Three things start it:
+the last version under the former name (a bridge, which starts the new one when its folder is there), « Add an
+integration » (the config flow resumes the home instead of setting up a new one: async_resume), and the other brick,
+which starts this one once it has carried itself over (legacy.SIBLINGS).
 """
 from __future__ import annotations
 
@@ -34,6 +39,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er, issue_registry as ir
 from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.storage import Store
+from homeassistant.loader import IntegrationNotFound, async_get_integration
+from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 from homeassistant.util.file import write_utf8_file_atomic
 
@@ -61,6 +68,8 @@ async def async_setup_migration(hass: HomeAssistant) -> None:
     files copied under the new name. Once Home Assistant has started (every integration set up, the former one
     included if still installed), the entries, entities and devices move."""
     if not pending(hass):
+        # Started again after the carrying over: nothing of the former name is loaded any more.
+        ir.async_delete_issue(hass, DOMAIN, "migration_restart")
         return
     try:
         await async_prepare(hass)
@@ -76,6 +85,45 @@ async def async_setup_migration(hass: HomeAssistant) -> None:
                                   translation_key="migration_failed")
 
     async_at_started(hass, run)
+
+
+async def async_resume(hass: HomeAssistant) -> bool:
+    """From « Add an integration »: a home installed under the former name is resumed, never set up a second time.
+    Starting the integration carries it over (async_setup_migration); True when there was something to resume."""
+    if not hass.config_entries.async_entries(legacy.DOMAIN):
+        return False
+    await async_setup_component(hass, DOMAIN, {})
+    return True
+
+
+async def async_status(hass: HomeAssistant) -> dict[str, Any] | None:
+    """What the hub's « Passage au nom Hestia » shows for this brick (socle 1.16); None when it never had a former name.
+    The brick adds its own lines (summary, names) before handing it to the socle."""
+    done = (await _table(hass))[1]["done"].get(DOMAIN)
+    waiting = bool(hass.config_entries.async_entries(legacy.DOMAIN))
+    if done is None and not waiting:
+        return None
+    done = done or {}
+    issues = ir.async_get(hass).issues
+    loaded = legacy.DOMAIN in hass.config.components or os.path.isdir(_old_folder(hass))
+    return {"domain": DOMAIN, "state": "failed" if (DOMAIN, "migration_failed") in issues else "running" if waiting else "done",
+            "at": done.get("at"), "entries": len(done.get("entries", {})), "entities": done.get("entities", 0),
+            "devices": done.get("devices", 0), "stores": len(done.get("stores", [])),
+            "updated": {k: done.get(k, 0) for k in ("files", "dashboards", "helpers", "blueprints")},
+            "dashboards": done.get("dashboard_ids", []), "manual": done.get("manual", []), "restart": bool(done.get("restart")) and loaded}
+
+
+async def _start_siblings(hass: HomeAssistant) -> None:
+    """The other Hestia bricks still under their former name are started, when their new version is installed:
+    each then carries itself over. One « Add an integration » or one bridge is enough for the whole home."""
+    for domain, former in getattr(legacy, "SIBLINGS", {}).items():
+        if domain in hass.config.components or not hass.config_entries.async_entries(former):
+            continue
+        try:
+            await async_get_integration(hass, domain)
+        except IntegrationNotFound:
+            continue
+        hass.async_create_task(async_setup_component(hass, domain, {}), f"{domain} carried over")
 
 
 # ——— what only computes ———
@@ -279,10 +327,11 @@ async def _copy_stores(hass: HomeAssistant, ids: dict[str, str]) -> list[str]:
     return copied
 
 
-def _move_registries(hass: HomeAssistant, old: ConfigEntry, entry: ConfigEntry, ids: dict[str, str]) -> None:
+def _move_registries(hass: HomeAssistant, old: ConfigEntry, entry: ConfigEntry, ids: dict[str, str]) -> tuple[int, int]:
     """The former entry's entities and devices become the new entry's, with their ids, names, areas and icons.
     The new entry is still paused: when it starts, it finds them as its own instead of creating new ones."""
     entities, devices = er.async_get(hass), dr.async_get(hass)
+    moved = [0, 0]
     for item in er.async_entries_for_config_entry(entities, old.entry_id):
         if item.platform != legacy.DOMAIN:
             continue
@@ -290,6 +339,7 @@ def _move_registries(hass: HomeAssistant, old: ConfigEntry, entry: ConfigEntry, 
         if entities.async_get_entity_id(item.domain, DOMAIN, unique_id):
             continue  # already carried over by a run cut short
         entities.async_update_entity_platform(item.entity_id, DOMAIN, new_config_entry_id=entry.entry_id, new_unique_id=unique_id)
+        moved[0] += 1
     # Since Home Assistant 2026.10 a device belongs to one entry and moves with `new_config_entry_id`; before, it was
     # added to the new entry and removed from the former one.
     single = "new_config_entry_id" in inspect.signature(devices.async_update_device).parameters
@@ -300,11 +350,13 @@ def _move_registries(hass: HomeAssistant, old: ConfigEntry, entry: ConfigEntry, 
         else:
             devices.async_update_device(device.id, add_config_entry_id=entry.entry_id, remove_config_entry_id=old.entry_id,
                                         new_identifiers=identifiers)
+        moved[1] += 1
+    return moved[0], moved[1]
 
 
 async def _rewrite_users(hass: HomeAssistant, ids: dict[str, str]) -> dict[str, Any]:
     """What the interface wrote, with the former names and entry ids changed; what was written by hand, listed."""
-    counts: dict[str, Any] = {"files": 0, "dashboards": 0, "helpers": 0, "blueprints": 0, "resources": 0}
+    counts: dict[str, Any] = {"files": 0, "dashboards": 0, "helpers": 0, "blueprints": 0, "resources": 0, "dashboard_ids": []}
     for name, kind in UI_FILES:
         path = hass.config.path(name)
         text = await hass.async_add_executor_job(_read, path)
@@ -326,6 +378,7 @@ async def _rewrite_users(hass: HomeAssistant, ids: dict[str, str]) -> dict[str, 
         if getattr(dashboard, "mode", None) == "storage":
             await dashboard.async_save(changed)
             counts["dashboards"] += 1
+            counts["dashboard_ids"].append(getattr(dashboard, "url_path", None) or "default")
         else:
             manual.append({"name": (dashboard.config or {}).get("title") or "ui-lovelace.yaml", "lines": []})
     for entry in hass.config_entries.async_entries():
@@ -396,10 +449,12 @@ async def async_carry_over(hass: HomeAssistant) -> dict[str, Any]:
         news = await _ids(hass, store, table)
         ids = dict(table["entries"])
         copied = await _copy_stores(hass, ids)
+        moved = [0, 0]
         for old, entry, fresh in news:
             if fresh:
                 await hass.config_entries.async_add(entry)
-            _move_registries(hass, old, entry, ids)
+            entities, devices = _move_registries(hass, old, entry, ids)
+            moved = [moved[0] + entities, moved[1] + devices]
         for old, entry, _ in news:
             await hass.config_entries.async_remove(old.entry_id)
             # Paused for the move only: started now, as the former one was (a disabled entry stays disabled).
@@ -421,10 +476,12 @@ async def async_carry_over(hass: HomeAssistant) -> dict[str, Any]:
             ir.async_create_issue(hass, DOMAIN, "migration_restart", is_fixable=False, severity=ir.IssueSeverity.WARNING,
                                   translation_key="migration_restart")
         ir.async_delete_issue(hass, DOMAIN, "migration_failed")
-        done = {"at": dt_util.utcnow().isoformat(), "entries": mine, "stores": copied, "manual": manual, "restart": restart, **result}
+        done = {"at": dt_util.utcnow().isoformat(), "entries": mine, "stores": copied, "manual": manual, "restart": restart,
+                "entities": moved[0], "devices": moved[1], **result}
         if news or copied or restart:
             table["done"][DOMAIN] = done
             await store.async_save(table)
             hass.bus.async_fire(DONE_EVENT, {"domain": DOMAIN, "entries": mine})
             LOGGER.info("Carried over to %s: %s", DOMAIN, done)
-        return done
+    await _start_siblings(hass)
+    return done

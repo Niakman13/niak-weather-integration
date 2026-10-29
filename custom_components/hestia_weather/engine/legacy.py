@@ -26,8 +26,10 @@ PANEL = "niak"
 SOCLE_KEY = "niak_socle"
 # The .storage files of the former domain: alerts in progress (one per place) and the undo of the renaming tool.
 STORES = (f"{DOMAIN}.alertes.", f"{DOMAIN}.migration")
-# Hestia Confort under its former name: the link between the two is carried over by each side.
+# Hestia Confort under its former name: the link between the two is carried over by each side, and Hestia Weather starts
+# it once carried over (domain_migration._start_siblings).
 COMFORT_DOMAIN = "niak_comfort"
+SIBLINGS = {"hestia_comfort": COMFORT_DOMAIN}
 # Former names in what the user wrote (automations, scripts, scenes, dashboards, imported blueprints), with the new one.
 # Whole words only; an entity id (sensor.niak_weather_…) is never touched: ids stay as they are.
 TEXT = (

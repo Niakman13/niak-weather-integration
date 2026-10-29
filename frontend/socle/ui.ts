@@ -178,7 +178,8 @@ export function pageHead(o:{back?:NkAction;title:string;subtitle?:unknown;state?
   ${o.actions?.length?html`<div class="nk-page-actions">${o.actions.map(button)}</div>`:nothing}</div></div>`;
 }
 export interface NkLine {level:string;text:string;why?:string|null;go?:NkAction|null}
-const line=(l:NkLine)=>html`<li class=${'nk-line '+l.level}><span class="nk-dot"></span><div><strong>${l.text}</strong>${l.why?html`<span class="nk-why">${l.why}</span>`:nothing}</div>
+/** One line of a list of steps or things to do: its state, what it says, why, and its one action. */
+export const line=(l:NkLine)=>html`<li class=${'nk-line '+l.level}><span class="nk-dot"></span><div><strong>${l.text}</strong>${l.why?html`<span class="nk-why">${l.why}</span>`:nothing}</div>
  ${l.go?html`<button class="link nk-go" ?disabled=${l.go.disabled} @click=${l.go.onClick}>${l.go.label}</button>`:nothing}</li>`;
 /** What is left to do: « À régler » first (orange), then « À améliorer »; nothing at all when everything works. */
 export function todoFrame(todo:NkLine[],tips:NkLine[]=[]):TemplateResult|typeof nothing{

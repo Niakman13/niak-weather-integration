@@ -20,7 +20,7 @@ from homeassistant.helpers.storage import Store
 
 from .engine import legacy
 
-SOCLE_VERSION = (1, 15)
+SOCLE_VERSION = (1, 16)
 # 1.1: an optional `tab`, the tab's own name when it is not the brick's (« Météo » for Hestia Weather).
 # 1.2: async_register_card, the brick's card on every dashboard, also as a dashboard resource.
 # 1.3: the home page says « À découvrir » and « Voir » for the bricks not installed (same contract as 1.2).
@@ -40,8 +40,10 @@ SOCLE_VERSION = (1, 15)
 # 1.14: a brick's status may take the hub's language as a second argument: status(hass, language).
 # 1.15: every technical name says Hestia: websocket `hestia/…`, .storage/hestia_socle, the « hestia » appearance.
 #       The former names live in the brick's legacy.py only: its migration carries the settings over.
+# 1.16: a brick may give `migration(hass)`: the home page shows « Passage au nom Hestia » until every step is done and
+#       the user closes it (`hestia/close_migration`, kept with the panel settings).
 # The shell's custom element carries its version: two copies never fight over one name.
-ELEMENT = "hestia-socle-1-15"
+ELEMENT = "hestia-socle-1-16"
 KEY = "hestia_socle"
 STORE_VERSION = 1
 PANEL = "hestia"
@@ -78,6 +80,7 @@ async def async_register_brick(hass, brick, shell_url):
     websocket_api.async_register_command(hass, _ws_overview)
     websocket_api.async_register_command(hass, _ws_set_sidebar)
     websocket_api.async_register_command(hass, _ws_set_theme)
+    websocket_api.async_register_command(hass, _ws_close_migration)
     await _show_panel(hass, shell_url, data["settings"]["sidebar"])
 
 
@@ -92,7 +95,8 @@ async def _load_settings(hass, data):
         _LOGGER.warning("Réglages du panneau Hestia illisibles : menu affiché par défaut", exc_info=True)
     settings = stored if isinstance(stored, dict) else {}
     data["settings"] = {"sidebar": data.get("settings", {}).get("sidebar", settings.get("sidebar", True)) is not False,
-                        "theme": settings.get("theme") if settings.get("theme") in THEMES else "hestia"}
+                        "theme": settings.get("theme") if settings.get("theme") in THEMES else "hestia",
+                        "migration_closed": settings.get("migration_closed") is True}
 
 
 async def _show_panel(hass, shell_url, sidebar):
@@ -135,6 +139,28 @@ async def async_set_theme(hass, theme):
         data["settings"]["theme"] = theme
         await Store(hass, STORE_VERSION, KEY).async_save(dict(data["settings"]))
     return theme
+
+
+async def async_close_migration(hass):
+    """« J'ai compris »: the « Passage au nom Hestia » frame is closed for good."""
+    data = hass.data.setdefault(KEY, {"bricks": {}, "panel": None})
+    async with _settings_lock(hass):
+        await _load_settings(hass, data)
+        data["settings"]["migration_closed"] = True
+        await Store(hass, STORE_VERSION, KEY).async_save(dict(data["settings"]))
+    return True
+
+
+async def _migration(hass, brick):
+    """One brick's « Passage au nom Hestia » (socle 1.16), or None: never what keeps the home page from opening."""
+    if not callable(brick.get("migration")):
+        return None
+    try:
+        async with asyncio.timeout(5):
+            return await brick["migration"](hass)
+    except Exception:  # noqa: BLE001 - one brick's failure never hides the others
+        _LOGGER.exception("Passage au nom Hestia de %s illisible", brick.get("domain"))
+        return None
 
 
 async def _legacy_panel(hass, brick, shell_url):
@@ -248,8 +274,11 @@ async def async_overview(hass, language=None):
     others = [{**c, "installed": c["domain"] in hass.config.components,
                "settings_path": f"/config/integrations/integration/{c['domain']}"}
               for c in CATALOGUE if c["domain"] not in bricks]
-    sidebar = hass.data.get(KEY, {}).get("settings", {}).get("sidebar", True)
-    return {"version": 1, "socle": list(SOCLE_VERSION), "bricks": result, "others": others, "sidebar": sidebar, "theme": hass.data.get(KEY, {}).get("settings", {}).get("theme", "hestia")}
+    settings = hass.data.get(KEY, {}).get("settings", {})
+    migration = [m for m in await asyncio.gather(*(_migration(hass, brick) for brick in listed)) if m]
+    return {"version": 1, "socle": list(SOCLE_VERSION), "bricks": result, "others": others, "sidebar": settings.get("sidebar", True),
+            "theme": settings.get("theme", "hestia"),
+            "migration": [] if settings.get("migration_closed") else migration}
 
 
 @websocket_api.websocket_command({vol.Required("type"): "hestia/overview", vol.Optional("language"): str})
@@ -271,3 +300,10 @@ async def _ws_set_sidebar(hass, connection, msg):
 @websocket_api.async_response
 async def _ws_set_theme(hass, connection, msg):
     connection.send_result(msg["id"], {"theme": await async_set_theme(hass, msg["theme"])})
+
+
+@websocket_api.websocket_command({vol.Required("type"): "hestia/close_migration"})
+@websocket_api.require_admin
+@websocket_api.async_response
+async def _ws_close_migration(hass, connection, msg):
+    connection.send_result(msg["id"], {"closed": await async_close_migration(hass)})
