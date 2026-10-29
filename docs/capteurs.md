@@ -26,7 +26,7 @@ Il y a cinq façons de s’en servir :
 
 Une donnée manquante donne **inconnu**, jamais « pas de pluie » ou « pas d’alerte ».
 
-Les entités marquées « à activer » existent mais sont désactivées au départ. Pour en activer : **Paramètres → Appareils et services → Hestia Weather → Configurer → Capteurs et automatisations**. Tout y est rangé par famille, et l’écran dit ce qui manque à certaines (un capteur UV, Atmo France…). À la première installation, les familles choisies décident de ce qui est activé.
+Les entités marquées « à activer » existent mais sont désactivées au départ. Pour en activer : panneau **Hestia → Météo → Réglages généraux**, **Modifier** le lieu, étape **Entités**. Tout y est rangé par famille, et l’écran dit ce qui manque à certaines (un capteur UV, Atmo France…). À la première installation, les familles choisies décident de ce qui est activé.
 
 ## Maintenant
 
@@ -170,9 +170,9 @@ Ils sont sur GitHub, à importer en un clic. Vos réglages (téléphones, heure,
 
 ## Noms techniques
 
-Le projet s’appelait Niak Weather. Pour ne rien casser chez ceux qui l’utilisaient déjà, les noms internes gardent « niak » : le domaine `niak_weather` (services comme `niak_weather.prevision`, adresses du panneau, fichiers).
+Les noms techniques de la première version restent, pour ne rien casser chez ceux qui l’utilisaient déjà : le domaine `niak_weather` (l’action `niak_weather.prevision`, les adresses du panneau, les fichiers). Vous ne les voyez que là où il faut les écrire.
 
-- **Entités** : une nouvelle installation crée des `sensor.hestia_weather_…`. Si vous avez installé avant le changement de nom, vos entités s’appellent `sensor.niak_weather_…` : elles continuent de marcher et gardent ce nom.
+- **Entités** : une nouvelle installation crée des `sensor.hestia_weather_…`. Installé avant la 2.9.4, vos entités s’appellent `sensor.niak_weather_…` : elles continuent de marcher. Pour leur donner le nom Hestia, **Réglages généraux → Nom des entités** (depuis la 2.9.6) : un aperçu d’abord, puis vos automatisations, scripts, scènes et tableaux de bord suivent, et un retour en arrière reste possible.
 - **Carte** : ajoutez-la avec `custom:hestia-weather-card`. L’ancien `custom:niak-weather-card` marche toujours.
 - **Évènement d’alerte** : il existe sous deux noms, `hestia_weather_alerte` et `niak_weather_alerte`, avec le même contenu. Utilisez le premier dans vos nouvelles automatisations.
 - **Thème** : les variables `hestia-rain-color`… sont lues d’abord, puis les anciennes `niak-rain-color`….

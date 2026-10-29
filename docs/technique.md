@@ -86,6 +86,21 @@ La CI lance aussi `hassfest` et la validation HACS.
 
 `scripts/view_cli.py` calcule une vue à partir d’un scénario JSON : le banc de la carte s’en sert pour dessiner ses démonstrations avec le vrai moteur.
 
+## Traduire
+
+Hestia Weather parle français et anglais. Le français est écrit dans le code ; chaque autre langue est un dictionnaire « phrase française → traduction ». Pour ajouter une langue, il suffit de traduire ces fichiers, en partant de l’anglais :
+
+| Fichier | Ce qu’il traduit |
+| --- | --- |
+| `card/src/i18n/en.ts` | La carte |
+| `frontend/i18n-en.ts` et `frontend/socle/i18n-en.ts` | Le panneau Hestia |
+| `custom_components/niak_weather/engine/i18n_en.py` | Les textes calculés pour la carte et le panneau |
+| `custom_components/niak_weather/translations/en.json` | L’assistant de Paramètres et les noms des entités |
+
+Les valeurs des capteurs restent en français : elles servent aux automatisations. Les tests vérifient qu’aucune phrase n’est oubliée et que les `{noms}` entre accolades sont gardés.
+
+Pas à l’aise avec ces fichiers ? [Ouvrez une demande « Traduction »](https://github.com/hestiaFB/hestia-weather-integration/issues/new?title=Traduction%20%3A%20) : on vous envoie la liste des phrases, et on s’occupe du reste.
+
 ## L’icône
 
 `custom_components/niak_weather/brand/icon.png` : Home Assistant l’affiche pour l’intégration, à partir de la version 2026.

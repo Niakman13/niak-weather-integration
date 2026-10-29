@@ -18,28 +18,27 @@ Hestia Weather assemble des données **déjà présentes** dans Home Assistant. 
 
 ## Configurer
 
-Dans le panneau Hestia, **Météo → Vue d’ensemble** présente le bilan technique de chaque lieu : fraîcheur des prévisions et du calcul, capteurs de la station qui répondent, historique disponible, entités actives et liaisons avec les autres briques. Les extensions sont résumées par catégorie avec leur état d’installation et leur sélection enregistrée ; les possibilités d’amélioration restent repliées. Le bouton **Actualiser le bilan** relit les données sans modifier les réglages. **Réglages généraux** regroupe Sources météo, Station météo · capteurs locaux, Qualité de l’air, Pollens, Eau et jardin et Entités, puis le récapitulatif. Le menu suit la charte commune de Confort : deux rangées arrondies à icônes.
+Tout se règle dans le panneau **Hestia** de la barre latérale, onglet **Météo**. Chaque champ arrive prérempli avec ce que Home Assistant connaît : vous vérifiez, vous corrigez si besoin.
 
-L’accueil garde une synthèse compacte des extensions. Chaque intégration se configure directement dans l’onglet de son sujet : **Sources météo** pour Météo-France et Blitzortung, **Qualité de l’air** pour Atmo France et WAQI, **Pollens** pour les fournisseurs de pollens, **Eau et jardin** pour Vigieau. Il n’y a plus d’onglet Extensions. Atmo France apparaît dans Air et Pollens avec l’état de configuration propre à chaque usage.
+- **Accueil** : à lire seulement. L’état de chaque lieu, ce qui reste à régler, les extensions et les versions.
+- **Réglages généraux** : vos lieux (**Modifier**, **Ajouter un lieu**) et les cartes. Une installation faite sous l’ancien nom y trouve aussi « Nom des entités » ([les noms techniques](capteurs.md#noms-techniques)).
+- **Extensions** : chaque intégration que Hestia Weather sait lire, rangée par thème (sources météo, qualité de l’air, pollens, eau et jardin, orages et éclairs), avec son état : utilisée, installée ou non installée. **Comment l’installer** donne la marche à suivre. Hestia Confort s’y relie d’un interrupteur.
 
-**Installée** signifie que l’intégration est ajoutée dans Home Assistant, détectée par ses entités, ou téléchargée dans HACS. **Configurée** indique que ses données ont été choisies et enregistrées pour ce lieu. Un capteur simplement proposé dans un brouillon ne suffit pas. Les sélecteurs servent directement à choisir les données ; **Comment l’installer** donne accès aux indications quand l’intégration manque. Une intégration installée sans données détectées propose **Configurer dans Home Assistant**. L’état de fonctionnement des sources reste dans le détail technique du lieu.
+Un lieu se règle en sept étapes :
 
-Pour les éclairs, ouvrez **Sources météo → Orages et éclairs → Comment l’installer**. Le nom à chercher dans HACS est **Blitzortung.org Lightning Detector**. Après le téléchargement et le redémarrage de Home Assistant, ajoutez l’intégration Blitzortung dans Appareils et services, puis revenez choisir son capteur de distance dans Sources météo de Hestia Weather.
-
-**Paramètres → Appareils et services → Ajouter une intégration → Hestia Weather.**
-
-Un guide en quatre étapes, chacune préremplie avec ce que Home Assistant connaît :
-
-0. **Bienvenue** : ce que fait Hestia Weather et ce qu’il faut. Si vous aviez déjà la carte, **Reprendre les réglages d’une carte** : ils sont affichés à chaque étape, pour vérification.
-1. **Météo** : l’entité météo, le nom du lieu, la vigilance, la saison, les restrictions d’eau (Vigieau) et les éclairs (Blitzortung).
+1. **Sources météo** : l’entité météo, le nom du lieu, la vigilance, la saison, les éclairs (Blitzortung).
 2. **Station météo** : le modèle reconnu, puis chaque capteur. Laissez vide ce que la station ne mesure pas.
-3. **Qualité de l’air**, puis **Pollens** : la commune Atmo France pour l’air (ou aucune), puis la source des pollens : Atmo France, Polleninformation, IRM KMI (Belgique), Swiss Pollen (Suisse), Kleenex / Scottex (France et autres pays couverts) ou aucune. Avec Swiss Pollen, choisissez une station commune aux espèces suivies ; avec les autres fournisseurs par espèce, choisissez leurs capteurs.
-4. **Capteurs et automatisations** : les familles d’entités à activer (Maintenant, Alertes, Prochaines heures, Jardin…).
-5. **Récapitulatif** : ce qui a été trouvé, et ce qui manque à certaines entités (un capteur UV, Atmo France…).
+3. **Qualité de l’air** : Atmo France, une station WAQI, ou aucune.
+4. **Pollens** : Atmo France, Polleninformation, IRM KMI (Belgique), Swiss Pollen (Suisse), Kleenex / Scottex (France et autres pays couverts) ou aucune. Avec Swiss Pollen, choisissez une station commune aux espèces suivies ; avec les autres fournisseurs par espèce, choisissez leurs capteurs.
+5. **Eau et jardin** : les restrictions d’eau de votre commune (Vigieau).
+6. **Entités** : les familles d’entités à activer (Maintenant, Alertes, Prochaines heures, Jardin…), et ce qui manque à certaines (un capteur UV, Atmo France…).
+7. **Récapitulatif** : tout ce que vous avez choisi.
 
-**Un champ laissé vide est un choix** : il n’est jamais rempli à votre place ensuite.
+Rien n’est enregistré avant **Enregistrer**. **Un champ laissé vide est un choix** : il n’est jamais rempli à votre place ensuite. Plusieurs lieux ? **Ajouter un lieu**, une fois par lieu.
 
-**Configurer** ouvre un menu qui reste ouvert : Météo, Station, Qualité de l’air et pollens (un sous-menu : l’air d’un côté, les pollens de l’autre), Capteurs et automatisations. Chaque partie se change puis revient au menu ; rien n’est enregistré avant **Enregistrer et fermer**. L’écran **Capteurs et automatisations** active ou désactive chaque entité, rangée par famille. Plusieurs lieux ? Ajoutez l’intégration une fois par lieu.
+La toute première fois, l’intégration s’ajoute comme les autres : **Paramètres → Appareils et services → Ajouter une intégration → Hestia Weather**. Vous aviez déjà la carte ? Le guide propose de reprendre ses réglages.
+
+Pour les éclairs, le nom à chercher dans HACS est **Blitzortung.org Lightning Detector**. Après le téléchargement et le redémarrage de Home Assistant, ajoutez l’intégration Blitzortung dans **Appareils et services**, puis choisissez son capteur de distance dans **Sources météo**.
 
 ## Météo-France — ciel et prévisions
 

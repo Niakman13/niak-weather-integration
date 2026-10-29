@@ -50,11 +50,11 @@
 
 - Home Assistant 2026.7 ou plus récent est maintenant demandé (2025.1 jusqu’ici) : c’est la plus ancienne version sur laquelle Hestia Weather est testé. Sur une version plus ancienne, HACS ne proposera pas cette mise à jour ; la version installée continue de fonctionner.
 
-## 2.9.3 — Stable : Niak Weather devient Hestia Weather
+## 2.9.3 — Stable : le nouveau nom, Hestia Weather
 
 **En bref**
 
-- **Niak Weather devient Hestia Weather.** Le nom change partout : carte, panneau, textes, traductions et documentation.
+- **Le projet prend le nom Hestia Weather.** Le nom change partout : carte, panneau, textes, traductions et documentation.
 - **Rien à refaire de votre côté.** Mêmes entités, mêmes réglages, mêmes cartes, même adresse du panneau.
 
 ### Améliorations
@@ -69,14 +69,14 @@
 
 - Dans les réglages de la carte, un bloc qu’on coche se range à sa place habituelle, et non plus tout en bas. Par exemple, les éclairs cochés se placent juste après la pression, à côté de la pluie et du vent.
 
-## 2.9.0 — Stable : Niak Weather en anglais, cartes à la pièce et radar des éclairs
+## 2.9.0 — Stable : Hestia Weather en anglais, cartes à la pièce et radar des éclairs
 
 **En bref**
 
-- **Niak Weather parle anglais** : la carte s’affiche en anglais quand Home Assistant n’est pas en français. Une première pour les utilisateurs hors de France.
+- **Hestia Weather parle anglais** : la carte s’affiche en anglais quand Home Assistant n’est pas en français. Une première pour les utilisateurs hors de France.
 - **Cartes à la pièce** : ressenti, pluie, vent, pression, éclairs, air et pollens, prévisions. Chacune se pose seule sur un tableau de bord.
 - **Radar des éclairs** avec Blitzortung : les éclairs de la dernière heure autour de la maison.
-- **Réglages → Extensions**, comme dans Niak Confort : la liaison avec Niak Confort et chaque intégration utilisée, au même endroit.
+- **Réglages → Extensions**, comme dans Hestia Confort : la liaison avec Hestia Confort et chaque intégration utilisée, au même endroit.
 
 ### Nouveautés
 
@@ -87,20 +87,20 @@
 - Cartes à la pièce : chacune montre les parties que vous cochez.
 - Radar des éclairs : l’éclair le plus proche, le niveau (calme, secteur, proche, sur vous), le nombre d’éclairs de l’heure, des 10 dernières minutes et du mois.
 - Dans la carte complète, les éclairs se rangent à côté de la pluie, du vent et de la pression. La carte seule peut se cacher quand il n’y a pas d’orage.
-- Onglet Extensions : Niak Confort se relie ou se coupe d’un interrupteur. Coupé d’un côté, il l’est aussi de l’autre.
+- Onglet Extensions : Hestia Confort se relie ou se coupe d’un interrupteur. Coupé d’un côté, il l’est aussi de l’autre.
 - Onglet Extensions : chaque intégration (Météo-France, Atmo France, WAQI, Vigieau, Blitzortung, pollens) montre si elle est installée, à quoi elle sert pour ce lieu, et s’allume ou s’éteint d’un interrupteur.
 
 ### Améliorations
 
 - Réglages de la carte en deux temps : le type de carte, puis le format.
-- « Ajouter une carte » propose trois entrées : Niak - Météo, Niak - À la pièce, Niak - Petite carte.
+- « Ajouter une carte » propose trois entrées : Hestia - Météo, Hestia - À la pièce, Hestia - Petite carte.
 - Pendant son chargement, la carte se dessine en lignes grises balayées de lumière.
 
 ### Corrections
 
 - Une baisse passagère du compteur de pluie de la station n’est plus comptée comme de la pluie (issue #9).
 
-## 2.9.0b1 — Bêta : Niak Weather en anglais
+## 2.9.0b1 — Bêta : Hestia Weather en anglais
 
 **La carte parle la langue de Home Assistant : français, ou anglais pour toutes les autres langues.**
 
@@ -113,7 +113,7 @@
 
 ## 2.8.3 — Stable : barres de pluie sur 24 h et 30 jours
 
-- Les barres de pluie sur 24 heures et 30 jours s’affichent même quand la station démarre après Niak Weather : elles restaient sur 7 jours.
+- Les barres de pluie sur 24 heures et 30 jours s’affichent même quand la station démarre après Hestia Weather : elles restaient sur 7 jours.
 - Même correction pour les cumuls de la semaine, du mois et de l’année calculés depuis le compteur total, et pour les courbes du vent et de la pression sur plusieurs jours.
 
 ## 2.8.2 — Stable : UV avec une station Netatmo
@@ -139,7 +139,7 @@ Cette version stable reprend la bêta 2.8.1b1, avec en plus les périodes de la 
 
 - Nouvel accueil technique : état de Weather, problèmes à corriger, extensions installées/configurées, statistiques, versions et liens utiles.
 - Réglages regroupés par sujet : Météo-France et Blitzortung dans Sources météo, air et pollens dans leurs onglets, Vigieau dans Eau et jardin.
-- Menu à icônes conforme à Niak Confort et cadres lisibles avec les thèmes Home Assistant, notamment Nordic.
+- Menu à icônes conforme à Hestia Confort et cadres lisibles avec les thèmes Home Assistant, notamment Nordic.
 - Choix conservés entre les onglets et anciens liens compatibles.
 
 Cette version stable reprend la bêta 2.8.0b4 validée, sans changement fonctionnel supplémentaire.
@@ -148,7 +148,7 @@ Cette version stable reprend la bêta 2.8.0b4 validée, sans changement fonction
 
 - L’onglet Extensions est supprimé : les intégrations d’air et de pollens se règlent dans leurs onglets, Vigieau dans Eau et jardin, Blitzortung dans Sources météo.
 - Météo-France est identifié dans Sources météo, avec son état d’installation et sa sélection enregistrée pour le lieu.
-- Le menu de configuration reprend les deux rangées arrondies à icônes de Niak Confort.
+- Le menu de configuration reprend les deux rangées arrondies à icônes de Hestia Confort.
 - Les anciens liens Extensions ouvrent Sources météo ; le brouillon reste conservé entre les onglets et le nouvel assistant passe par Eau et jardin.
 
 ## 2.8.0b3 — Bêta : tableau de bord technique et thèmes Home Assistant
@@ -176,7 +176,7 @@ Cette version stable reprend la bêta 2.8.0b4 validée, sans changement fonction
 
 **En bref**
 
-- **L’orage vu, pas seulement prévu.** Avec l’intégration Blitzortung, Niak Weather voit les éclairs autour de chez vous : à moins de 30 km, le capteur Orage s’allume et dit où est l’orage et s’il se rapproche.
+- **L’orage vu, pas seulement prévu.** Avec l’intégration Blitzortung, Hestia Weather voit les éclairs autour de chez vous : à moins de 30 km, le capteur Orage s’allume et dit où est l’orage et s’il se rapproche.
 - **Les restrictions d’eau de votre commune.** Avec l’intégration Vigieau, un nouveau capteur « Restrictions d’eau » (famille Jardin) donne le niveau de l’arrêté sécheresse.
 
 ### Nouveautés
@@ -186,17 +186,17 @@ Cette version stable reprend la bêta 2.8.0b4 validée, sans changement fonction
 - Un orage plus lointain est signalé pour information, sans alerte.
 - Capteur « Restrictions d’eau » : pas de restriction, vigilance, alerte, alerte renforcée ou crise ; usages restreints et lien de l’arrêté en attributs.
 - Dès le niveau « Alerte », la carte et la synthèse le disent, en précisant si l’arrosage est restreint.
-- Les autres briques Niak reçoivent les éclairs et les restrictions d’eau.
+- Les autres briques Hestia reçoivent les éclairs et les restrictions d’eau.
 
 ### Améliorations
 
-- Vigieau et Blitzortung se choisissent dans l’étape Sources météo ; Niak les trouve seul quand il n’y a qu’un choix (pour Vigieau, la zone de l’eau du robinet).
+- Vigieau et Blitzortung se choisissent dans l’étape Sources météo ; Hestia les trouve seul quand il n’y a qu’un choix (pour Vigieau, la zone de l’eau du robinet).
 
 ## 2.6.3 — Stable : la couverture nuageuse partagée
 
 **En bref**
 
-- **La couverture nuageuse est partagée avec les autres briques Niak.** Niak Confort s’en sert pour estimer le soleil quand votre station est à l’ombre.
+- **La couverture nuageuse est partagée avec les autres briques Hestia.** Hestia Confort s’en sert pour estimer le soleil quand votre station est à l’ombre.
 
 ### Nouveautés
 
@@ -206,11 +206,11 @@ Cette version stable reprend la bêta 2.8.0b4 validée, sans changement fonction
 
 **En bref**
 
-- **La saison est partagée avec les autres briques Niak.** Niak Confort s’en sert pour adapter ses conseils à l’été, à l’hiver et aux entre-saisons.
+- **La saison est partagée avec les autres briques Hestia.** Hestia Confort s’en sert pour adapter ses conseils à l’été, à l’hiver et aux entre-saisons.
 
 ### Nouveautés
 
-- Les autres briques Niak reçoivent la saison affichée par Niak Weather : celle de votre capteur Saison s’il est choisi, sinon celle du calendrier, avec la durée du jour.
+- Les autres briques Hestia reçoivent la saison affichée par Hestia Weather : celle de votre capteur Saison s’il est choisi, sinon celle du calendrier, avec la durée du jour.
 
 ## 2.6.1 — Stable : la pluie à la minute
 
@@ -222,7 +222,7 @@ Cette version stable reprend la bêta 2.8.0b4 validée, sans changement fonction
 - Quand la pluie dans l’heure de Météo-France ne voit rien tomber, la pluie de la prévision horaire est repoussée après cette heure sèche.
 
 ### Nouveautés
-- Les autres briques Niak (Niak Confort) reçoivent l’heure de la prochaine pluie.
+- Les autres briques Hestia (Hestia Confort) reçoivent l’heure de la prochaine pluie.
 
 ## 2.6.0 — Stable : ciel animé plus vivant
 
@@ -261,7 +261,7 @@ Reprend les préversions 2.5.5b1 à 2.5.5b3 ci-dessous : panne d’une source d�
 - Nouvelle source de qualité de l’air au choix, à côté d’Atmo France : **WAQI** (intégration « World Air Quality Index » de Home Assistant, jeton gratuit sur aqicn.org).
 - Aujourd’hui : la mesure de la station choisie, ramenée à l’indice de 1 à 6 d’Atmo.
 - Demain : la prévision Open-Meteo (modèle européen Copernicus), sans clé. Elle n’est demandée qu’avec WAQI, à la position de la maison.
-- La carte, le panneau Niak et le capteur Qualité de l’air disent d’où vient l’air : « WAQI » ou « Open-Meteo ».
+- La carte, le panneau Hestia et le capteur Qualité de l’air disent d’où vient l’air : « WAQI » ou « Open-Meteo ».
 - Une station qui ne répond plus s’affiche « Indisponible » : aucun relais automatique.
 
 ## 2.5.2 — Formulaires harmonisés
@@ -274,15 +274,15 @@ Reprend les préversions 2.5.5b1 à 2.5.5b3 ci-dessous : panne d’une source d�
 
 - L’accueil et le menu occupent toute la hauteur disponible dans Home Assistant, y compris lorsque seule une brique est à jour.
 - Le menu de configuration d’une pièce s’aligne sur toute la largeur du formulaire.
-- Dans Accueil Niak → Réglages, choix mémorisé entre les couleurs et la police du thème Home Assistant et la palette Niak. Niak conserve le suivi du mode clair ou sombre de Home Assistant.
+- Dans Accueil Hestia → Réglages, choix mémorisé entre les couleurs et la police du thème Home Assistant et la palette Hestia. Hestia conserve le suivi du mode clair ou sombre de Home Assistant.
 - La section Affichage reste toujours visible, sans repli.
 
-## 2.5.0 — Le nouveau hub Niak
+## 2.5.0 — Le nouveau hub Hestia
 
 - Menu latéral regroupé par brique, avec accès direct aux sources météo, à la station, à la qualité de l’air, aux pollens et aux entités.
 - Vue d’ensemble des lieux configurés et bouton Configurer pour chacun.
 - Interface harmonisée en clair et sombre, adaptée au téléphone ; aides nommées en info-bulles, recommandations et erreurs visibles.
 - Choix et brouillons conservés pendant la navigation. Weather reste utilisable seul ; les briques absentes ne créent pas de menus inutiles.
-- Préférence pour masquer l’entrée Niak dans le menu Home Assistant, en gardant l’accès aux réglages par l’intégration.
+- Préférence pour masquer l’entrée Hestia dans le menu Home Assistant, en gardant l’accès aux réglages par l’intégration.
 
 Les sources, paramètres, entités et données existantes sont conservés. Après mise à jour HACS, redémarrez Home Assistant.

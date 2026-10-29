@@ -2,13 +2,13 @@
 
 **La météo chez vous, en une carte qui parle.** La carte affiche ce que calcule l’intégration : la vigilance, le bulletin du jour, les alertes à leur heure, le ressenti, la pluie, le vent, la pression, l’air et les pollens, sur un ciel animé.
 
-Depuis la 2.3, **la carte est fournie par l’intégration** : rien à installer en plus, et elle a toujours la même version que l’intégration. L’intégration l’ajoute elle-même aux ressources des tableaux de bord (`/niak_weather-assets/niak-weather-card.js`) et la tient à jour, pour que l’application mobile la trouve aussi. Sur un tableau de bord : **Ajouter une carte → Hestia Weather**.
+Depuis la 2.3, **la carte est fournie par l’intégration** : rien à installer en plus, et elle a toujours la même version que l’intégration. L’intégration l’ajoute elle-même aux ressources des tableaux de bord et la tient à jour, pour que l’application mobile la trouve aussi. Sur un tableau de bord : **Ajouter une carte → Hestia Weather**.
 
-Correction du chargement (2.3.1) : la carte attend l’initialisation de l’interface Home Assistant avant d’enregistrer ses éléments, même si une ancienne page en cache la charge très tôt. Les ressources gérées par l’interface utilisent uniquement la ressource module ; les ressources YAML gardent un chargement automatique protégé. Les contournements locaux avec `%2D` sont regroupés avec la ressource officielle lors du démarrage, sans toucher aux ressources YAML.
+La carte parle **français** et **anglais** : elle suit la langue de chaque personne qui la regarde. Une autre langue s’affiche en anglais, en attendant qu’un utilisateur la propose ([comment aider](../technique.md#traduire)).
 
 Sans station (depuis la 2.3.1), les courbes de vent et de pression utilisent les attributs historiques du service météo sélectionné, si Home Assistant les a enregistrés. Elles conservent le nom du service météo et ne deviennent pas des mesures locales. Si cet historique est absent, exclu de Recorder ou trop court, la carte le précise ; elle n’invente pas de valeurs passées. Les cumuls de pluie mesurés restent un enrichissement facultatif fourni par un pluviomètre. Retirer la station ne crée plus d’alertes « À régler » pour les entités restées actives qui dépendent de ses capteurs.
 
-Vous aviez installé la carte depuis HACS ? Retirez-la (HACS → Hestia Weather → ⋮ → **Supprimer**), puis rechargez la page. Vos cartes restent en place : elles s’écrivent toujours `type: custom:hestia-weather-card`. Tant qu’elle reste installée, l’accueil du panneau **Hestia** l’indique en orange.
+Vous aviez installé la carte depuis HACS ? Retirez-la (HACS → Hestia Weather → ⋮ → **Supprimer**), puis rechargez la page. Vos cartes restent en place et gardent leur `type:` : l’ancien comme le nouveau marchent. Tant qu’elle reste installée, l’accueil du panneau **Hestia** l’indique en orange.
 
 Dans l’application Home Assistant, une carte reste invisible juste après une mise à jour ? Réinitialisez son cache : **Paramètres → Application compagnon → Dépannage → Réinitialiser le cache du frontend**.
 

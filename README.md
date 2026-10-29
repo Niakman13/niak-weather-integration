@@ -45,20 +45,15 @@ Tout est calculé une fois, dans Home Assistant : la carte affiche, vos automati
 
 ## Configuration
 
-Chaque champ est déjà rempli avec ce que Home Assistant connaît : vous vérifiez, vous corrigez si besoin.
+Tout se règle dans le panneau **Hestia** de la barre latérale, onglet **Météo**. Pas de YAML. Chaque champ est déjà rempli avec ce que Home Assistant connaît : vous vérifiez, vous corrigez si besoin.
 
-Un guide en quatre étapes, puis un récapitulatif :
+- **Accueil** : à lire seulement. L’état de chaque lieu, ce qui reste à régler, les extensions, les versions.
+- **Réglages généraux** : vos lieux (**Modifier**, **Ajouter un lieu**) et les cartes.
+- **Extensions** : les intégrations que Hestia Weather sait lire, rangées par thème, et la liaison avec Hestia Confort.
 
-1. **Météo** : l’entité météo, le nom du lieu, la vigilance, la saison.
-2. **Station météo** : le modèle (GW2000A, WS90, Netatmo ou autre), puis chaque capteur.
-3. **Qualité de l’air**, puis **Pollens** : l’air d’Atmo France, et les pollens d’Atmo France, de Polleninformation, d’IRM KMI (Belgique), de Swiss Pollen (Suisse) ou de Kleenex / Scottex (France et autres pays couverts).
-4. **Capteurs et automatisations** : les familles d’entités à activer.
+Un lieu se règle en sept étapes : Sources météo, Station météo, Qualité de l’air, Pollens, Eau et jardin, Entités, puis le récapitulatif. Rien n’est enregistré avant **Enregistrer**. Un champ laissé vide est un choix : il n’est jamais rempli à votre place.
 
-Vous utilisez déjà la carte Hestia Weather ? Le guide propose de reprendre ses réglages. Un champ laissé vide est un choix : il n’est jamais rempli à votre place.
-
-**Configurer** conduit au **hub Hestia**. Depuis la version **2.5.0**, son menu regroupe Accueil Hestia, Weather et Confort selon les briques installées. La vue d’ensemble Weather présente les lieux et leur bouton **Configurer**. Les rubriques **Sources météo**, **Station météo · capteurs locaux**, **Qualité de l’air**, **Pollens** et **Entités** ouvrent directement le réglage correspondant. Plusieurs lieux ? Choisissez le lieu à configurer. Le récapitulatif permet de vérifier et d’enregistrer l’ensemble.
-
-L’interface s’adapte au téléphone et remplit la hauteur disponible. Dans **Accueil Hestia → Réglages**, choisissez le thème Home Assistant (couleurs et police) ou la palette Hestia, qui suit le mode clair ou sombre. Ce choix est mémorisé. Les explications sont dans les aides nommées ; les recommandations restent visibles. Weather fonctionne seul. L’entrée Hestia du menu Home Assistant peut être masquée dans **Accueil Hestia → Réglages** ; le panneau reste accessible depuis la roue de l’intégration et le bouton **Visiter** de ses appareils. [Détail des sources et des réglages](docs/sources.md).
+Le panneau s’adapte au téléphone. Dans **Accueil Hestia → Réglages**, choisissez le thème de Home Assistant ou celui de Hestia, et masquez l’entrée du menu si vous le voulez. [Détail des sources et des réglages](docs/sources.md).
 
 ## La carte
 
@@ -93,6 +88,16 @@ Chaque entité dit **pourquoi** (attribut `raison`) et **d’où vient** sa vale
 
 [Toutes les entités, leurs rôles et les modèles à importer](docs/capteurs.md). Un deuxième lieu ajoute son nom : `sensor.hestia_weather_marseille_ressenti`. Une valeur inconnue reste **inconnue** : rien n’est inventé.
 
+## Langues
+
+Hestia Weather parle **français** et **anglais**. La carte, le panneau et les noms des entités suivent la langue de Home Assistant ; toute autre langue s’affiche en anglais pour l’instant.
+
+Les valeurs des capteurs (bulletin, raisons, alertes) restent en français, pour que vos automatisations ne changent pas avec la langue.
+
+**D’autres langues arriveront, avec votre aide.** Hestia est un projet d’entraide : vous parlez allemand, néerlandais, italien, espagnol… ? [Proposez votre traduction](https://github.com/hestiaFB/hestia-weather-integration/issues/new?title=Traduction%20%3A%20) : une liste de phrases à traduire, sans rien connaître au code. Votre nom sera cité.
+
+> **In English.** Hestia Weather speaks French and English. More languages will come through mutual help: if you speak another language, [offer a translation](https://github.com/hestiaFB/hestia-weather-integration/issues/new?title=Translation%3A%20). No coding needed.
+
 ## Documentation
 
 | Page | Ce qu’elle explique |
@@ -108,21 +113,13 @@ Chaque entité dit **pourquoi** (attribut `raison`) et **d’où vient** sa vale
 
 ## Limites
 
-Le ressenti est une **estimation locale**, pas une mesure physiologique ni une vigilance officielle. Hestia Weather n’est pas un modèle de prévision : il lit et explique les prévisions de votre fournisseur. Il ne détecte pas la foudre. Ses alertes ne remplacent ni la vigilance Météo-France ni les consignes de sécurité.
-
-## Licence
-
-[MIT](LICENSE)
-
-### Formulaires harmonisés
-
-Les réglages du hub partagent les mêmes composants : blocs par sujet, titres et espacements cohérents, aides en info-bulles et avertissements visibles. Weather regroupe les prévisions, alertes et saison, mesures de la station, air, pollens et entités. Les réglages généraux de Confort présentent leurs capteurs en lignes ouvertes dans chaque groupe. Les détails avancés restent repliables.
+Le ressenti est une **estimation locale**, pas une mesure physiologique ni une vigilance officielle. Hestia Weather n’est pas un modèle de prévision : il lit et explique les prévisions de votre fournisseur. Il ne détecte pas la foudre lui-même : il lit Blitzortung, si vous l’avez. Ses alertes ne remplacent ni la vigilance Météo-France ni les consignes de sécurité.
 
 ## Noms techniques
 
-Le projet s’appelait Niak Weather. Pour ne rien casser chez ceux qui l’utilisaient déjà, les noms internes gardent « niak » : le domaine `niak_weather` (services comme `niak_weather.prevision`, adresses du panneau, fichiers).
+Les noms techniques de la première version restent, pour ne rien casser chez ceux qui l’utilisaient déjà : le domaine `niak_weather` (l’action `niak_weather.prevision`, les adresses du panneau, les fichiers). Vous ne les voyez que là où il faut les écrire.
 
-- **Entités** : une nouvelle installation crée des `sensor.hestia_weather_…`. Si vous avez installé avant le changement de nom, vos entités s’appellent `sensor.niak_weather_…` : elles continuent de marcher et gardent ce nom.
+- **Entités** : une nouvelle installation crée des `sensor.hestia_weather_…`. Installé avant la 2.9.4, vos entités s’appellent `sensor.niak_weather_…` : elles continuent de marcher. Pour leur donner le nom Hestia, **Réglages généraux → Nom des entités** (depuis la 2.9.6) : un aperçu d’abord, puis vos automatisations, scripts, scènes et tableaux de bord suivent, et un retour en arrière reste possible.
 - **Carte** : ajoutez-la avec `custom:hestia-weather-card`. L’ancien `custom:niak-weather-card` marche toujours.
 - **Évènement d’alerte** : il existe sous deux noms, `hestia_weather_alerte` et `niak_weather_alerte`, avec le même contenu. Utilisez le premier dans vos nouvelles automatisations.
 - **Thème** : les variables `hestia-rain-color`… sont lues d’abord, puis les anciennes `niak-rain-color`….
