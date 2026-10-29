@@ -1,3 +1,24 @@
+## 3.1.0b1 — Bêta : Hestia Weather en allemand
+
+**En bref**
+
+- **Hestia Weather parle allemand** : carte, bulletin du jour, panneau de réglages et fenêtres de configuration, quand Home Assistant est en allemand.
+- **Le hub Hestia aussi** : le menu, l’accueil et les réglages communs.
+
+### Avant de mettre à jour
+
+- Vous venez de la 2.9.x ? Le passage au nom Hestia se fait comme avec la 3.0.0b2 : voir ses notes.
+- Mettez à jour Hestia Confort en même temps (2.1.0b1), si vous l’avez.
+
+### Nouveautés
+
+- La carte, ses formats et son bulletin du jour en allemand.
+- Les alertes, les évènements et les mesures en allemand.
+- Le panneau de réglages, les fenêtres d’installation et le nom des entités en allemand.
+- Le menu, l’accueil et les réglages du hub Hestia en allemand.
+- Un guide explique comment ajouter une langue (docs/traductions.md).
+- Une langue sans traduction s’affiche toujours en anglais.
+
 ## 3.0.0b2 — Bêta : le passage au nom Hestia, suivi pas à pas
 
 **En bref**
