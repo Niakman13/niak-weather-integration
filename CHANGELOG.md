@@ -1,3 +1,16 @@
+## 2.9.3 — Stable : Niak Weather devient Hestia Weather
+
+**En bref**
+
+- **Niak Weather devient Hestia Weather.** Le nom change partout : carte, panneau, textes, traductions et documentation.
+- **Rien à refaire de votre côté.** Mêmes entités, mêmes réglages, mêmes cartes, même adresse du panneau.
+
+### Améliorations
+
+- Nouveau logo du hub : un H à la place du N.
+- Dans « Ajouter une carte », les cartes s’appellent maintenant « Hestia - Météo », « Hestia - À la pièce » et « Hestia - Petite carte ».
+- Les noms internes (`niak_weather`, `niak-weather-card`) ne changent pas, pour ne rien casser chez vous.
+
 ## 2.9.1 — Stable : un bloc coché se range à sa place
 
 ### Corrections
