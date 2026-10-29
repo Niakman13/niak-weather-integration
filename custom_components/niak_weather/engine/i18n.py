@@ -8,12 +8,16 @@ from __future__ import annotations
 
 import re
 from contextlib import contextmanager
+from contextvars import ContextVar
 from collections.abc import Iterator
 
 from .i18n_en import EN
 
 DICTIONARIES: dict[str, dict[str, str]] = {"en": EN}
 _language = "fr"
+# One panel request's language (speaking()), over the card's (localized()): two people reading the panel in two
+# languages at once never mix their words, and a request never changes the card's.
+_REQUEST: ContextVar[str | None] = ContextVar("hestia_weather_language", default=None)
 
 
 def set_language(language: str | None) -> None:
@@ -40,13 +44,24 @@ def localized(language: str | None) -> Iterator[None]:
         _language = previous
 
 
+@contextmanager
+def speaking(language: str | None) -> Iterator[None]:
+    """The words of one panel request in `language`, put back as they were afterwards."""
+    code = (language or "").lower().replace("_", "-").split("-")[0]
+    token = _REQUEST.set("fr" if code == "fr" or not code else code if code in DICTIONARIES else "en")
+    try:
+        yield
+    finally:
+        _REQUEST.reset(token)
+
+
 def language() -> str:
-    return _language
+    return _REQUEST.get() or _language
 
 
 def decimal_comma() -> bool:
     """French writes 8,5; English 8.5."""
-    return _language != "en"
+    return language() != "en"
 
 
 _NAME = re.compile(r"\{(\w+)\}")
@@ -54,7 +69,8 @@ _NAME = re.compile(r"\{(\w+)\}")
 
 def t(french: str, **values: object) -> str:
     """A French text in the language set; `{name}` takes `values[name]`."""
-    text = french if _language == "fr" else DICTIONARIES.get(_language, {}).get(french, french)
+    lang = language()
+    text = french if lang == "fr" else DICTIONARIES.get(lang, {}).get(french, french)
     return _NAME.sub(lambda m: str(values[m.group(1)]) if m.group(1) in values else m.group(0), text) if values else text
 
 

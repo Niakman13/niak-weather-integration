@@ -29,7 +29,7 @@ type Problem = 'missing' | 'not_configured' | 'choose_entry' | 'not_found' | 've
 const PROBLEMS: Record<Problem, { title: string; text: string; links?: [string, string][] }> = {
   // Home Assistant only starts an integration once it is added: downloaded from HACS but not added yet, it does not answer either.
   missing: { title: fr('Hestia Weather a besoin de son intégration'),
-    text: fr('Depuis la version 2.0, la carte reçoit ses calculs de l’intégration Hestia Weather. Déjà téléchargée depuis HACS ? Ajoutez-la dans Paramètres → Appareils et services. Sinon, installez-la depuis HACS, redémarrez Home Assistant, puis ajoutez-la. Déjà ajoutée ? Elle n’a pas démarré : les journaux disent pourquoi (Paramètres → Système → Journaux, cherchez « niak »).'),
+    text: fr('Depuis la version 2.0, la carte reçoit ses calculs de l’intégration Hestia Weather. Déjà téléchargée depuis HACS ? Ajoutez-la dans Paramètres → Appareils et services. Sinon, installez-la depuis HACS, redémarrez Home Assistant, puis ajoutez-la. Déjà ajoutée ? Elle n’a pas démarré : les journaux disent pourquoi (Paramètres → Système → Journaux, cherchez « weather »).'),
     links: [[fr('Ajouter l’intégration'), '/config/integrations/dashboard/add?domain=niak_weather'], [fr('L’installer'), 'https://github.com/hestiaFB/hestia-weather-integration#installation']] },
   not_configured: { title: fr('Ajoutez l’intégration Hestia Weather'),
     text: fr('Elle est installée mais pas encore configurée. Elle peut reprendre les réglages de vos cartes.'),
@@ -39,7 +39,7 @@ const PROBLEMS: Record<Problem, { title: string; text: string; links?: [string, 
   version: { title: fr('Rechargez la page'), text: fr('L’intégration Hestia Weather vient d’être mise à jour : rechargez la page pour afficher sa carte.') },
   // The integration answered, with an error: say which, it tells what went wrong.
   error: { title: fr('L’intégration Hestia Weather a renvoyé une erreur'),
-    text: fr('Les journaux de Home Assistant disent pourquoi : Paramètres → Système → Journaux, cherchez « niak ».'), links: [[fr('Voir les journaux'), '/config/logs']] },
+    text: fr('Les journaux de Home Assistant disent pourquoi : Paramètres → Système → Journaux, cherchez « weather ».'), links: [[fr('Voir les journaux'), '/config/logs']] },
 };
 
 @define('niak-weather-card')
@@ -105,8 +105,6 @@ export class NiakWeatherCard extends LitElement {
   }
   /** Tile and intermediate formats: one band that unfolds. */
   private get tile(): boolean { return this.config?.format === 'tile' || this.config?.format === 'intermediate'; }
-  /** Everything but the full card: what a long press (a tap on mini and alert) opens. */
-  private get small(): boolean { return !!this.config?.format && this.config.format !== 'full'; }
   private hasAlert(v: WeatherView): boolean { const { alerts, points } = alertItems(v); return alerts.length + points.length > 0; }
   private rememberedTab(config: WeatherCardConfig): 'hours' | 'days' {
     try { const v = localStorage.getItem(`niak-weather:tab:${config.entry_id ?? ''}`); if (v === 'hours' || v === 'days') return v; } catch { /* private browsing */ }

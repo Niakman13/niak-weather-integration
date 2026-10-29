@@ -8,6 +8,7 @@ understand each other; no brick ever reads another brick's settings.
 from __future__ import annotations
 
 import asyncio
+import inspect
 import logging
 from urllib.parse import unquote, urlsplit
 
@@ -17,7 +18,7 @@ from homeassistant.components.panel_custom import async_register_panel
 from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.storage import Store
 
-SOCLE_VERSION = (1, 9)
+SOCLE_VERSION = (1, 14)
 # 1.1: an optional `tab`, the tab's own name when it is not the brick's (« Météo » for Hestia Weather).
 # 1.2: async_register_card, the brick's card on every dashboard, also as a dashboard resource.
 # 1.3: the home page says « À découvrir » and « Voir » for the bricks not installed (same contract as 1.2).
@@ -27,11 +28,21 @@ SOCLE_VERSION = (1, 9)
 # 1.7: full-height shell and a persisted HA/Hestia theme preference.
 # 1.8: Weather navigation=2 groups its configuration under general settings, like Comfort.
 # 1.9: HA themes keep visible structural outlines even when divider-color equals the page background.
+# 1.10: a brick's first link is « Accueil »; Comfort navigation=2 adds « Bilan du logement » under it.
+# 1.11: the Hestia logo heads the menu (and the mobile bar).
+#       Same contract, later fixes: the panel settings are written one at a time; the bricks' states are read together.
+# 1.12: the panel is at /hestia (/niak leads there); the menu names each brick by its tab; ui.ts gives every brick the
+#       same pages (pageHead, todoFrame, itemsFrame, stepMenu, stepFooter, extensionsFrame, versionsFrame).
+#       A brick with `navigation: 3` also has its « Extensions » page (/hestia/<brique>/extensions): extensionCard, removeBlock.
+# 1.13: the hub speaks Home Assistant's language (i18n.ts: t(), one dictionary per language; English for any other).
+# 1.14: a brick's status may take the hub's language as a second argument: status(hass, language).
 # The shell's custom element carries its version: two copies never fight over one name.
-ELEMENT = "niak-socle-1-9"
+ELEMENT = "niak-socle-1-14"
 KEY = "niak_socle"
 STORE_VERSION = 1
-PANEL = "niak"
+PANEL = "hestia"
+# The address before 1.12: still opened from bookmarks, older dashboards and older copies; it leads to PANEL.
+LEGACY_PANEL = "niak"
 TITLE = "Hestia"
 ICON = "mdi:home-heart"
 LEVELS = ("ok", "action", "unknown")
@@ -80,20 +91,30 @@ async def _load_settings(hass, data):
 
 
 async def _show_panel(hass, shell_url, sidebar):
-    """The panel at /niak, in the sidebar or not: hidden, it stays open to anyone who follows its address."""
-    if frontend.async_panel_exists(hass, PANEL):
-        frontend.async_remove_panel(hass, PANEL, warn_if_unknown=False)
+    """The panel at /hestia, in the sidebar or not: hidden, it stays open to anyone who follows its address."""
+    for path in (PANEL, LEGACY_PANEL):
+        if frontend.async_panel_exists(hass, path):
+            frontend.async_remove_panel(hass, path, warn_if_unknown=False)
     await async_register_panel(hass, frontend_url_path=PANEL, webcomponent_name=ELEMENT,
                                sidebar_title=TITLE if sidebar else None, sidebar_icon=ICON if sidebar else None,
                                module_url=shell_url, require_admin=True)
+    # An older copy showed the panel at /niak: that address now leads to /hestia, hidden from the sidebar.
+    await async_register_panel(hass, frontend_url_path=LEGACY_PANEL, webcomponent_name=ELEMENT, module_url=shell_url,
+                               require_admin=True, config={"redirect": f"/{PANEL}"})
+
+
+def _settings_lock(hass):
+    """One write of the panel settings at a time: two quick changes never lose one another."""
+    return hass.data.setdefault(f"{KEY}_lock", asyncio.Lock())
 
 
 async def async_set_sidebar(hass, visible):
     """Show or hide « Hestia » in the sidebar, at once, and remember it."""
     data = hass.data.setdefault(KEY, {"bricks": {}, "panel": None})
-    await _load_settings(hass, data)
-    data["settings"]["sidebar"] = bool(visible)
-    await Store(hass, STORE_VERSION, KEY).async_save(dict(data["settings"]))
+    async with _settings_lock(hass):
+        await _load_settings(hass, data)
+        data["settings"]["sidebar"] = bool(visible)
+        await Store(hass, STORE_VERSION, KEY).async_save(dict(data["settings"]))
     if data.get("panel"):
         await _show_panel(hass, data["panel"]["shell_url"], bool(visible))
     return bool(visible)
@@ -104,9 +125,10 @@ async def async_set_theme(hass, theme):
     if theme not in ("ha", "niak"):
         raise ValueError("Thème Hestia inconnu")
     data = hass.data.setdefault(KEY, {"bricks": {}, "panel": None})
-    await _load_settings(hass, data)
-    data["settings"]["theme"] = theme
-    await Store(hass, STORE_VERSION, KEY).async_save(dict(data["settings"]))
+    async with _settings_lock(hass):
+        await _load_settings(hass, data)
+        data["settings"]["theme"] = theme
+        await Store(hass, STORE_VERSION, KEY).async_save(dict(data["settings"]))
     return theme
 
 
@@ -188,10 +210,18 @@ async def async_remove_card(hass, url):
         await resources.async_delete_item(item["id"])
 
 
-async def _status(hass, brick):
+def _speaks(status) -> bool:
+    """A status written for socle 1.14 or later takes the hub's language; an older brick's only takes hass."""
+    try:
+        return len(inspect.signature(status).parameters) >= 2
+    except (TypeError, ValueError):
+        return False
+
+
+async def _status(hass, brick, language=None):
     try:
         async with asyncio.timeout(5):
-            status = await brick["status"](hass)
+            status = await (brick["status"](hass, language) if _speaks(brick["status"]) else brick["status"](hass))
         level = status.get("level")
         return {"level": level if level in LEVELS else "unknown",
                 "summary": str(status.get("summary") or ""),
@@ -202,14 +232,14 @@ async def _status(hass, brick):
         return {"level": "unknown", "summary": "État indisponible pour le moment.", "details": [], "links": []}
 
 
-async def async_overview(hass):
+async def async_overview(hass, language=None):
     bricks = hass.data.get(KEY, {}).get("bricks", {})
     order = [c["domain"] for c in CATALOGUE]
     listed = sorted(bricks.values(), key=lambda b: (order.index(b["domain"]) if b["domain"] in order else len(order), b["name"]))
-    result = []
-    for brick in listed:
-        result.append({**{k: brick.get(k) for k in ("domain", "name", "slug", "version", "icon", "module_url", "element", "tab", "navigation")},
-                       "status": await _status(hass, brick)})
+    # Read together: a slow brick (5 s at most) does not add its wait to the others'.
+    statuses = await asyncio.gather(*(_status(hass, brick, language) for brick in listed))
+    result = [{**{k: brick.get(k) for k in ("domain", "name", "slug", "version", "icon", "module_url", "element", "tab", "navigation")},
+               "status": status} for brick, status in zip(listed, statuses)]
     others = [{**c, "installed": c["domain"] in hass.config.components,
                "settings_path": f"/config/integrations/integration/{c['domain']}"}
               for c in CATALOGUE if c["domain"] not in bricks]
@@ -217,11 +247,11 @@ async def async_overview(hass):
     return {"version": 1, "socle": list(SOCLE_VERSION), "bricks": result, "others": others, "sidebar": sidebar, "theme": hass.data.get(KEY, {}).get("settings", {}).get("theme", "niak")}
 
 
-@websocket_api.websocket_command({vol.Required("type"): "niak/overview"})
+@websocket_api.websocket_command({vol.Required("type"): "niak/overview", vol.Optional("language"): str})
 @websocket_api.require_admin
 @websocket_api.async_response
 async def _ws_overview(hass, connection, msg):
-    connection.send_result(msg["id"], await async_overview(hass))
+    connection.send_result(msg["id"], await async_overview(hass, msg.get("language")))
 
 
 @websocket_api.websocket_command({vol.Required("type"): "niak/set_sidebar", vol.Required("visible"): bool})

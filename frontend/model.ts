@@ -1,5 +1,6 @@
-// What the « Météo » tab receives from Hestia Weather (panel.py, draft.py). Every text is already in French.
-export interface Hass {callWS<T>(msg:Record<string,unknown>):Promise<T>;themes?:{darkMode?:boolean}}
+// What the « Météo » tab receives from Hestia Weather (panel.py, draft.py), in the panel's language.
+import {t,fr} from './socle/i18n';
+export interface Hass {callWS<T>(msg:Record<string,unknown>):Promise<T>;themes?:{darkMode?:boolean};language?:string}
 export interface Entity {id:string;name:string;state:string;available:boolean;missing:boolean}
 export interface Field {key:string;label:string;help:string;value:string;entity:Entity|null;need:string;options:Entity[];warning:string;better:Entity|null;recognized:string[]}
 export interface Choice {value:string;label:string;hint?:string;available?:boolean}
@@ -8,7 +9,7 @@ export type Level='ok'|'bad'|'tip'|'none';
 export interface Line {level:Level;text:string;why:string;stage:number|null}
 export interface Health {title:string;level:'ok'|'action';summary:string;tips_summary:string;todo:Line[];tips:Line[];
  technical?:Technical;
- sources:{label:string;level:Level;text:string}[];sensors:{label:string;name:string;level:Level;text:string}[];entities:Line[];versions:Line[]}
+ sources:{key?:string;label:string;level:Level;text:string}[];version?:string;sensors:{label:string;name:string;level:Level;text:string}[];entities:Line[];versions:Line[]}
 export interface Technical {
  station:{name:string;responding:number;configured:number;history:boolean;history_sources:number|null};
  forecast:{hours:number|null;days:number|null;received:string|null};computation:string|null;
@@ -40,28 +41,28 @@ export interface DraftReply {draft:Sources;view:View;error:string}
 export type Change={op:string;key?:string;value?:unknown;area?:string};
 
 export const NONE='none';
-export const stages=['Sources météo','Station météo · capteurs locaux','Qualité de l’air','Pollens','Entités','Récapitulatif','Eau et jardin','Extensions'];
+export const stages=[fr('Sources météo'),fr('Station météo · capteurs locaux'),fr('Qualité de l’air'),fr('Pollens'),fr('Entités'),fr('Récapitulatif'),fr('Eau et jardin'),fr('Extensions')];
 // What each step is for, shown on top of it in a frame that folds: one idea per line.
 export const intros:string[][]=[
- ['Les prévisions du lieu viennent d’un service météo installé dans Home Assistant, Météo-France par exemple.',
-  'C’est la seule source obligatoire : sans elle, pas de carte.',
-  'Hestia Weather propose celle qu’il trouve ; vérifiez qu’elle correspond bien à votre lieu.'],
- ['Ce que vos propres capteurs mesurent chez vous : température, pluie, vent…',
-  'Leurs mesures passent avant celles du service météo, plus loin de chez vous.',
-  'Facultatif : sans station, la carte s’appuie sur les prévisions seules.'],
- ['L’indice de qualité de l’air du jour et ses polluants, pour votre zone.',
-  'Une précaution régionale, pas une mesure à vos fenêtres.',
-  'Choisissez la source, puis sa zone. Facultatif.'],
- ['Le niveau des pollens par espèce, pour anticiper les allergies.',
-  'Choisissez la source, puis les espèces qui vous concernent. Facultatif.'],
- ['Les entités que Hestia Weather crée dans Home Assistant, rangées par famille.',
-  'Elles servent à vos automatisations et tableaux de bord ; la carte n’en a pas besoin.'],
- ['Tout ce que vous avez choisi, onglet par onglet.',
-  'Rien ne change tant que vous n’avez pas enregistré ; un oubli, revenez à l’onglet voulu.'],
- ['Les restrictions d’eau de votre commune viennent de Vigieau.', 'Choisissez ici le capteur de la zone d’eau du robinet (AEP). Facultatif.'],
- ['Les autres briques Hestia et les intégrations de Home Assistant dont ce lieu se sert.',
-  'Une brique Hestia se relie ici ou dans ses propres réglages : coupée d’un côté, elle l’est des deux.',
-  'Une extension tierce s’allume ou s’éteint ici ; son onglet sert à la régler.'],
+ [fr('Les prévisions du lieu viennent d’un service météo installé dans Home Assistant, Météo-France par exemple.'),
+  fr('C’est la seule source obligatoire : sans elle, pas de carte.'),
+  fr('Hestia Weather propose celle qu’il trouve ; vérifiez qu’elle correspond bien à votre lieu.')],
+ [fr('Ce que vos propres capteurs mesurent chez vous : température, pluie, vent…'),
+  fr('Leurs mesures passent avant celles du service météo, plus loin de chez vous.'),
+  fr('Facultatif : sans station, la carte s’appuie sur les prévisions seules.')],
+ [fr('L’indice de qualité de l’air du jour et ses polluants, pour votre zone.'),
+  fr('Une précaution régionale, pas une mesure à vos fenêtres.'),
+  fr('Choisissez la source, puis sa zone. Facultatif.')],
+ [fr('Le niveau des pollens par espèce, pour anticiper les allergies.'),
+  fr('Choisissez la source, puis les espèces qui vous concernent. Facultatif.')],
+ [fr('Les entités que Hestia Weather crée dans Home Assistant, rangées par famille.'),
+  fr('Elles servent à vos automatisations et tableaux de bord ; la carte n’en a pas besoin.')],
+ [fr('Tout ce que vous avez choisi, onglet par onglet.'),
+  fr('Rien ne change tant que vous n’avez pas enregistré ; un oubli, revenez à l’onglet voulu.')],
+ [fr('Les restrictions d’eau de votre commune viennent de Vigieau.'), fr('Choisissez ici le capteur de la zone d’eau du robinet (AEP). Facultatif.')],
+ [fr('Les autres briques Hestia et les intégrations de Home Assistant dont ce lieu se sert.'),
+  fr('Une brique Hestia se relie ici ou dans ses propres réglages : coupée d’un côté, elle l’est des deux.'),
+  fr('Une extension tierce s’allume ou s’éteint ici ; son onglet sert à la régler.')],
 ];
 
 // The entities switched on, by key, as the « Entités » step shows them.
@@ -71,18 +72,18 @@ export function enabledKeys(view:View):string[]{
 // Where a value came from, for an existing place: what Hestia proposes differs from what was saved, and was not touched.
 export function provenance(key:string,value:string,saved:Sources|undefined,touched:Set<string>):string{
  if(!saved||touched.has(key)||!value)return '';
- return (saved[key]??'')===value?'':'Proposé par Hestia : vérifiez-le avant d’enregistrer.';
+ return (saved[key]??'')===value?'':t('Proposé par Hestia : vérifiez-le avant d’enregistrer.');
 }
 export function sameSet(a:string[],b:string[]){return a.length===b.length&&a.every(x=>b.includes(x));}
 export function entityLine(e:Entity|null){
  if(!e)return '';
- if(e.missing)return `${e.id} · introuvable`;
+ if(e.missing)return `${e.id} · ${t('introuvable')}`;
  return e.state?`${e.state} · ${e.id}`:e.id;
 }
 // A field's choices: those recognised by name and measure first, when there are some among many.
 export function grouped(f:Pick<Field,'options'|'recognized'>):{label:string;options:Entity[]}[]{
  const first=f.options.filter(o=>f.recognized.includes(o.id)),rest=f.options.filter(o=>!f.recognized.includes(o.id));
- return first.length&&rest.length?[{label:'Reconnus',options:first},{label:'Autres capteurs',options:rest}]:[{label:'',options:f.options}];
+ return first.length&&rest.length?[{label:t('Reconnus'),options:first},{label:t('Autres capteurs'),options:rest}]:[{label:'',options:f.options}];
 }
 export function capital(text:string){return text.charAt(0).toUpperCase()+text.slice(1);}
 
@@ -92,13 +93,13 @@ export function extensionGroups(items:Extension[]):ExtensionGroup[]{
  const atmo=items.find(e=>e.id==='atmo');
  const subject=(key:'air'|'pollen',stage:number)=>atmo?[{...atmo,id:'atmo-'+key,stage,
   configured:(key==='air'?atmo.air_configured:atmo.pollen_configured)??atmo.configured,
-  description:key==='air'?'Qualité de l’air de votre commune.':'Pollens de votre commune, aujourd’hui et demain.'}]:[];
+  description:key==='air'?t('Qualité de l’air de votre commune.'):t('Pollens de votre commune, aujourd’hui et demain.')}]:[];
  return [
-  {key:'weather',label:'Sources météo',items:items.filter(e=>e.id==='meteo_france')},
-  {key:'air',label:'Qualité de l’air',items:[...subject('air',2),...items.filter(e=>e.id==='waqi')]},
-  {key:'pollen',label:'Pollens',items:[...subject('pollen',3),...items.filter(e=>['polleninformation','irm_kmi','swiss_pollen','kleenex_pollenradar'].includes(e.id))]},
-  {key:'water',label:'Eau et jardin',items:items.filter(e=>e.id==='vigieau')},
-  {key:'storm',label:'Orages et éclairs',items:items.filter(e=>e.id==='blitzortung')},
+  {key:'weather',label:t('Sources météo'),items:items.filter(e=>e.id==='meteo_france')},
+  {key:'air',label:t('Qualité de l’air'),items:[...subject('air',2),...items.filter(e=>e.id==='waqi')]},
+  {key:'pollen',label:t('Pollens'),items:[...subject('pollen',3),...items.filter(e=>['polleninformation','irm_kmi','swiss_pollen','kleenex_pollenradar'].includes(e.id))]},
+  {key:'water',label:t('Eau et jardin'),items:items.filter(e=>e.id==='vigieau')},
+  {key:'storm',label:t('Orages et éclairs'),items:items.filter(e=>e.id==='blitzortung')},
  ].filter(g=>g.items.length);
 }
 
@@ -109,9 +110,13 @@ export function extensionSwitch(e:Extension,v:View):ExtensionSwitch{
  const air=v.air.sources.find(c=>c.value===e.id),pollen=v.pollen.sources.find(c=>c.value===e.id);
  const atmoAir=v.air.sources.find(c=>c.value==='atmo'),atmoPollen=v.pollen.sources.find(c=>c.value==='atmo');
  const field=e.field?v.prevision.fields.find(f=>f.key===e.field):undefined;
- const uses=e.id==='atmo'?[e.air_configured?'Qualité de l’air':'',e.pollen_configured?'Pollens':''].filter(Boolean)
+ const uses=e.id==='atmo'?[e.air_configured?t('Qualité de l’air'):'',e.pollen_configured?t('Pollens'):''].filter(Boolean)
   :e.configured?[extensionGroups([e]).map(g=>g.label)[0]??''].filter(Boolean):[];
  const base={shown:e.installed&&e.id!=='meteo_france',checked:e.configured,uses};
+ // Atmo France under one theme (extensionGroups): its switch sets that theme only, air or pollens.
+ if(e.id==='atmo-air'||e.id==='atmo-pollen'){const subject=e.id==='atmo-air'?v.air:v.pollen,op=e.id==='atmo-air'?'air':'pollen',c=subject.sources.find(x=>x.value==='atmo');
+  return {...base,uses:e.configured?[op==='air'?t('Qualité de l’air'):t('Pollens')]:[],available:!!c&&c.available!==false,
+   on:subject.value!=='atmo'?[{op,value:'atmo'}]:[],off:subject.value==='atmo'?[{op,value:NONE}]:[]};}
  if(e.id==='atmo'){const ok=(c?:Choice)=>!!c&&c.available!==false;
   return {...base,available:ok(atmoAir)||ok(atmoPollen),
    on:[...(ok(atmoAir)&&v.air.value!=='atmo'?[{op:'air',value:'atmo'}]:[]),...(ok(atmoPollen)&&v.pollen.value!=='atmo'?[{op:'pollen',value:'atmo'}]:[])],

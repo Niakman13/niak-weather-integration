@@ -5,6 +5,7 @@ address, so the « Configurer » button still opens it.
 """
 from __future__ import annotations
 
+import functools
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -25,6 +26,7 @@ from .const import DOMAIN, LOGGER
 from .draft import Draft, ecosystem_of, entity_keys, entity_label, family_label, field_label, linked, needs_text
 from .engine import atmo, detection, families, health, home, polleninfo
 from .engine.settings import Settings
+from .engine.i18n import speaking, t
 from .extensions import inventory, official, set_official
 from .websocket import VERSION_KEY
 from .socle import async_register_brick, async_register_card, is_card_resource
@@ -41,15 +43,15 @@ async def async_setup_panel(hass: HomeAssistant, version: str) -> None:
     if not getattr(hass, "http", None) or not hasattr(hass.http, "async_register_static_paths"):
         return  # Headless setups and isolated tests have no frontend.
     if not hass.data.get(f"{DOMAIN}_panel"):
-        await hass.http.async_register_static_paths([StaticPathConfig(ASSETS, str(Path(__file__).parent / "frontend"), False)])
-        for command in (ws_places, ws_open, ws_change, ws_save, ws_link):
+        await hass.http.async_register_static_paths([StaticPathConfig(ASSETS, str(Path(__file__).parent / "frontend"), True)])
+        for command in (ws_places, ws_open, ws_change, ws_save, ws_link, ws_remove):
             websocket_api.async_register_command(hass, command)
         # Dashboard resource, with a guarded extra-module fallback for YAML resources.
         await async_register_card(hass, CARD_URL, version)
         hass.data[f"{DOMAIN}_panel"] = True
     await async_register_brick(hass, {
         "domain": DOMAIN, "name": "Hestia Weather", "slug": "meteo", "tab": "Météo", "version": version, "icon": "mdi:weather-partly-cloudy",
-        "navigation": 2, "module_url": f"{ASSETS}/panel.js?v={version}", "element": "niak-weather-setup", "status": weather_status, "legacy_path": "",
+        "navigation": 3, "module_url": f"{ASSETS}/panel.js?v={version}", "element": "niak-weather-setup", "status": weather_status, "legacy_path": "",
     }, f"{ASSETS}/niak-socle.js?v={version}")
 
 
@@ -60,7 +62,7 @@ def _entries(hass: HomeAssistant) -> list[Any]:
 def _entry(hass: HomeAssistant, entry_id: str | None) -> Any:
     entry = hass.config_entries.async_get_entry(entry_id) if entry_id else None
     if entry_id and (entry is None or entry.domain != DOMAIN):
-        raise LookupError("Lieu Hestia Weather introuvable.")
+        raise LookupError(t("Lieu Hestia Weather introuvable."))
     return entry
 
 
@@ -76,10 +78,15 @@ def _minutes(now: datetime, moment: datetime | None) -> float | None:
     return (now - moment).total_seconds() / 60 if moment else None
 
 
-def facts(hass: HomeAssistant, entry: Any, card_twice: bool = False) -> health.Facts:
-    """What the tab's home page shows about one place, read from Home Assistant and this place's own settings."""
+Context = tuple[list[Any], dict[str, dict[str, Any]], dict[str, dict[str, Any]]]
+
+
+def facts(hass: HomeAssistant, entry: Any, card_twice: bool = False, context: Context | None = None) -> health.Facts:
+    """What the tab's home page shows about one place, read from Home Assistant and this place's own settings.
+
+    `context`: the states and registries already read for every place of the same page, read here otherwise."""
     sources, now, get = dict(entry.options), dt_util.utcnow(), hass.states.get
-    states, registry, devices = _context(hass)
+    states, registry, devices = context or _context(hass)
     failed, loaded = entry.state in FAILED, entry.state is ConfigEntryState.LOADED
     coordinator = getattr(entry, "runtime_data", None) if loaded else None
     weather = get(sources.get("weather_entity") or "")
@@ -121,7 +128,8 @@ def facts(hass: HomeAssistant, entry: Any, card_twice: bool = False) -> health.F
         settings = None
     pollen, pollen_ids = "", []
     if settings is not None and settings.pollen_source == "legacy" and settings.pollens:
-        pollen = f"{polleninfo.provider_name(settings)} · {len(settings.pollens)} espèce{'s' if len(settings.pollens) > 1 else ''}"
+        count = len(settings.pollens)
+        pollen = f"{polleninfo.provider_name(settings)} · " + (t("{n} espèces", n=count) if count > 1 else t("{n} espèce", n=count))
         pollen_ids = [p.entity_id for p in settings.pollens] + ([settings.pollen_risk_entity] if settings.pollen_risk_entity else [])
     elif settings is not None and settings.atmo_pollens and settings.atmo.get("atmo_pollen_entity"):
         pollen, pollen_ids = f"Atmo France · {pollen_area}", [settings.atmo["atmo_pollen_entity"]]
@@ -138,7 +146,7 @@ def facts(hass: HomeAssistant, entry: Any, card_twice: bool = False) -> health.F
     ready = [family_label(family)[0] for family, members in families.FAMILIES
              if any(k in keys for k in members) and not any(keys.get(k) for k in members) and not any(k in needs for k in members if k in keys)]
     bricks = linked(hass, entry.entry_id)
-    names = [b["name"] for b in ecosystem_of(hass, entry.entry_id) if b["state"] == "linked"] + (["une autre brique Hestia"] if bricks.get("") else [])
+    names = [b["name"] for b in ecosystem_of(hass, entry.entry_id) if b["state"] == "linked"] + ([t("une autre brique Hestia")] if bricks.get("") else [])
     return health.Facts(
         title=entry.title, failed=failed, restarting=not loaded and not failed,
         weather=_name(weather, sources.get("weather_entity") or "") if weather else (sources.get("weather_entity") or ""),
@@ -169,9 +177,9 @@ def facts(hass: HomeAssistant, entry: Any, card_twice: bool = False) -> health.F
         card_twice=card_twice, links=names)
 
 
-def place(hass: HomeAssistant, entry: Any, card_twice: bool = False) -> tuple[dict[str, Any], home.Place]:
+def place(hass: HomeAssistant, entry: Any, card_twice: bool = False, context: Context | None = None) -> tuple[dict[str, Any], home.Place]:
     """One place, for the tab's home page and for the panel's home page: both say the same."""
-    f = facts(hass, entry, card_twice)
+    f = facts(hass, entry, card_twice, context)
     enabled = {key for key, _, _, on, _ in f.entities if on}
     info = {"entry_id": entry.entry_id, "title": entry.title, "loaded": entry.state is ConfigEntryState.LOADED,
             "failed": f.failed, "health": health.report(f), "extensions": inventory(hass, entry.options),
@@ -179,7 +187,7 @@ def place(hass: HomeAssistant, entry: Any, card_twice: bool = False) -> tuple[di
     status = home.Place(title=entry.title, loaded=not f.failed, station=len(f.sensors),
                         silent=[s.label for s in f.sensors if s.status != "ok"],
                         forecast=f.restarting or f.failed or f.forecast_age is not None,
-                        needs=[needs_text(k, t) for k, t in f.needs.items() if k in enabled and k not in families.STATION_DEPENDENT],
+                        needs=[needs_text(k, text) for k, text in f.needs.items() if k in enabled and k not in families.STATION_DEPENDENT],
                         down=health.silent_sources(f), links=f.links)
     return info, status
 
@@ -207,31 +215,50 @@ async def card_twice(hass: HomeAssistant) -> bool:
         return False
 
 
-async def weather_status(hass: HomeAssistant) -> dict[str, Any]:
-    """What the « Hestia » home page says about Hestia Weather, from its own settings only."""
+async def weather_status(hass: HomeAssistant, language: str | None = None) -> dict[str, Any]:
+    """What the « Hestia » home page says about Hestia Weather, from its own settings only, in the hub's language (socle 1.14)."""
     twice = await card_twice(hass)
-    return home.status([place(hass, e, twice)[1] for e in _entries(hass)], twice)
+    with speaking(language):
+        # Home Assistant's registries are read once for every place, not once per place.
+        context = _context(hass)
+        return home.status([place(hass, e, twice, context)[1] for e in _entries(hass)], twice)
+
+
+# The panel's language, sent with each of its commands: its words and errors come back in it (engine/i18n.py).
+LANGUAGE = vol.Optional("language")
+
+
+def spoken(handler: Any) -> Any:
+    """A panel command answered in the panel's language."""
+    @functools.wraps(handler)
+    async def answer(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+        with speaking(msg.get("language")):
+            await handler(hass, connection, msg)
+    return answer
 
 
 def _has_weather(hass: HomeAssistant) -> bool:
     return any(not s.entity_id.startswith(f"weather.{DOMAIN}") for s in hass.states.async_all("weather"))
 
 
-@websocket_api.websocket_command({vol.Required("type"): "niak_weather/panel/places"})
+@websocket_api.websocket_command({vol.Required("type"): "niak_weather/panel/places", LANGUAGE: str})
 @websocket_api.require_admin
 @websocket_api.async_response
+@spoken
 async def ws_places(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
     twice = await card_twice(hass)
-    connection.send_result(msg["id"], {"places": [place(hass, e, twice)[0] for e in _entries(hass)], "can_add": _has_weather(hass)})
+    context = _context(hass)  # read once for every place
+    connection.send_result(msg["id"], {"places": [place(hass, e, twice, context)[0] for e in _entries(hass)], "can_add": _has_weather(hass)})
 
 
 def _send_draft(connection: websocket_api.ActiveConnection, msg: dict[str, Any], draft: Draft, error: str = "", **extra: Any) -> None:
     connection.send_result(msg["id"], {"draft": draft.sources, "view": draft.view(), "error": error, **extra})
 
 
-@websocket_api.websocket_command({vol.Required("type"): "niak_weather/panel/open", vol.Optional("entry_id"): str})
+@websocket_api.websocket_command({vol.Required("type"): "niak_weather/panel/open", LANGUAGE: str, vol.Optional("entry_id"): str})
 @websocket_api.require_admin
 @websocket_api.async_response
+@spoken
 async def ws_open(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
     """A place's draft: its settings with what the assistant would propose. Without `entry_id`, a new place."""
     try:
@@ -240,16 +267,17 @@ async def ws_open(hass: HomeAssistant, connection: websocket_api.ActiveConnectio
         connection.send_error(msg["id"], "not_found", str(err))
         return
     if entry is None and not _has_weather(hass):
-        connection.send_error(msg["id"], "no_weather", "Aucun service météo dans Home Assistant : installez Météo-France, puis revenez ici.")
+        connection.send_error(msg["id"], "no_weather", t("Aucun service météo dans Home Assistant : installez Météo-France, puis revenez ici."))
         return
     # The saved settings come along: what Hestia proposes on top of them shows as proposed.
     _send_draft(connection, msg, Draft.start(hass, entry), saved=dict(entry.options) if entry else None)
 
 
-@websocket_api.websocket_command({vol.Required("type"): "niak_weather/panel/change", vol.Optional("entry_id"): str,
+@websocket_api.websocket_command({vol.Required("type"): "niak_weather/panel/change", LANGUAGE: str, vol.Optional("entry_id"): str,
                                   vol.Required("draft"): dict, vol.Required("change"): dict})
 @websocket_api.require_admin
 @websocket_api.async_response
+@spoken
 async def ws_change(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
     """One change to the draft, as the assistant's step would make it. Nothing is saved."""
     try:
@@ -263,10 +291,11 @@ async def ws_change(hass: HomeAssistant, connection: websocket_api.ActiveConnect
     _send_draft(connection, msg, Draft(hass, msg["draft"], entry) if error else draft, error)
 
 
-@websocket_api.websocket_command({vol.Required("type"): "niak_weather/panel/save", vol.Optional("entry_id"): str,
+@websocket_api.websocket_command({vol.Required("type"): "niak_weather/panel/save", LANGUAGE: str, vol.Optional("entry_id"): str,
                                   vol.Required("draft"): dict, vol.Optional("enabled"): [str]})
 @websocket_api.require_admin
 @websocket_api.async_response
+@spoken
 async def ws_save(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
     """Saves the place: it restarts with its new settings."""
     try:
@@ -277,10 +306,26 @@ async def ws_save(hass: HomeAssistant, connection: websocket_api.ActiveConnectio
     connection.send_result(msg["id"], {"entry_id": entry_id})
 
 
-@websocket_api.websocket_command({vol.Required("type"): "niak_weather/panel/link", vol.Required("entry_id"): str,
+@websocket_api.websocket_command({vol.Required("type"): "niak_weather/panel/remove", LANGUAGE: str, vol.Required("entry_id"): str})
+@websocket_api.require_admin
+@websocket_api.async_response
+@spoken
+async def ws_remove(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """Removes the place, as « Supprimer » in Home Assistant would: its entities go, the station's sensors stay."""
+    try:
+        entry = _entry(hass, msg["entry_id"])
+    except (LookupError, ValueError) as err:
+        connection.send_error(msg["id"], "invalid", str(err))
+        return
+    await hass.config_entries.async_remove(entry.entry_id)
+    connection.send_result(msg["id"], {"removed": entry.entry_id})
+
+
+@websocket_api.websocket_command({vol.Required("type"): "niak_weather/panel/link", LANGUAGE: str, vol.Required("entry_id"): str,
                                   vol.Required("brick"): str, vol.Required("enabled"): bool})
 @websocket_api.require_admin
 @websocket_api.async_response
+@spoken
 async def ws_link(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
     """Links this place to an official Hestia brick or unlinks it, saved at once on the brick's side: one link for both."""
     try:

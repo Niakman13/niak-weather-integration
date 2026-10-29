@@ -1,3 +1,30 @@
+## 2.9.4 — Préversion : le panneau de Hestia Weather en anglais, plus rapide
+
+**En bref**
+
+- **Le panneau de réglages parle anglais** à son tour, comme la carte depuis la 2.9.0.
+- **Le panneau Hestia est rangé comme celui de Hestia Confort** : Accueil, Réglages généraux, Extensions, puis les réglages de chaque lieu.
+
+### Nouveautés
+
+- Une page « Extensions » à part dans le menu, rangée par thème : sources météo, qualité de l’air, pollens, eau et jardin, orages et éclairs.
+- « Supprimer ce lieu » directement depuis le panneau.
+
+### Améliorations
+
+- Le panneau répond plus vite : Home Assistant n’est plus relu plusieurs fois pour un même affichage.
+- La semaine de pluie et de vent est lue plus légèrement dans l’historique.
+- Les diagnostics masquent le lieu, les zones et les éclairs.
+
+### Corrections
+
+- Le lien « En savoir plus » du ressenti mène à la bonne documentation.
+- Les messages d’erreur disent de chercher « weather » dans les journaux.
+
+### À savoir
+
+- Home Assistant 2026.7 ou plus récent est maintenant demandé (2025.1 jusqu’ici) : c’est la plus ancienne version sur laquelle Hestia Weather est testé. Sur une version plus ancienne, HACS ne proposera pas cette mise à jour ; la version installée continue de fonctionner.
+
 ## 2.9.3 — Stable : Niak Weather devient Hestia Weather
 
 **En bref**

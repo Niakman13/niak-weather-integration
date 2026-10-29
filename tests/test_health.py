@@ -30,7 +30,7 @@ def test_silent_sensors_are_to_fix_with_since_when():
     assert r["todo"][0]["why"] == "Rafales, Direction du vent · depuis 3 h." and r["todo"][0]["stage"] == 1
     assert [s["label"] for s in r["sensors"]][:2] == ["Rafales", "Direction du vent"]  # those that do not answer first
     assert r["sensors"][0]["text"] == "ne répond pas · 3 h"
-    assert r["sources"][2] == {"label": "Station", "level": "bad", "text": "GW2000A · 1 capteur sur 3 répond"}
+    assert r["sources"][2] == {"key": "station", "label": "Station", "level": "bad", "text": "GW2000A · 1 capteur sur 3 répond"}
 
 
 def test_a_whole_silent_station_is_one_line():
@@ -49,7 +49,7 @@ def test_an_enabled_entity_without_its_source_is_to_fix_at_the_right_step():
 def test_without_a_station_a_station_is_the_first_tip_not_an_error():
     r = report(place(station="", sensors=[]))
     assert r["level"] == "ok" and r["tips"][0]["text"] == "Ajouter une station météo"
-    assert r["sources"][2] == {"label": "Station", "level": "none", "text": "pas de station"}
+    assert r["sources"][2] == {"key": "station", "label": "Station", "level": "none", "text": "pas de station"}
 
 
 def test_removing_a_station_does_not_turn_its_enabled_enrichments_into_errors():
@@ -114,7 +114,7 @@ def test_a_silent_air_or_pollen_source_is_to_fix_once_per_provider():
 def test_vigieau_and_blitzortung_show_once_chosen():
     assert not any(s["label"] in ("Restrictions d’eau", "Éclairs") for s in report(place())["sources"])
     sources = {s["label"]: s for s in report(place(water="Gardanne Alert level", lightning="Blitzortung distance", lightning_ok=False))["sources"]}
-    assert sources["Restrictions d’eau"]["level"] == "ok" and sources["Éclairs"] == {"label": "Éclairs", "level": "bad",
+    assert sources["Restrictions d’eau"]["level"] == "ok" and sources["Éclairs"] == {"key": "lightning", "label": "Éclairs", "level": "bad",
                                                                                       "text": "Blitzortung distance · ne répond pas"}
 
 

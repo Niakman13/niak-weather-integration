@@ -8,6 +8,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from .i18n import language, t
+
 @dataclass(frozen=True)
 class Place:
     title: str
@@ -26,38 +28,38 @@ class Place:
     """The Hestia bricks listening to this place, by name."""
 
 
-def _plural(n: int, word: str) -> str:
-    return f"{n} {word}{'s' if n > 1 else ''}"
+def _count(n: int, one: str, many: str) -> str:
+    return t(one, n=n) if n == 1 or n == 0 and language() == "fr" else t(many, n=n)
 
 
 def status(places: Sequence[Place], card_twice: bool = False) -> dict:
     """`card_twice`: the card from HACS is still installed next to the one the integration serves."""
     if not places:
-        return {"level": "action", "summary": "Aucun lieu suivi pour l’instant.",
-                "details": ["Ajoutez votre lieu dans l’onglet Météo."], "links": []}
+        return {"level": "action", "summary": t("Aucun lieu suivi pour l’instant."),
+                "details": [t("Ajoutez votre lieu dans l’onglet Météo.")], "links": []}
     todo: list[str] = []
     details: list[str] = []
     several = len(places) > 1
     for place in places:
         where = f" ({place.title})" if several else ""
         if not place.loaded:
-            todo.append(f"Calcul arrêté : {place.title}")
+            todo.append(t("Calcul arrêté : {place}", place=place.title))
             continue
         if place.station and len(place.silent) >= place.station:
-            todo.append(f"La station ne répond pas{where}")
+            todo.append(t("La station ne répond pas{where}", where=where))
         elif place.silent:
-            todo.append(f"Ne répond pas{where} : " + ", ".join(place.silent))
+            todo.append(t("Ne répond pas{where} : {names}", where=where, names=", ".join(place.silent)))
         if not place.forecast:
-            todo.append(f"Prévisions pas encore reçues du service météo{where}")
+            todo.append(t("Prévisions pas encore reçues du service météo{where}", where=where))
         todo.extend(f"{need}{where}" for need in place.needs)
         todo.extend(f"{source}{where}" for source in place.down)
     if card_twice:
-        todo.append("Carte installée deux fois : retirez la carte Hestia Weather de HACS")
-    links = [f"Relié à {name} · {place.title}" for place in places for name in place.links]
-    followed = f"{len(places)} lieux suivis" if several else "1 lieu suivi"
-    if all(p.loaded and p.station for p in places):
-        followed += " avec " + ("leurs stations" if several else "sa station")
+        todo.append(t("Carte installée deux fois : retirez la carte Hestia Weather de HACS"))
+    links = [t("Relié à {name} · {place}", name=name, place=place.title) for place in places for name in place.links]
+    stations = all(p.loaded and p.station for p in places)
+    followed = (t("{n} lieux suivis avec leurs stations", n=len(places)) if stations else t("{n} lieux suivis", n=len(places))) if several \
+        else t("1 lieu suivi avec sa station") if stations else t("1 lieu suivi")
     if todo:
-        return {"level": "action", "summary": f"{followed}, " + _plural(len(todo), "point") + " à régler.",
+        return {"level": "action", "summary": f"{followed}, " + _count(len(todo), "{n} point à régler.", "{n} points à régler."),
                 "details": todo + details, "links": links}
-    return {"level": "ok", "summary": f"{followed}, rien à régler.", "details": details, "links": links}
+    return {"level": "ok", "summary": f"{followed}, " + t("rien à régler."), "details": details, "links": links}

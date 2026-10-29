@@ -30,7 +30,7 @@ Tout est calculé une fois, dans Home Assistant : la carte affiche, vos automati
 
 ## Ce qu’il faut
 
-- Home Assistant **2025.1** ou plus récent.
+- Home Assistant **2026.7** ou plus récent.
 - Une entité météo `weather.*`. **Météo-France** est conseillée.
 - En plus, si vous en avez : une station météo, les vigilances de Météo-France ou de MeteoSwiss, Atmo France (air et pollens), Polleninformation, IRM KMI, Swiss Pollen ou Kleenex / Scottex, Vigieau (restrictions d’eau), Blitzortung (éclairs).
 

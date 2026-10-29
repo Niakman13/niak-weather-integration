@@ -1,6 +1,7 @@
 """The entities by family, as the documentation and the settings show them, and what each one needs to give a value."""
 from __future__ import annotations
 
+from .i18n import N_
 from .settings import Settings
 
 # Each family, then the keys of its entities (the end of their unique id: <entry_id>_<key>).
@@ -32,18 +33,18 @@ def needs(settings: Settings) -> dict[str, str]:
     legacy = settings.pollen_source == "legacy" and bool(settings.pollens or settings.pollen_risk_entity)
     atmo_pollen = settings.pollen_source != "none" and bool(settings.atmo.get("atmo_pollen_entity"))
     missing = {
-        "vigilance": not settings.vigilance_entity and "la vigilance officielle",
-        "restrictions_eau": not settings.water_restriction_entity and "l’intégration Vigieau",
-        "uv_fort": not settings.uv_index_entity and "un capteur UV (OpenUV, station…)",
-        "pluie_7j": not (rain_gauge and settings.station_history) and "un pluviomètre et l’historique de la station",
-        "rain_24h": not rain_gauge and "un pluviomètre",
-        "pressure_trend": not settings.pressure_entity and "un capteur de pression",
-        "max_gust_today": not (settings.max_daily_gust_entity or settings.wind_gust_entity) and "un capteur de rafales",
-        "temperature_trend": not (settings.temperature_trend_entity or settings.temperature_entity) and "un thermomètre extérieur",
+        "vigilance": not settings.vigilance_entity and N_("la vigilance officielle"),
+        "restrictions_eau": not settings.water_restriction_entity and N_("l’intégration Vigieau"),
+        "uv_fort": not settings.uv_index_entity and N_("un capteur UV (OpenUV, station…)"),
+        "pluie_7j": not (rain_gauge and settings.station_history) and N_("un pluviomètre et l’historique de la station"),
+        "rain_24h": not rain_gauge and N_("un pluviomètre"),
+        "pressure_trend": not settings.pressure_entity and N_("un capteur de pression"),
+        "max_gust_today": not (settings.max_daily_gust_entity or settings.wind_gust_entity) and N_("un capteur de rafales"),
+        "temperature_trend": not (settings.temperature_trend_entity or settings.temperature_entity) and N_("un thermomètre extérieur"),
         "qualite_air": not (settings.waqi.get("waqi_air_entity") if settings.air_source == "waqi" else settings.atmo.get("atmo_air_entity")) and (
-            "une station WAQI qui donne l’indice de qualité de l’air" if settings.air_source == "waqi" else
-            "une zone Atmo France fournissant l’indice de qualité de l’air" if settings.atmo_area else "Atmo France ou WAQI"),
-        "pollens": not (legacy or atmo_pollen) and ("une zone Atmo France fournissant l’indice pollen" if settings.pollen_source == "atmo" and (settings.atmo_pollen_area or settings.atmo_area) else "Atmo France, Polleninformation ou IRM KMI"),
+            N_("une station WAQI qui donne l’indice de qualité de l’air") if settings.air_source == "waqi" else
+            N_("une zone Atmo France fournissant l’indice de qualité de l’air") if settings.atmo_area else N_("Atmo France ou WAQI")),
+        "pollens": not (legacy or atmo_pollen) and (N_("une zone Atmo France fournissant l’indice pollen") if settings.pollen_source == "atmo" and (settings.atmo_pollen_area or settings.atmo_area) else N_("Atmo France, Polleninformation ou IRM KMI")),
     }
     return {key: text for key, text in missing.items() if text}
 

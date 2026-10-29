@@ -1,5 +1,7 @@
 // Shared Hestia interface, embedded independently in each brick.
 import {LitElement,html,css,nothing,type TemplateResult,type PropertyValues} from 'lit';
+import {t} from './i18n';
+export {t,fr,setLanguage,addDictionary,currentLanguage,currentLocale} from './i18n';
 
 // Popovers live in the browser top layer, so help escapes scrolling panels.
 class NiakHelp extends LitElement {
@@ -8,7 +10,7 @@ class NiakHelp extends LitElement {
  private onViewportChange=(e:Event)=>{const pop=this.renderRoot.querySelector('[popover]');if(this.opened&&!(e.target instanceof Node&&pop?.contains(e.target)))this.close();};
  connectedCallback(){super.connectedCallback();window.addEventListener('scroll',this.onViewportChange,true);window.addEventListener('resize',this.onViewportChange);}
  private pinned=false;private timer?:ReturnType<typeof setTimeout>;
- constructor(){super();this.label='Aide';this.trigger='Aide';this.opened=false;}
+ constructor(){super();this.label=t('Aide');this.trigger=t('Aide');this.opened=false;}
  disconnectedCallback(){super.disconnectedCallback();window.removeEventListener('scroll',this.onViewportChange,true);window.removeEventListener('resize',this.onViewportChange);clearTimeout(this.timer);this.pinned=false;this.opened=false;}
  private async show(){
   clearTimeout(this.timer);this.opened=true;await this.updateComplete;
@@ -27,14 +29,14 @@ class NiakHelp extends LitElement {
  private close(){clearTimeout(this.timer);this.pinned=false;this.opened=false;const pop=this.renderRoot.querySelector<HTMLElement>('[popover]');if(pop?.matches(':popover-open'))pop.hidePopover();}
  private leave(){if(!this.pinned)this.timer=setTimeout(()=>this.close(),160);}
  protected updated(changed:PropertyValues){if(changed.has('content')&&this.opened)this.close();}
- protected render(){return html`<button class="help-button" type="button" aria-label=${'Aide : '+this.label} aria-expanded=${String(this.opened)} aria-controls="help-content" aria-describedby=${this.opened?'help-content':nothing}
+ protected render(){return html`<button class="help-button" type="button" aria-label=${t('Aide : {label}',{label:this.label})} aria-expanded=${String(this.opened)} aria-controls="help-content" aria-describedby=${this.opened?'help-content':nothing}
   @pointerenter=${(e:PointerEvent)=>{if(e.pointerType==='mouse')void this.show();}} @pointerleave=${()=>this.leave()}
   @click=${()=>{if(this.pinned)this.close();else{this.pinned=true;void this.show();}}}
   @keydown=${(e:KeyboardEvent)=>{if(e.key==='Escape')this.close();}}>
   <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7v1"/></svg><span>${this.trigger}</span></button>
   <div id="help-content" popover="auto" role="tooltip" @toggle=${(e:Event)=>{const on=(e as ToggleEvent).newState==='open';if(this.opened!==on)this.opened=on;if(!on)this.pinned=false;}}
    @pointerenter=${()=>clearTimeout(this.timer)} @pointerleave=${()=>this.leave()} @keydown=${(e:KeyboardEvent)=>{if(e.key==='Escape')this.close();}}>
-   <div class="help-head"><strong>${this.label}</strong><button type="button" aria-label="Fermer l’aide" @click=${()=>this.close()}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+   <div class="help-head"><strong>${this.label}</strong><button type="button" aria-label=${t('Fermer l’aide')} @click=${()=>this.close()}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
    <div class="help-content">${this.content}</div></div>`;}
  static styles=css`
   :host{display:inline-flex;vertical-align:middle;flex-shrink:0;color:var(--secondary-text-color,#bdc5d1);font:inherit;font-size:13px;line-height:1.6}
@@ -49,11 +51,11 @@ class NiakHelp extends LitElement {
  `;
 }
 if(!customElements.get('niak-hub-help-v1'))customElements.define('niak-hub-help-v1',NiakHelp);
-export function helpTip(label:string,content:unknown,trigger='Aide'){return html`<niak-hub-help-v1 .label=${label} .content=${content} .trigger=${trigger}></niak-hub-help-v1>`;}
+export function helpTip(label:string,content:unknown,trigger=t('Aide')){return html`<niak-hub-help-v1 .label=${label} .content=${content} .trigger=${trigger}></niak-hub-help-v1>`;}
 export function defaultValue(value:string,onReset:()=>void,explanation:unknown,options:{applied:boolean;disabled?:boolean;note?:string}):TemplateResult {
- return html`<div class="nk-default"><div class="nk-default-value"><span>Valeur par défaut</span><strong>${value}</strong>${options.note?html`<p>${options.note}</p>`:nothing}</div>
-  <div class="nk-default-actions"><button type="button" class="nk-reset" ?disabled=${options.disabled||options.applied} @click=${onReset}>${options.disabled?'Choisissez un capteur':options.applied?'Valeur appliquée':'Rétablir la valeur par défaut'}</button>
-  ${helpTip('Comprendre la valeur par défaut',explanation,'Pourquoi cette valeur ?')}</div></div>`;
+ return html`<div class="nk-default"><div class="nk-default-value"><span>${t('Valeur par défaut')}</span><strong>${value}</strong>${options.note?html`<p>${options.note}</p>`:nothing}</div>
+  <div class="nk-default-actions"><button type="button" class="nk-reset" ?disabled=${options.disabled||options.applied} @click=${onReset}>${options.disabled?t('Choisissez un capteur'):options.applied?t('Valeur appliquée'):t('Rétablir la valeur par défaut')}</button>
+  ${helpTip(t('Comprendre la valeur par défaut'),explanation,t('Pourquoi cette valeur ?'))}</div></div>`;
 }
 export function frame(title:string,body:unknown,options:{count?:string|number;open?:boolean;className?:string;collapsible?:boolean;help?:unknown}={}):TemplateResult {
  const count=options.count===undefined?nothing:html`<span class="nk-count">${options.count}</span>`;
@@ -160,4 +162,114 @@ export const modernStyles=css`
  @media(prefers-reduced-motion:no-preference){.room-menu button{transition:background-color .15s,color .15s}}
 `;
 // Line icons are decorative; all controls retain visible and accessible labels.
-export function hubIcon(kind:string){const paths:Record<string,string>={home:'M3 10 12 3l9 7M5 9v12h14V9M9 21v-8h6v8',settings:'M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6',temperature:'M9 14V5a3 3 0 0 1 6 0v9a5 5 0 1 1-6 0ZM12 8v10',openings:'M5 21V3h14v18M3 21h18M14 12h1',air:'M3 8h13a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h7',presence:'M16 6a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 22v-3a8 8 0 0 1 16 0v3',heating:'M5 21V3M19 21V3M5 6h14M5 18h14M9 6v12M15 6v12',room:'M3 21h18M5 21V4h14v17M9 8h2M14 8h1M9 12h2M14 12h1M10 21v-5h4v5',weather:'M5 16a5 5 0 1 1 4-9 5 5 0 1 1 8 6H5M4 3l1 2M14 2v2M2 10h2',pollen:'M12 21V10M6 8a3 3 0 1 1 6-3 3 3 0 1 1 6 3 3 3 0 1 1-6 3 3 3 0 1 1-6-3ZM5 15l7 4 7-4',entities:'M3 3h7v7H3ZM14 3h7v7h-7ZM3 14h7v7H3ZM14 14h7v7h-7Z'};return html`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d=${paths[kind]??paths.settings}></path></svg>`;}
+export function hubIcon(kind:string){const paths:Record<string,string>={home:'M3 10 12 3l9 7M5 9v12h14V9M9 21v-8h6v8',settings:'M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6',temperature:'M9 14V5a3 3 0 0 1 6 0v9a5 5 0 1 1-6 0ZM12 8v10',openings:'M5 21V3h14v18M3 21h18M14 12h1',air:'M3 8h13a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h7',presence:'M16 6a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 22v-3a8 8 0 0 1 16 0v3',heating:'M5 21V3M19 21V3M5 6h14M5 18h14M9 6v12M15 6v12',room:'M3 21h18M5 21V4h14v17M9 8h2M14 8h1M9 12h2M14 12h1M10 21v-5h4v5',weather:'M5 16a5 5 0 1 1 4-9 5 5 0 1 1 8 6H5M4 3l1 2M14 2v2M2 10h2',pollen:'M12 21V10M6 8a3 3 0 1 1 6-3 3 3 0 1 1 6 3 3 3 0 1 1-6 3 3 3 0 1 1-6-3ZM5 15l7 4 7-4',entities:'M3 3h7v7H3ZM14 3h7v7h-7ZM3 14h7v7H3ZM14 14h7v7h-7Z',review:'M4 20V10M10 20V4M16 20v-7M22 20H2',extensions:'M9 3h5v3a2 2 0 1 0 4 0V3h3v7h-3a2 2 0 1 0 0 4h3v7h-7v-3a2 2 0 1 0-4 0v3H3v-7h3a2 2 0 1 0 0-4H3V3h6Z'};return html`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d=${paths[kind]??paths.settings}></path></svg>`;}
+
+// ---- The pages every brick builds the same way (socle 1.12) ----
+// Three pages per brick: its Accueil (read only), its Réglages généraux (its places or rooms, extensions, cards) and
+// « Configurer » one place or room, step by step. Each brick fills these pieces; none draws its own.
+export type NkLevel='ok'|'todo'|'bad'|'none';
+export interface NkAction {label:string;onClick:()=>void;disabled?:boolean;primary?:boolean}
+const button=(a:NkAction)=>html`<button class=${a.primary?'primary':''} ?disabled=${a.disabled} @click=${a.onClick}>${a.label}</button>`;
+/** The top of every page: the way back, the title, what the page is about, its state and its one or two actions. */
+export function pageHead(o:{back?:NkAction;title:string;subtitle?:unknown;state?:{level:NkLevel;text:string;detail?:string};actions?:NkAction[]}):TemplateResult{
+ return html`<div class="nk-page-head">${o.back?html`<button class="link nk-back" ?disabled=${o.back.disabled} @click=${o.back.onClick}>← ${o.back.label}</button>`:nothing}
+  <div class="nk-page-title"><div><h1 tabindex="-1">${o.title}</h1>${o.subtitle?html`<p class="muted">${o.subtitle}</p>`:nothing}
+   ${o.state?html`<p class=${'nk-state '+o.state.level}><span class="nk-dot"></span><b>${o.state.text}</b>${o.state.detail?html`<span class="muted"> · ${o.state.detail}</span>`:nothing}</p>`:nothing}</div>
+  ${o.actions?.length?html`<div class="nk-page-actions">${o.actions.map(button)}</div>`:nothing}</div></div>`;
+}
+export interface NkLine {level:string;text:string;why?:string|null;go?:NkAction|null}
+const line=(l:NkLine)=>html`<li class=${'nk-line '+l.level}><span class="nk-dot"></span><div><strong>${l.text}</strong>${l.why?html`<span class="nk-why">${l.why}</span>`:nothing}</div>
+ ${l.go?html`<button class="link nk-go" ?disabled=${l.go.disabled} @click=${l.go.onClick}>${l.go.label}</button>`:nothing}</li>`;
+/** What is left to do: « À régler » first (orange), then « À améliorer »; nothing at all when everything works. */
+export function todoFrame(todo:NkLine[],tips:NkLine[]=[]):TemplateResult|typeof nothing{
+ if(!todo.length&&!tips.length)return nothing;
+ return frame(todo.length?t('À régler'):t('À améliorer'),html`${todo.length?html`<ul class="nk-lines">${todo.map(line)}</ul>`:nothing}
+  ${todo.length&&tips.length?html`<h3 class="nk-sub">${t('À améliorer')}</h3>`:nothing}${tips.length?html`<ul class="nk-lines">${tips.map(line)}</ul>`:nothing}`,{className:todo.length?'todo':''});
+}
+export interface NkItem {name:string;note?:unknown;detail?:unknown;pill?:{text:string;level:NkLevel};edit?:NkAction}
+/** « Vos lieux », « Vos pièces »: one line each, what it measures and its state; « Modifier » on the settings page. */
+export function itemsFrame(o:{title:string;hint?:string;items:NkItem[];add?:NkAction;addContent?:unknown;empty?:unknown}):TemplateResult{
+ return frame(o.title,html`${o.hint||o.add?html`<div class="nk-items-bar">${o.hint?html`<p class="hint">${o.hint}</p>`:nothing}${o.add?button({...o.add,primary:true}):nothing}</div>`:nothing}
+  ${o.addContent??nothing}
+  ${o.items.length?html`<ul class="nk-items">${o.items.map(i=>html`<li><div class="nk-item-name"><b>${i.name}</b>${i.note?html`<small class="hint">${i.note}</small>`:nothing}</div>
+   <div class="nk-item-detail">${i.detail?html`<span class="hint">${i.detail}</span>`:nothing}${i.pill?html`<span class=${'nk-pill '+i.pill.level}>${i.pill.text}</span>`:nothing}</div>
+   ${i.edit?html`<button class="nk-edit" ?disabled=${i.edit.disabled} aria-label=${i.edit.label+' '+i.name} @click=${i.edit.onClick}>${i.edit.label}</button>`:nothing}</li>`)}</ul>`:o.empty??nothing}`);
+}
+export interface NkStep {label:string;title?:string;icon:string;current:boolean;onClick:()=>void}
+/** The steps of one place or room, in two rows; the last one is always « Récapitulatif ». */
+export function stepMenu(label:string,steps:NkStep[],disabled=false):TemplateResult{
+ const half=Math.ceil(steps.length/2);
+ return html`<nav class="room-menu nk-step-menu" aria-label=${label}>${[steps.slice(0,half),steps.slice(half)].map(row=>html`<div class="room-menu-row" style=${'grid-template-columns:repeat('+row.length+',minmax(0,1fr))'}>${row.map(s=>html`<button aria-label=${s.title??s.label} title=${s.title??s.label} aria-current=${s.current?'page':nothing} ?disabled=${disabled} @click=${s.onClick}>${hubIcon(s.icon)}<span>${s.label}</span></button>`)}</div>`)}</nav>`;
+}
+/** The bottom of a step: back on the left, on the right « Continuer » and, for a place or room that exists, « Enregistrer ». */
+export function stepFooter(o:{previous?:NkAction;next?:NkAction;save?:NkAction}):TemplateResult{
+ return html`<div class="bottom nk-footer">${o.previous?button(o.previous):html`<span></span>`}<div class="nk-footer-end">${o.next?button({...o.next,primary:!o.save}):nothing}${o.save?button({...o.save,primary:true}):nothing}</div></div>`;
+}
+/** Leaving with changes not saved: asked once, in the page. */
+export function leaveNotice(o:{onStay:()=>void;onLeave:()=>void}):TemplateResult{
+ return html`<section class="notice nk-leave" role="alertdialog" aria-label=${t('Quitter sans enregistrer')}><h2>${t('Quitter sans enregistrer ?')}</h2><p>${t('Vos changements de cette page seront perdus.')}</p>
+  <div class="actions"><button @click=${o.onStay}>${t('Continuer à modifier')}</button><button @click=${o.onLeave}>${t('Quitter sans enregistrer')}</button></div></section>`;
+}
+/** Each extension in one word (liée, installée, non installée…), linked from the brick's settings. */
+export function extensionsFrame(rows:{name:string;group?:string;pill:{text:string;level:NkLevel}}[],settings?:NkAction):TemplateResult{
+ const groups=[...new Set(rows.map(r=>r.group??''))];
+ return frame(t('Extensions'),html`${groups.map(g=>html`${g?html`<h3 class="nk-sub">${g}</h3>`:nothing}<ul class="nk-rows">${rows.filter(r=>(r.group??'')===g).map(r=>html`<li><b>${r.name}</b><span class=${'nk-pill '+r.pill.level}>${r.pill.text}</span></li>`)}</ul>`)}
+  ${settings?html`<button class="link nk-go" ?disabled=${settings.disabled} @click=${settings.onClick}>${settings.label} →</button>`:nothing}`);
+}
+/** Versions and the same useful links in every brick. */
+export function versionsFrame(rows:[string,string][],repository:string,domain:string,support=true):TemplateResult{
+ return frame(t('Versions et liens'),html`<div class="nk-meta"><ul class="nk-rows">${rows.map(([k,v])=>html`<li><b>${k}</b><span>${v}</span></li>`)}</ul>
+  <nav class="nk-links" aria-label=${t('Liens utiles')}><a href=${'/config/integrations/integration/'+domain}>${t('Intégration Home Assistant')}</a><a href="/config/logs">${t('Journaux Home Assistant')}</a>
+   <a href=${repository+'#readme'} target="_blank" rel="noreferrer">${t('Documentation')}</a><a href=${repository+'/releases'} target="_blank" rel="noreferrer">${t('Versions publiées')}</a>
+   <a href=${repository+'/issues'} target="_blank" rel="noreferrer">${t('Signaler un problème')}</a>${support?html`<a class="nk-support" href="https://paypal.me/frankblemont" target="_blank" rel="noreferrer">${t('Soutenez mon travail')}</a>`:nothing}</nav></div>`);
+}
+/** One extension, the same card in every brick: what it is for, its state in one word, the one thing to do, its switches. */
+export interface NkSwitch {label:string;checked:boolean;disabled?:boolean;note?:string;onChange:(on:boolean)=>void}
+export function extensionCard(o:{icon:string;name:string;pill:{text:string;level:NkLevel};use:string;detail?:unknown;action?:unknown;switches?:NkSwitch[];body?:unknown;todo?:boolean}):TemplateResult{
+ return html`<section class=${'nk-section ex-card'+(o.todo?' act':'')}><div class="nk-body"><div class="ex-head"><span class="ex-icon">${hubIcon(o.icon)}</span>
+  <div class="ex-body"><h3>${o.name} <span class=${'nk-pill '+o.pill.level}>${o.pill.text}</span></h3><p class="hint">${o.use}</p>${o.detail?html`<p class="hint ex-detail">${o.detail}</p>`:nothing}</div>${o.action??nothing}</div>
+  ${(o.switches??[]).map(sw=>html`<label class="check ex-switch"><input type="checkbox" role="switch" .checked=${sw.checked} ?disabled=${sw.disabled} @change=${(e:Event)=>sw.onChange((e.target as HTMLInputElement).checked)}>${sw.label}</label>${sw.note?html`<p class="hint ex-note">${sw.note}</p>`:nothing}`)}
+  ${o.body??nothing}</div></section>`;
+}
+/** « Supprimer ce lieu », « Supprimer cette pièce »: asked once in the page; what stays (the sensors) is said. */
+export function removeBlock(o:{link:string;title:string;lines:string[];keep:string;confirm:string;asking:boolean;busy?:boolean;onAsk:()=>void;onCancel:()=>void;onConfirm:()=>void}):TemplateResult{
+ return o.asking?html`<section class="notice nk-remove" role="alertdialog" aria-label=${o.link}><h2>${o.title}</h2>${o.lines.map(l=>html`<p>${l}</p>`)}
+  <div class="actions"><button @click=${o.onCancel}>${o.keep}</button><button class="danger" ?disabled=${o.busy} @click=${o.onConfirm}>${o.confirm}</button></div></section>`
+  :html`<div class="nk-remove"><button class="link danger-link" ?disabled=${o.busy} @click=${o.onAsk}>${o.link}</button></div>`;
+}
+export const pageStyles=css`
+ .ex-sec{font-size:15px;font-weight:600;color:var(--nk-muted);margin:28px 0 6px}.ex-sec+.hint{margin:0 0 8px}
+ /* The Extensions page: the third-party integrations under one heading per theme. */
+ .ex-theme{font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--nk-muted);margin:26px 0 4px}
+ .ex-head{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:12px;align-items:start}.ex-icon{color:var(--nk-muted);padding-top:2px}
+ .ex-body h3{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 4px;font-size:17px}.ex-body p{margin:0}.ex-detail{margin-top:6px!important}
+ .ex-card.act{border-color:var(--nk-todo)}.ex-card label.ex-switch{margin-top:16px}.ex-note{padding-left:40px;margin:4px 0 0}
+ .ex-switch{padding-left:40px;display:flex;align-items:center;gap:10px}
+ .ex-switch input[type=checkbox]{appearance:none;-webkit-appearance:none;flex:none;width:40px;height:22px;min-height:22px;margin:0;padding:0;border:0;border-radius:999px;background:color-mix(in srgb,var(--nk-muted) 35%,transparent);position:relative;cursor:pointer;transition:background .2s}
+ .ex-switch input::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s}
+ .ex-switch input[type=checkbox]:checked{background:var(--nk-accent)}.ex-switch input:checked::after{transform:translateX(18px)}
+ .ex-switch input:focus-visible{outline:2px solid var(--nk-accent);outline-offset:2px}.ex-switch input:disabled{opacity:.5;cursor:default}
+ .ex-act{display:inline-flex;align-items:center;min-height:36px;padding:6px 14px;font-size:14px;font-weight:600;border:1px solid var(--nk-accent);border-radius:8px;text-decoration:none;white-space:nowrap}
+ .nk-remove{margin-top:28px}.nk-remove .danger{background:var(--error-color,#ae3e32);border-color:var(--error-color,#ae3e32);color:#fff}.danger-link{color:var(--error-color,#ae3e32)!important}
+ .nk-remove .actions{display:flex;gap:8px;flex-wrap:wrap}.nk-remove h2{margin:0 0 6px;font-size:17px}
+ @media(max-width:600px){.ex-head{grid-template-columns:24px minmax(0,1fr)}.ex-head>.ex-act,.ex-head>button{grid-column:2;justify-self:start}}
+ .nk-page-head{margin:0 0 28px}.nk-back{margin:0 0 10px -17px}@media(max-width:600px){.nk-back{margin-left:-8px;padding-left:8px}}.nk-page-title{display:flex;justify-content:space-between;align-items:flex-start;gap:16px 24px;flex-wrap:wrap}
+ .nk-page-title>div:first-child{min-width:0;flex:1 1 320px}.nk-page-title h1{margin:0 0 6px}.nk-page-title p{margin:0}.nk-page-actions{display:flex;gap:8px;flex-wrap:wrap}
+ .nk-state{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px!important;font-size:14px}.nk-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;background:var(--nk-muted)}
+ .ok>.nk-dot{background:var(--nk-ok)}.todo>.nk-dot,.action>.nk-dot{background:var(--nk-todo)}.bad>.nk-dot{background:var(--error-color,#ae3e32)}
+ .nk-lines{list-style:none;margin:0;padding:0}.nk-line{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-top:1px solid var(--nk-border)}.nk-line:first-child{border-top:0;padding-top:0}
+ .nk-line .nk-dot{margin-top:8px}.nk-line>div{flex:1;min-width:0;display:flex;flex-direction:column}.nk-why{font-size:13px;color:var(--nk-muted)}.nk-go{min-height:44px;white-space:normal;flex-shrink:0}
+ .nk-sub{font-size:14px;font-weight:600;margin:20px 0 8px;color:var(--nk-muted)}
+ .nk-items-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}.nk-items-bar p{margin:0}
+ .nk-items{list-style:none;margin:0;padding:0}.nk-items li{display:flex;align-items:center;gap:8px 16px;flex-wrap:wrap;padding:14px 0;border-top:1px solid var(--nk-border)}.nk-items li:first-child{border-top:0}
+ .nk-item-name{flex:1 1 200px;min-width:0;display:flex;flex-direction:column}.nk-item-detail{flex:2 1 260px;min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}.nk-edit{font-size:13px;min-height:40px;padding:8px 16px}
+ .nk-pill{display:inline-block;font-size:11px;font-weight:600;border-radius:999px;padding:2px 10px;background:var(--nk-selected);color:var(--nk-muted);white-space:nowrap}
+ .nk-pill.ok{color:var(--nk-ok);background:color-mix(in srgb,var(--nk-ok) 12%,transparent)}.nk-pill.todo{color:var(--nk-todo);background:color-mix(in srgb,var(--nk-todo) 14%,transparent)}.nk-pill.bad{color:var(--error-color,#ae3e32);background:color-mix(in srgb,var(--error-color,#ae3e32) 12%,transparent)}
+ .nk-rows{list-style:none;margin:0;padding:0}.nk-rows li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--nk-border)}.nk-rows li:first-child{border-top:0}.nk-rows b{font-weight:500}.nk-rows span:not(.nk-pill){color:var(--nk-muted);text-align:right}
+ .nk-meta{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:24px}.nk-links{display:flex;flex-direction:column;gap:6px}.nk-links a{text-underline-offset:3px}
+ .nk-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.nk-footer-end{display:flex;gap:8px;flex-wrap:wrap}
+ .nk-leave h2{margin:0 0 6px;font-size:17px}.nk-leave .actions{display:flex;gap:8px;flex-wrap:wrap}
+ .nk-step-menu button span{overflow-wrap:normal;word-break:normal;hyphens:auto}
+ @media(max-width:600px){.nk-step-menu button{font-size:11px;padding:8px 2px}}
+ @media(max-width:600px){.nk-meta{grid-template-columns:1fr}.nk-footer>*{flex:1 1 100%}.nk-footer-end>*{flex:1}}
+`;

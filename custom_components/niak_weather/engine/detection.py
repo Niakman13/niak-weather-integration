@@ -8,6 +8,7 @@ from typing import Any, Callable, Mapping, Sequence
 from . import atmo, polleninfo
 from .atmo import StateLike, normal
 from .settings import ATMO_KEYS
+from .i18n import N_
 
 Registry = Mapping[str, Mapping[str, Any]]
 """Entity registry entries by entity id: platform, device_id, disabled_by, config_entry_id, unique_id, translation_key, original_name."""
@@ -496,8 +497,8 @@ def fill(states: Sequence[StateLike], registry: Registry, devices: Devices, opti
 
 STATION_MODELS = {"gw2000a": "Ecowitt GW2000A", "ws90": "Shelly / Ecowitt WS90 — Zigbee2MQTT", NETATMO: "Netatmo",
                   "manual": "Autre station / configuration manuelle"}
-STATION_GROUPS = (("station_temperature", "Température et humidité"), ("station_rain", "Pluie"), ("station_wind", "Vent"),
-                  ("station_sun", "Soleil"), ("station_specific", "Spécifiques"))
+STATION_GROUPS = (("station_temperature", N_("Température et humidité")), ("station_rain", N_("Pluie")), ("station_wind", N_("Vent")),
+                  ("station_sun", N_("Soleil")), ("station_specific", N_("Spécifiques")))
 
 
 def selected_station_model(options: Mapping[str, Any]) -> str:
@@ -532,7 +533,7 @@ def station_groups(model: str) -> list[tuple[str, str, tuple[str, ...]]]:
 
 def station_profile(states: Sequence[StateLike], registry: Registry, devices: Devices, device_id: str | None) -> str:
     if device_id == "":
-        return "Autres capteurs / configuration manuelle"
+        return N_("Autres capteurs / configuration manuelle")
     by_id = {s.entity_id: s for s in states}
     entries = [(i, e) for i, e in registry.items() if e.get("device_id") == device_id]
     device = devices.get(device_id or "") or {}
@@ -544,7 +545,7 @@ def station_profile(states: Sequence[StateLike], registry: Registry, devices: De
         return "WS90 via MQTT" if any(e.get("platform") in ("mqtt", "zigbee2mqtt") for _, e in entries) else "WS90"
     if "gw2000" in text:
         return "GW2000A / Ecowitt"
-    return "Autres capteurs / configuration manuelle"
+    return N_("Autres capteurs / configuration manuelle")
 
 
 def model_devices(states: Sequence[StateLike], registry: Registry, devices: Devices, model: str) -> list[str]:

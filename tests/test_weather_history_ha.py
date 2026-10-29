@@ -24,8 +24,8 @@ class WeatherHistoryTests(unittest.IsolatedAsyncioTestCase):
             return job()
         recorder = SimpleNamespace(async_add_executor_job=AsyncMock(side_effect=execute))
         subject = SimpleNamespace(hass=object(), settings=Settings(weather_entity='weather.home'))
-        with patch('custom_components.niak_weather.coordinator.get_instance', return_value=recorder), \
-             patch('custom_components.niak_weather.coordinator.history.get_significant_states', return_value={'weather.home': rows}) as query:
+        with patch('custom_components.niak_weather.place.recorder.get_instance', return_value=recorder), \
+             patch('custom_components.niak_weather.place.recorder.history.get_significant_states', return_value={'weather.home': rows}) as query:
             result = await NiakWeatherCoordinator._states_during(subject, now - timedelta(hours=6), ['weather.home'])
         self.assertFalse(query.call_args.kwargs['no_attributes'])
         self.assertFalse(query.call_args.kwargs['significant_changes_only'])
@@ -34,7 +34,7 @@ class WeatherHistoryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result[weather_history_key('weather.home', 'wind_speed')][0].state, '36.0')
 
     async def test_weather_only_place_still_requests_history(self):
-        subject = SimpleNamespace(settings=Settings(weather_entity='weather.home'), _states_during=AsyncMock(return_value={}))
+        subject = SimpleNamespace(settings=Settings(weather_entity='weather.home'), history={}, _states_during=AsyncMock(return_value={}))
         await NiakWeatherCoordinator._load_history(subject)
         self.assertEqual(subject._states_during.call_args.args[1], ['weather.home'])
 
@@ -43,7 +43,27 @@ class WeatherHistoryTests(unittest.IsolatedAsyncioTestCase):
             return job()
         recorder = SimpleNamespace(async_add_executor_job=AsyncMock(side_effect=execute))
         subject = SimpleNamespace(hass=object(), settings=Settings(weather_entity='weather.home'))
-        with patch('custom_components.niak_weather.coordinator.get_instance', return_value=recorder), \
-             patch('custom_components.niak_weather.coordinator.history.get_significant_states', return_value={}) as query:
+        with patch('custom_components.niak_weather.place.recorder.get_instance', return_value=recorder), \
+             patch('custom_components.niak_weather.place.recorder.history.get_significant_states', return_value={}) as query:
             await NiakWeatherCoordinator._states_during(subject, datetime.now(timezone.utc), ['sensor.rain'])
         self.assertTrue(query.call_args.kwargs['no_attributes'])
+
+
+class CompactWeekTests(unittest.IsolatedAsyncioTestCase):
+    async def test_a_chatty_sensor_without_statistics_is_read_compacted(self):
+        """A week of a sensor every 10 s, without long-term statistics: read day by day, its jitter once a minute."""
+        now = datetime(2026, 10, 29, tzinfo=timezone.utc)
+        start = now - timedelta(days=7)
+        def significant(hass, begin, end, entity_ids, *args):
+            steps = int((end - begin).total_seconds() // 10)
+            return {'sensor.p': [State('sensor.p', str(1012 + (i % 2) / 10), last_updated=begin + timedelta(seconds=10 * i),
+                                       last_changed=begin + timedelta(seconds=10 * i)) for i in range(steps)]}
+        async def execute(job, *args):
+            return job(*args)
+        recorder = SimpleNamespace(async_add_executor_job=AsyncMock(side_effect=execute))
+        subject = SimpleNamespace(hass=object())
+        with patch('custom_components.niak_weather.place.recorder.get_instance', return_value=recorder), \
+             patch('homeassistant.components.recorder.history.get_significant_states', significant) as query:
+            changes = await NiakWeatherCoordinator._compact_states(subject, start, now, 'sensor.p')
+        self.assertLess(len(changes), 7 * 24 * 60 + 10)  # 60 480 rows read, about one a minute kept
+        self.assertEqual(changes[0].state, '1012.0')

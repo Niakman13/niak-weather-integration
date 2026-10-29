@@ -20,6 +20,7 @@ from custom_components.niak_weather.draft import Draft  # noqa: E402
 from custom_components.niak_weather.panel import weather_status  # noqa: E402
 from custom_components.niak_weather.engine.families import needs  # noqa: E402
 from custom_components.niak_weather.engine.settings import Settings  # noqa: E402
+from custom_components.niak_weather.engine.i18n import speaking  # noqa: E402
 
 STATION = {
     "sensor.gw2000a_outdoor_temperature": ("14.2", {"unit_of_measurement": "°C", "device_class": "temperature"}),
@@ -126,12 +127,15 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_the_labels_are_read_outside_the_event_loop(self):
         # Home Assistant warns of a blocking call when fr.json is read in the event loop (« Detected blocking call to read_text »).
-        draft_module._translations.cache_clear()
+        draft_module._read.cache_clear()
         await draft_module.async_load_labels(self.hass)
         with mock.patch.object(Path, "read_text", side_effect=AssertionError("fichier lu dans la boucle")), \
                 mock.patch("builtins.open", side_effect=AssertionError("fichier lu dans la boucle")):
             view = Draft.start(self.hass, None).view()
             self.assertEqual(draft_module.entity_label("feels_like")[0], "Ressenti")
+            # English, for a panel read in English, is read beforehand too.
+            with speaking("en"):
+                self.assertEqual(draft_module.entity_label("feels_like")[0], "Feels like")
         self.assertIn("Vigilance officielle : il faut la vigilance officielle", view["needs"])
 
     async def test_a_new_place_starts_from_what_home_assistant_has(self):
@@ -363,6 +367,26 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ValueError):
             await Draft(self.hass, {"weather_entity": ""}).save(None)
 
+    async def test_a_place_is_removed_from_the_panel_and_only_a_place(self):
+        from homeassistant.config_entries import ConfigEntry
+        from custom_components.niak_weather.panel import ws_remove
+        place = ConfigEntry(domain="niak_weather", title="Maison", unique_id="maison", version=1, minor_version=1, source="user",
+                            data={}, options={"weather_entity": "weather.maison"}, discovery_keys={}, subentries_data=[])
+        other = ConfigEntry(domain="niak_comfort", title="Salon", unique_id="salon", version=1, minor_version=1, source="user",
+                            data={}, options={}, discovery_keys={}, subentries_data=[])
+        for entry in (place, other):
+            self.hass.config_entries._entries[entry.entry_id] = entry
+        connection = mock.Mock()
+        handler = ws_remove
+        while hasattr(handler, "__wrapped__"):  # the command itself, under the admin check and the async wrapper
+            handler = handler.__wrapped__
+        with mock.patch.object(self.hass.config_entries, "async_remove", mock.AsyncMock()) as remove:
+            await handler(self.hass, connection, {"id": 1, "entry_id": other.entry_id})
+            connection.send_error.assert_called_once()
+            await handler(self.hass, connection, {"id": 2, "entry_id": place.entry_id})
+        remove.assert_awaited_once_with(place.entry_id)
+        connection.send_result.assert_called_once_with(2, {"removed": place.entry_id})
+
     async def test_home_page_without_a_place_asks_for_one(self):
         status = await weather_status(self.hass)
         self.assertEqual(status["level"], "action")
@@ -433,8 +457,10 @@ class NetatmoTests(unittest.IsolatedAsyncioTestCase):
         devices, entities = dr.async_get(self.hass), er.async_get(self.hass)
 
         def device(module: str, name: str, model: str, via=None):
-            return devices.async_get_or_create(config_entry_id=netatmo.entry_id, identifiers={("netatmo", module)}, manufacturer="Netatmo",
-                                               model=model, name=name, via_device_id=via).id
+            # The parent is set afterwards: creating a device with `via_device_id` needs Home Assistant 2026.10.
+            made = devices.async_get_or_create(config_entry_id=netatmo.entry_id, identifiers={("netatmo", module)}, manufacturer="Netatmo",
+                                               model=model, name=name)
+            return devices.async_update_device(made.id, via_device_id=via).id if via else made.id
         home = device("home", "Maison", "Home")
         main = device("70:ee:50:00:00:01", "Intérieur", "Smart Home Weather station", home)
         modules = {"out": device("02:00:00:00:00:02", "Jardin", "Smart Outdoor Module", main),

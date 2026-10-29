@@ -5,7 +5,7 @@ Keep native degrees alongside Hestia's presentation severity (0-3). No network a
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
-from .i18n import N_, t
+from .i18n import N_
 
 TYPES = {"wind": N_("Vent"), "thunderstorms": N_("Orages"), "rain": N_("Pluie"), "snow": N_("Neige"),
          "slippery roads": N_("Verglas"), "frost": N_("Gel"), "thaw": N_("Dégel"), "heat waves": N_("Canicule"),

@@ -30,6 +30,10 @@ def french_texts(source: str) -> set[str]:
     for node in ast.walk(ast.parse(source)):
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in ("t", "N_") and node.args:
             literals(node.args[0])
+        # A plural choice, _count(n, one, many): both French texts.
+        elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "_count":
+            for arg in node.args[1:3]:
+                literals(arg)
     return found
 
 
@@ -74,3 +78,13 @@ def test_a_view_in_english_leaves_french_untouched():
     with i18n.localized("en"):
         assert i18n.t("Pluie") == "Rain"
     assert i18n.t("Pluie") == "Pluie"
+
+
+def test_a_panel_request_speaks_its_own_language_and_never_the_cards():
+    from engine import home
+    with i18n.speaking("en-US"):
+        assert home.status([home.Place(title="Maison", station=3)])["summary"] == "1 place followed with its station, nothing to fix."
+        with i18n.localized("fr"):
+            assert i18n.language() == "en"
+    assert i18n.language() == "fr"
+    assert home.status([home.Place(title="Maison", station=3)])["summary"] == "1 lieu suivi avec sa station, rien à régler."

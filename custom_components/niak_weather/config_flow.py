@@ -19,12 +19,13 @@ from homeassistant.helpers.selector import (BooleanSelector, EntitySelector, Ent
 
 from .const import CARD_TYPE, DOMAIN, LOGGER
 from .engine import atmo, detection, families, polleninfo, waqi
+from .engine.i18n import t
 from .engine.settings import ATMO_KEYS, WAQI_KEYS, Settings, atmo_key
 from .engine.view import place_name
 
 SETTING_KEYS = frozenset({f.name for f in fields(Settings)} - {"atmo", "waqi"}) | frozenset(ATMO_KEYS) | frozenset(WAQI_KEYS) | {"families"}
 # Air and pollen sensors have independent zones and can each be left out.
-AIR_KEYS = frozenset(atmo_key(m, t) for t in (False, True) for m in ("air", *atmo.POLLUTANT_METRICS))
+AIR_KEYS = frozenset(atmo_key(m, later) for later in (False, True) for m in ("air", *atmo.POLLUTANT_METRICS))
 POLLEN_KEYS = frozenset(ATMO_KEYS) - AIR_KEYS
 NONE = "none"
 
@@ -96,11 +97,15 @@ class _SourceSteps:
     skip_empty = False
     """At the first setup, a step with nothing to choose is skipped; later, it shows, so that nothing changes without being seen."""
 
+    def _read(self) -> tuple[list[State], dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
+        """States and registries, read afresh: each screen of the assistant sees what was just installed."""
+        return _context(self.hass)
+
     async def _done(self, step: str) -> ConfigFlowResult:
         raise NotImplementedError
 
     async def async_step_weather(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        states, registry, devices = _context(self.hass)
+        states, registry, devices = self._read()
         own = sorted(i for i, e in registry.items() if i.startswith("weather.") and e.get("platform") == DOMAIN)
         if not any(s.entity_id.startswith("weather.") and s.entity_id not in own for s in states):
             return self.async_abort(reason="no_weather")  # type: ignore[attr-defined]
@@ -132,7 +137,7 @@ class _SourceSteps:
         return self.async_show_form(step_id="weather", data_schema=self.add_suggested_values_to_schema(schema, suggested))  # type: ignore[attr-defined]
 
     async def async_step_station(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        states, registry, devices = _context(self.hass)
+        states, registry, devices = self._read()
         if user_input is not None:
             model, device = user_input["station_model"], user_input.get("station_device_id", NONE)
             self.sources["station_model"] = "" if model == NONE else model
@@ -165,7 +170,7 @@ class _SourceSteps:
                                     description_placeholders={"profile": report["profile"], "recognized": str(report["recognized"])})
 
     async def async_step_station_sensors(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        states, registry, devices = _context(self.hass)
+        states, registry, devices = self._read()
         groups = detection.station_groups(self.sources.get("station_model") or "manual")
         if user_input is not None:
             shown: set[str] = set()
@@ -194,17 +199,17 @@ class _SourceSteps:
                                     data_schema=self.add_suggested_values_to_schema(vol.Schema(schema), suggested))  # type: ignore[attr-defined]
 
     def _areas(self) -> list[dict[str, str]]:
-        states, registry, devices = _context(self.hass)
+        states, registry, devices = self._read()
         return atmo.areas(states, registry, devices)
 
     def _stations(self) -> list[dict[str, str]]:
-        _, registry, devices = _context(self.hass)
+        _, registry, devices = self._read()
         return waqi.stations(registry, devices)
 
     def _apply_atmo(self) -> None:
         """The Atmo sensors of the zone, only those wanted: the air's when Atmo gives the air, the pollens' when Atmo gives the pollens.
         With WAQI, the sensors of its station instead of Atmo's air."""
-        states, registry, devices = _context(self.hass)
+        states, registry, devices = self._read()
         for key in (*ATMO_KEYS, *WAQI_KEYS, "waqi_place"):
             self.sources.pop(key, None)
         if self.sources.get("atmo_area") or self.sources.get("atmo_pollen_area"):
@@ -239,7 +244,7 @@ class _SourceSteps:
         if user_input is not None:
             self._set_air(user_input.get("atmo_area", NONE))
             return await self._done("air")
-        states, registry, devices = _context(self.hass)
+        states, registry, devices = self._read()
         filled = detection.fill(states, registry, devices, self.sources, "atmo")
         source = self.sources.get("air_source")
         current = (NONE if source == "none" else f"waqi:{self.sources.get('waqi_station')}" if source == "waqi" and self.sources.get("waqi_station")
@@ -255,7 +260,7 @@ class _SourceSteps:
     async def async_step_pollen(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """The pollens: from Atmo France, Polleninformation or IRM KMI, or none. Every source is always offered; one not installed says so.
         Polleninformation and IRM KMI both give one sensor per species: stored as the « legacy » source, told apart by pollen_provider."""
-        states, registry, _ = _context(self.hass)
+        states, registry, _ = self._read()
         areas = self._areas()
         found = {p: bool(polleninfo.candidates(states, registry, p)[0]) for p in polleninfo.PROVIDERS}
         if user_input is None and not areas and not any(found.values()) and self.skip_empty:
@@ -314,7 +319,7 @@ class _SourceSteps:
 
     async def async_step_pollen_sensors(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Polleninformation or IRM KMI: its species sensors (and Polleninformation's overall allergy risk), proposed, to check or change."""
-        states, registry, _ = _context(self.hass)
+        states, registry, _ = self._read()
         provider = polleninfo.provider(Settings.from_options(_clean(self.sources)))
         species, risks = polleninfo.candidates(states, registry, provider)
         if provider in (polleninfo.SWISS_POLLEN, polleninfo.KLEENEX):
@@ -346,7 +351,7 @@ class _SourceSteps:
                                     description_placeholders={"source": polleninfo.PROVIDERS[provider]})
 
     async def async_step_pollen_station(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        states, registry, devices = _context(self.hass)
+        states, registry, devices = self._read()
         provider = polleninfo.provider(Settings.from_options(_clean(self.sources)))
         choices = polleninfo.places(states, registry, provider, devices)
         places = [p["value"] for p in choices]
@@ -373,14 +378,15 @@ class _SourceSteps:
         pollen_zone = s.get("atmo_pollen_area", s.get("atmo_area")) or ""
         pollen_area = next((a["label"] for a in self._areas() if a["value"] == pollen_zone), pollen_zone)
         provider = polleninfo.PROVIDERS[polleninfo.provider(Settings.from_options(_clean(s)))]
-        pollens = {"atmo": f"Atmo France · {pollen_area}", "legacy": f"{provider} · {count} espèce{'s' if count > 1 else ''}"}.get(
-            s.get("pollen_source") or "", "aucune source")
+        species = t("{n} espèces", n=count) if count > 1 else t("{n} espèce", n=count)
+        pollens = {"atmo": f"Atmo France · {pollen_area}", "legacy": f"{provider} · {species}"}.get(s.get("pollen_source") or "", t("aucune source"))
         return {
-            "weather": (str(weather.attributes.get("friendly_name") or s.get("weather_entity")) if weather else "à choisir")
-                       + (" · vigilance" if s.get("vigilance_entity") else ""),
-            "station": f"{model + ' · ' if model else ''}{len(station)} capteur{'s' if len(station) > 1 else ''}" if station else "pas de station",
+            "weather": (str(weather.attributes.get("friendly_name") or s.get("weather_entity")) if weather else t("à choisir"))
+                       + (" · " + t("vigilance") if s.get("vigilance_entity") else ""),
+            "station": f"{model + ' · ' if model else ''}" + (t("{n} capteurs", n=len(station)) if len(station) > 1 else t("{n} capteur", n=len(station)))
+                       if station else t("pas de station"),
             "air": (f"WAQI · {s.get('waqi_place') or s.get('waqi_station')}" if s.get("air_source") == "waqi"
-                    else f"Atmo France · {area}" if area and s.get("air_source") != "none" else "aucune"),
+                    else f"Atmo France · {area}" if area and s.get("air_source") != "none" else t("aucune")),
             "pollen": pollens,
         }
 
@@ -456,7 +462,7 @@ class NiakWeatherOptionsFlow(OptionsFlow):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             return self.async_create_entry(data=dict(self.config_entry.options))
-        return self.async_show_form(step_id="init", data_schema=vol.Schema({}), description_placeholders={"link": "/niak/meteo"})
+        return self.async_show_form(step_id="init", data_schema=vol.Schema({}), description_placeholders={"link": "/hestia/meteo"})
 
 
 

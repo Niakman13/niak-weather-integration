@@ -92,7 +92,7 @@ export const EN: Record<string, string> = {
 
   // The card's problems
   'Hestia Weather a besoin de son intégration': 'Hestia Weather needs its integration',
-  'Depuis la version 2.0, la carte reçoit ses calculs de l’intégration Hestia Weather. Déjà téléchargée depuis HACS ? Ajoutez-la dans Paramètres → Appareils et services. Sinon, installez-la depuis HACS, redémarrez Home Assistant, puis ajoutez-la. Déjà ajoutée ? Elle n’a pas démarré : les journaux disent pourquoi (Paramètres → Système → Journaux, cherchez « niak »).': 'Since version 2.0, the card gets its figures from the Hestia Weather integration. Already downloaded from HACS? Add it in Settings → Devices & services. Otherwise, install it from HACS, restart Home Assistant, then add it. Already added? It did not start: the logs say why (Settings → System → Logs, search for “niak”).',
+  'Depuis la version 2.0, la carte reçoit ses calculs de l’intégration Hestia Weather. Déjà téléchargée depuis HACS ? Ajoutez-la dans Paramètres → Appareils et services. Sinon, installez-la depuis HACS, redémarrez Home Assistant, puis ajoutez-la. Déjà ajoutée ? Elle n’a pas démarré : les journaux disent pourquoi (Paramètres → Système → Journaux, cherchez « weather »).': 'Since version 2.0, the card gets its figures from the Hestia Weather integration. Already downloaded from HACS? Add it in Settings → Devices & services. Otherwise, install it from HACS, restart Home Assistant, then add it. Already added? It did not start: the logs say why (Settings → System → Logs, search for “weather”).',
   'Ajouter l’intégration': 'Add the integration',
   'L’installer': 'Install it',
   'Ajoutez l’intégration Hestia Weather': 'Add the Hestia Weather integration',
@@ -104,7 +104,7 @@ export const EN: Record<string, string> = {
   'Rechargez la page': 'Reload the page',
   'L’intégration Hestia Weather vient d’être mise à jour : rechargez la page pour afficher sa carte.': 'The Hestia Weather integration has just been updated: reload the page to show its card.',
   'L’intégration Hestia Weather a renvoyé une erreur': 'The Hestia Weather integration returned an error',
-  'Les journaux de Home Assistant disent pourquoi : Paramètres → Système → Journaux, cherchez « niak ».': 'Home Assistant’s logs say why: Settings → System → Logs, search for “niak”.',
+  'Les journaux de Home Assistant disent pourquoi : Paramètres → Système → Journaux, cherchez « weather ».': 'Home Assistant’s logs say why: Settings → System → Logs, search for “weather”.',
   'Voir les journaux': 'See the logs',
   'Chargement de la météo': 'Loading the weather',
   'Météo': 'Weather',

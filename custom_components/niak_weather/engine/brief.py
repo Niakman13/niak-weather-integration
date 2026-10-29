@@ -17,7 +17,7 @@ from .lightning import Lightning
 from .local import LocalWeather
 from .i18n import N_, t
 from .settings import Settings
-from .units import finite, french
+from .units import french
 
 GROUPS = ("official", "now", "future", "environment")
 COLORS = ("61,155,233", "190,140,35", "230,125,45", "215,70,75")

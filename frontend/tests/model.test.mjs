@@ -56,6 +56,11 @@ test('an extension switch turns its source on or off in the draft, and Météo-F
  assert.deepEqual(atmo.off,[{op:'air',value:'none'}]);           // pollens stay with IRM KMI
  assert.deepEqual(atmo.on,[{op:'pollen',value:'atmo'}]);         // air is Atmo already
  assert.equal(extensionSwitch(ext('waqi'),view).available,false);  // no WAQI station found: nothing to turn on
+ // Ranged by theme, Atmo France is switched for that theme only.
+ const [air]=extensionGroups([ext('atmo',{air_configured:true,pollen_configured:false})]).find(g=>g.key==='air').items;
+ const [pollens]=extensionGroups([ext('atmo',{air_configured:true,pollen_configured:false})]).find(g=>g.key==='pollen').items;
+ assert.deepEqual([extensionSwitch(air,view).checked,extensionSwitch(air,view).off],[true,[{op:'air',value:'none'}]]);
+ assert.deepEqual([extensionSwitch(pollens,view).checked,extensionSwitch(pollens,view).on],[false,[{op:'pollen',value:'atmo'}]]);
  assert.deepEqual(extensionSwitch(ext('irm_kmi',{configured:true}),view).off,[{op:'pollen',value:'none'}]);
  const storm=extensionSwitch(ext('blitzortung',{field:'lightning_entity'}),view);
  assert.deepEqual([storm.available,storm.on],[true,[{op:'set',key:'lightning_entity',value:'sensor.strikes'}]]);

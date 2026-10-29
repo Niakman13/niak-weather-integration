@@ -7,47 +7,40 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from functools import partial
+from datetime import datetime
 from typing import Any
-from zoneinfo import ZoneInfo
 
-import aiohttp
-
-from homeassistant.components.recorder import get_instance, history, statistics
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, STATE_UNAVAILABLE, STATE_UNKNOWN
+from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, STATE_UNAVAILABLE
 from homeassistant.core import CoreState, Event, EventStateChangedData, HomeAssistant, callback
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.debounce import Debouncer
-from homeassistant.helpers.event import async_call_later, async_track_state_change_event, async_track_time_interval
+from homeassistant.helpers.event import async_track_state_change_event, async_track_time_interval
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
-from .const import AIR_INTERVAL, DEBOUNCE_SECONDS, DOMAIN, FORECAST_INTERVAL, FORECAST_RETRY, HISTORY_INTERVAL, LOGGER, RAIN_INTERVAL, TICK
+from zoneinfo import ZoneInfo
+from .const import AIR_INTERVAL, DEBOUNCE_SECONDS, DOMAIN, FORECAST_INTERVAL, HISTORY_INTERVAL, LOGGER, RAIN_INTERVAL, TICK, WEEK_INTERVAL
 from .engine import lightning, open_meteo, waqi
-from .engine.i18n import localized
+from .engine.i18n import DICTIONARIES, localized
 from .engine.brief import Brief
 from .engine.catalogue import Item
 from .engine.compute import compute
-from .engine.forecast import Day, Hour, Units, engine_rows, parse_days, parse_hours
+from .engine.forecast import Day, Hour
 from .engine.local import LocalWeather
 from .engine.nowcast import rain_ahead
 from .engine.settings import Settings
-from .engine.series import RAIN_DAYS, WEEK, hourly_changes, rain_state_key, rain_sum_key, weather_history, weather_history_key, week_key
-from .engine.station import Derived, Statistic, midnight, steady_sums
+from .engine.station import Derived, Statistic
 from .engine.trends import Change
-from .engine.units import Kind, measurement
 from .engine.view import to_json
 from .engine.watch import AlertState, AlertWatch
+from .place.shared import FORECAST_KINDS, RAIN_UNITS, _ready, _seconds, blitzortung_counter  # noqa: F401 - also read by the tests
+from .place.recorder import RecorderMixin
+from .place.forecasts import ForecastsMixin
 
 ALERT_EVENT = f"{DOMAIN}_alerte"
 
-RAIN_UNITS = ("mm", "in", "inch")
-FORECAST_KINDS = (("daily", 1), ("hourly", 2))
 """Forecast types and their bit in the weather entity's supported features."""
 
 
@@ -98,15 +91,9 @@ def alert_store(hass: HomeAssistant, entry_id: str) -> Store[dict[str, Any]]:
     return Store(hass, 1, f"{DOMAIN}.alertes.{entry_id}")
 
 
-def blitzortung_counter(registry: er.EntityRegistry, distance_id: str | None) -> str | None:
-    """Blitzortung's strike counter, beside its distance sensor: their unique ids differ only by their last word."""
-    entry = registry.async_get(distance_id) if distance_id else None
-    if entry is None or entry.platform != "blitzortung" or not (entry.unique_id or "").endswith("-distance"):
-        return None
-    return registry.async_get_entity_id("sensor", "blitzortung", f"{entry.unique_id.removesuffix('-distance')}-counter")
 
 
-class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
+class NiakWeatherCoordinator(RecorderMixin, ForecastsMixin, DataUpdateCoordinator[Snapshot]):
     config_entry: NiakWeatherConfigEntry
 
     def __init__(self, hass: HomeAssistant, entry: NiakWeatherConfigEntry) -> None:
@@ -139,6 +126,7 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         self._retries = 0
         self._unlisten_started: Callable[[], None] | None = None
         self._localized_views: dict[str, tuple[datetime, dict[str, Any]]] = {}
+        self._statistics_warned = False
 
     async def async_start(self) -> None:
         """First fetches, then listen to the sensors and keep each source fresh."""
@@ -152,7 +140,7 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         await asyncio.gather(self._load_forecasts(), self._load_history(), self._load_rain(), self._load_week(), self._load_air_forecast(),
                              self._load_strikes(), self._load_lightning_month())
         for interval, load in ((FORECAST_INTERVAL, self._load_forecasts), (HISTORY_INTERVAL, self._load_history), (RAIN_INTERVAL, self._load_rain),
-                               (RAIN_INTERVAL, self._load_week), (AIR_INTERVAL, self._load_air_forecast), (RAIN_INTERVAL, self._load_lightning_month)):
+                               (WEEK_INTERVAL, self._load_week), (AIR_INTERVAL, self._load_air_forecast), (RAIN_INTERVAL, self._load_lightning_month)):
             entry.async_on_unload(async_track_time_interval(self.hass, self._in_background(load), interval))
         entry.async_on_unload(self._cancel_forecast_retry)
         entry.async_on_unload(self._stopped)
@@ -213,12 +201,6 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         await load()
         await self.async_request_refresh()
 
-    @callback
-    def _cancel_forecast_retry(self) -> None:
-        if self._cancel_retry:
-            self._cancel_retry()
-            self._cancel_retry = None
-
     async def _async_update_data(self) -> Snapshot:
         return self._compute()
 
@@ -261,6 +243,9 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         if snapshot is None:
             return None
         code = (language or "").lower().replace("_", "-").split("-")[0] or "fr"
+        # Only the languages Hestia Weather speaks, English for any other: a client cannot fill the cache with others.
+        if code != "fr" and code not in DICTIONARIES:
+            code = "en"
         # French is the view computed with the sensors: nothing to compute again.
         if code == "fr":
             return snapshot.view
@@ -284,284 +269,22 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
 
     # ---- Sources ----
 
-    async def _load_forecasts(self) -> None:
-        """Hourly and daily forecasts, in the weather entity's units. A failure is retried a minute later, never shown as « no rain »."""
-        entity_id = self.settings.weather_entity
-        state = self.hass.states.get(entity_id)
-        if not _ready(state):
-            # The weather service has not started yet: Home Assistant may show a placeholder that answers with an empty forecast.
-            self._schedule_forecast_retry()
-            return
-        features = int(state.attributes.get("supported_features") or 0)
-        failed = False
-
-        async def fetch(kind: str, bit: int) -> list[dict[str, Any]]:
-            nonlocal failed
-            if not features & bit:
-                return []
-            try:
-                response = await self.hass.services.async_call("weather", "get_forecasts", {"type": kind}, blocking=True,
-                                                               target={"entity_id": entity_id}, return_response=True)
-            except HomeAssistantError as err:
-                LOGGER.debug("No %s forecast from %s: %s", kind, entity_id, err)
-                failed = True
-                return []
-            rows = list(((response or {}).get(entity_id) or {}).get("forecast") or [])
-            # A service offering this forecast that answers with nothing is not ready yet: ask again shortly.
-            failed = failed or not rows
-            return rows
-
-        daily, hourly = await asyncio.gather(*(fetch(kind, bit) for kind, bit in FORECAST_KINDS))
-        attributes = state.attributes
-        units = Units(attributes.get("temperature_unit") or "°C", attributes.get("precipitation_unit") or "mm", attributes.get("wind_speed_unit") or "km/h",
-                      attributes.get("pressure_unit") or "hPa")
-        # A failed request keeps the previous forecast rather than replacing it with nothing.
-        if hourly or not failed:
-            self.hours = parse_hours(hourly, units)
-            self.forecast_rows["hourly"] = engine_rows(hourly, units)
-        if hourly:
-            self.forecast_at = dt_util.utcnow()
-        if daily or not failed:
-            self.days = parse_days(daily, units)
-            self.forecast_rows["daily"] = engine_rows(daily, units)
-        self.forecast_version += 1
-        self._cancel_forecast_retry()
-        if failed:
-            self._schedule_forecast_retry()
-        else:
-            self._retries = 0
-
-    async def _load_air_forecast(self) -> None:
-        """Tomorrow's air from Open-Meteo, at the home's position, each hour; a failure keeps the previous forecast and is retried ten minutes later."""
-        now = dt_util.utcnow()
-        if self.settings.air_source != "waqi" or not open_meteo.due(self.air_forecast, self._air_tried, now):
-            return
-        self._air_tried = now
-        hass = self.hass
-        try:
-            params = open_meteo.params(hass.config.latitude, hass.config.longitude, ZoneInfo(hass.config.time_zone))
-            async with asyncio.timeout(30), async_get_clientsession(hass).get(open_meteo.URL, params=params) as response:
-                response.raise_for_status()
-                payload = await response.json()
-            self.air_forecast = open_meteo.parse(payload, now)
-        except (aiohttp.ClientError, TimeoutError, ValueError) as err:
-            LOGGER.warning("Open-Meteo air forecast unavailable: %s", err)
-
-    @callback
-    def _schedule_forecast_retry(self) -> None:
-        # Soon after a start (10 s, 20 s, 40 s), then every minute while the service stays silent.
-        delay = min(FORECAST_RETRY, timedelta(seconds=10 * 2 ** self._retries))
-        self._retries += 1
-        self._cancel_forecast_retry()
-        self._cancel_retry = async_call_later(self.hass, delay, self._in_background(self._retry_forecasts))
-
-    async def _retry_forecasts(self) -> None:
-        self._cancel_retry = None
-        await self._load_forecasts()
-
-    async def _states_during(self, start: datetime, entity_ids: list[str]) -> dict[str, list[Change]]:
-        """Every recorded state change since `start` (with the state just before it), from the Recorder."""
-        try:
-            with_weather = self.settings.weather_entity in entity_ids
-            result = await get_instance(self.hass).async_add_executor_job(
-                partial(history.get_significant_states, self.hass, start, dt_util.utcnow(), entity_ids,
-                        include_start_time_state=True, significant_changes_only=False,
-                        minimal_response=False, no_attributes=not with_weather))
-        except Exception as err:  # noqa: BLE001 - history is optional: a Recorder failure must never stop the weather
-            # The Recorder may also exclude these sensors: no trend is invented, the card says it is being measured.
-            LOGGER.warning("History unavailable for %s: %s", ", ".join(entity_ids), err)
-            return {}
-        changes = {entity_id: [Change(state.last_updated.timestamp(), state.state) for state in states if hasattr(state, "last_updated")]
-                   for entity_id, states in result.items()}
-        if with_weather:
-            changes.update(weather_history(self.settings.weather_entity, result.get(self.settings.weather_entity, ())))
-        return changes
-
-    async def _load_history(self) -> None:
-        """Six hours of pressure and wind for the charts and trends; today's gusts and the last hour of temperature when the station has no sensor for them."""
-        s, now = self.settings, dt_util.utcnow()
-        derived = s.station_history
-        ids = sorted({s.weather_entity, s.pressure_entity, s.wind_speed_entity, s.wind_gust_entity,
-                      s.temperature_entity if derived and not s.temperature_trend_entity else None} - {None, ""})
-        if not ids:
-            self.history = {}
-            return
-        start = now - timedelta(hours=6)
-        if derived and not s.max_daily_gust_entity and s.wind_gust_entity:
-            start = min(start, dt_util.start_of_local_day())
-        recent = await self._states_during(start, ids)
-        # The week of pressure, loaded less often, stays beside the six hours.
-        self.history = {**{k: v for k, v in self.history.items() if k.endswith("#week")}, **recent}
-
-    async def _load_week(self) -> None:
-        """A week of pressure and wind for the longer charts: hourly means (maxima for gusts) of the long-term statistics,
-        or the recorded states without them; the weather service's own values when the station has no such sensor."""
-        s, now = self.settings, dt_util.utcnow()
-        start = now - timedelta(seconds=WEEK + 3600)
-        week: dict[str, list[Change]] = {}
-        from_service = []
-        for entity_id, attribute, kind, statistic in ((s.pressure_entity, "pressure", "pressure", "mean"),
-                                                      (s.wind_speed_entity, "wind_speed", "speed", "mean"),
-                                                      (s.wind_gust_entity, "wind_gust_speed", "speed", "max")):
-            if not entity_id:
-                from_service.append(attribute)
-                continue
-            rows = await self._hourly(entity_id, start, now, kind, statistic)
-            if rows is None:
-                rows = (await self._states_during(start, [entity_id])).get(entity_id, [])
-            week[week_key(entity_id)] = rows
-        if from_service and s.weather_entity:
-            recorded = await self._states_during(start, [s.weather_entity])
-            for attribute in from_service:
-                key = weather_history_key(s.weather_entity, attribute)
-                week[week_key(key)] = recorded.get(key, [])
-        self.history = {**{k: v for k, v in self.history.items() if not k.endswith("#week")}, **week}
-
-    async def _hourly(self, entity_id: str, start: datetime, now: datetime, kind: str, statistic: str) -> list[Change] | None:
-        """Hourly means or maxima, or None when the sensor keeps no statistics. The sensor itself may not have started yet
-        (Hestia Weather often starts before the station): the statistics are read without it, in the unit they are kept in."""
-        state = self.hass.states.get(entity_id)
-        unit = state.attributes.get("unit_of_measurement") if state is not None else None
-
-        def during() -> list[dict[str, Any]]:
-            rows = statistics.statistics_during_period(self.hass, start, now, {entity_id}, "hour", {kind: unit} if unit else None, {statistic})
-            return list(rows.get(entity_id, []))
-
-        try:
-            rows = await get_instance(self.hass).async_add_executor_job(during)
-        except Exception as err:  # noqa: BLE001 - statistics are optional: the recorded states then give the week
-            LOGGER.debug("Statistics unavailable for %s: %s", entity_id, err)
-            return None
-        return hourly_changes([(_seconds(r["start"]), _seconds(r["end"]), r.get(statistic)) for r in rows]) if rows else None
-
-    async def _load_strikes(self) -> None:
-        """The last hour of strikes from the Recorder, after a restart: their distance only, the Recorder keeps no position."""
-        entity_id = self.settings.lightning_entity
-        if not entity_id:
-            return
-        now = dt_util.utcnow()
-        changes = await self._states_during(now - timedelta(seconds=lightning.KEEP), [entity_id])
-        state = self.hass.states.get(entity_id)
-        unit = state.attributes.get("unit_of_measurement") if state is not None else "km"
-        # The state already there at the start is the last strike before the hour, or « unknown »: only changes count.
-        recorded = [c for c in changes.get(entity_id, []) if c.time >= (now - timedelta(seconds=lightning.KEEP)).timestamp()]
-        self.strikes = lightning.keep([*lightning.from_history(recorded, unit), *self.strikes], now.timestamp())
-
-    async def _load_lightning_month(self) -> None:
-        """The month's strikes from Blitzortung's counter, next to its distance sensor: the change of its long-term statistics since the
-        first of the month (they follow the counter's resets to 0). Up to an hour late: the statistics are hourly."""
-        counter = blitzortung_counter(er.async_get(self.hass), self.settings.lightning_entity)
-        if not counter:
-            self.lightning_month = None
-            return
-        zone = ZoneInfo(self.hass.config.time_zone)
-        now = dt_util.utcnow()
-        local = now.astimezone(zone)
-        start = datetime(local.year, local.month, 1, tzinfo=zone)
-
-        def during() -> list[dict[str, Any]]:
-            rows = statistics.statistics_during_period(self.hass, start, now, {counter}, "month", None, {"change"})
-            return list(rows.get(counter, []))
-
-        try:
-            rows = await get_instance(self.hass).async_add_executor_job(during)
-        except Exception as err:  # noqa: BLE001 - the month's count is optional: the radar does without it
-            LOGGER.debug("Lightning statistics unavailable for %s: %s", counter, err)
-            self.lightning_month = None
-            return
-        change = sum(r.get("change") or 0 for r in rows) if rows else None
-        self.lightning_month = None if change is None else max(0, round(change))
-
-    async def _load_rain(self) -> None:
-        """Eight days of the daily rain counter and the total counter; long-term statistics of the total for weeks, months and the year."""
-        s, now = self.settings, dt_util.utcnow()
-        ids = sorted({s.daily_rain_entity, s.rain_total_entity if s.station_history else None} - {None, ""})
-        recorded = await self._states_during(now - timedelta(days=8), ids) if ids else {}
-        self.statistics, self.statistics_unit = await self._rain_statistics(now)
-        self.rain_history = {**recorded, **await self._rain_sums(now)}
-
-    async def _rain_sums(self, now: datetime) -> dict[str, list[Change]]:
-        """A month of hourly rain for the 24-hour and 30-day bars: the running sum of a rain counter's statistics,
-        the total counter first, else the daily one, whose resets the sum already follows."""
-        s = self.settings
-        for entity_id in (s.rain_total_entity if s.station_history else None, s.daily_rain_entity):
-            if not entity_id:
-                continue
-            # The statistics' own description, not the sensor: at start-up the station may not be there yet.
-            unit = await self._sum_unit(entity_id)
-            if unit not in RAIN_UNITS:
-                continue
-            start = now - timedelta(days=RAIN_DAYS + 1)
-
-            def during(entity_id: str = entity_id) -> list[dict[str, Any]]:
-                rows = statistics.statistics_during_period(self.hass, start, now, {entity_id}, "hour", None, {"sum", "state"})
-                return list(rows.get(entity_id, []))
-
-            try:
-                rows = await get_instance(self.hass).async_add_executor_job(during)
-            except Exception as err:  # noqa: BLE001 - statistics are optional: the seven days still come from the counter's history
-                LOGGER.debug("Rain statistics unavailable for %s: %s", entity_id, err)
-                continue
-            # A counter that dropped to 0 and came back is not a month of fresh rain.
-            rows = steady_sums([Statistic(_seconds(r["start"]), _seconds(r["end"]), r["sum"], r.get("state")) for r in rows if r.get("sum") is not None])
-            if not rows:
-                continue
-            # Rows come in the unit the statistics keep: the bars are in millimetres.
-            mm = (lambda v: measurement(v, unit, Kind.RAIN))
-            last = rows[-1]
-            return {rain_sum_key(entity_id): [Change(r.end, str(mm(r.sum))) for r in rows],
-                    rain_state_key(entity_id): [Change(last.end, str(mm(last.state)))]}
-        return {}
-
-    async def _sum_unit(self, entity_id: str) -> str | None:
-        """The unit of a counter's long-term statistics, or None when it keeps no running sum."""
-        try:
-            metadata = await get_instance(self.hass).async_add_executor_job(lambda: statistics.get_metadata(self.hass, statistic_ids={entity_id}))
-        except Exception as err:  # noqa: BLE001 - statistics are optional
-            LOGGER.debug("Statistics metadata unavailable for %s: %s", entity_id, err)
-            return None
-        meta = metadata.get(entity_id)
-        return meta[1].get("unit_of_measurement") if meta and meta[1].get("has_sum") else None
-
-    async def _rain_statistics(self, now: datetime) -> tuple[list[Statistic], str | None]:
-        s = self.settings
-        entity_id = s.rain_total_entity
-        # Its statistics say whether it is a counter (a running sum below): the sensor may not have started yet.
-        if not entity_id or not s.station_history:
-            return [], None
-        instance = get_instance(self.hass)
-        zone = ZoneInfo(self.hass.config.time_zone)
-        local = now.astimezone(zone)
-        year = datetime(local.year, 1, 1, tzinfo=zone)
-        # Hourly rows start on a local midnight, where a daily row ends: no false gap at the junction.
-        hourly_start = datetime.fromtimestamp(midnight(local.date() - timedelta(days=9), zone), zone)
-        daily_start = min(year, now - timedelta(days=8)) - timedelta(days=1)
-
-        def during(start: datetime, period: str) -> list[dict[str, Any]]:
-            rows = statistics.statistics_during_period(self.hass, start, now, {entity_id}, period, None, {"sum", "state"})
-            return list(rows.get(entity_id, []))
-
-        try:
-            metadata = await instance.async_add_executor_job(lambda: statistics.get_metadata(self.hass, statistic_ids={entity_id}))
-            meta = metadata.get(entity_id)
-            # Without `units`, rows come in the unit the statistics are stored in.
-            unit = meta[1].get("unit_of_measurement") if meta and meta[1].get("has_sum") else None
-            if unit not in RAIN_UNITS:
-                return [], None
-            daily = await instance.async_add_executor_job(during, daily_start, "day")
-            hourly = await instance.async_add_executor_job(during, hourly_start, "hour")
-        except Exception as err:  # noqa: BLE001 - statistics are optional: totals then come from the counter history alone
-            LOGGER.warning("Rain statistics unavailable for %s: %s", entity_id, err)
-            return [], None
-        rows = sorted((Statistic(_seconds(r["start"]), _seconds(r["end"]), r.get("sum"), r.get("state")) for r in (*daily, *hourly)),
-                      key=lambda r: r.end - r.start, reverse=True)
-        # One row per boundary: where a day and an hour end together, the hour wins.
-        return steady_sums(sorted({r.end: r for r in rows}.values(), key=lambda r: r.end)), unit
 
 
-def _ready(state: Any) -> bool:
-    return state is not None and state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN)
 
 
-def _seconds(value: Any) -> float:
-    return value.timestamp() if isinstance(value, datetime) else float(value)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

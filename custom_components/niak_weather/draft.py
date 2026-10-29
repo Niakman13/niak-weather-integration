@@ -22,6 +22,7 @@ from .const import DOMAIN
 from .engine import detection, ecosystem, families, polleninfo
 from .extensions import inventory, official
 from .engine.settings import Settings
+from .engine.i18n import N_, language, t
 
 AIR_SOURCES = ("atmo", "waqi", NONE)
 POLLEN_SOURCES = ("atmo", *polleninfo.PROVIDERS, NONE)
@@ -30,32 +31,38 @@ SIMPLE = frozenset({"weather_entity", "location", "vigilance_entity", "season_en
                     "forecast_source", "station_history", "pollen_risk_entity", *detection.STATION_FIELDS})
 RECOMMENDED = frozenset({"temperature_entity", "humidity_entity", "rain_rate_entity", "wind_gust_entity", "wind_bearing_entity"})
 HELP = {
-    "weather_entity": "Les prévisions heure par heure et jour par jour, par exemple Météo-France ou MétéoSuisse. Une station facultative ajoute les mesures chez vous.",
-    "vigilance_entity": "Les alertes officielles de Météo-France ou de MétéoSuisse s’ajoutent à celles que calcule Hestia.",
-    "season_entity": "Sans capteur, la saison suit la date.",
-    "water_restriction_entity": "Les restrictions d’eau de votre commune, avec l’intégration Vigieau (HACS). Choisissez la zone de l’eau du robinet (AEP).",
-    "lightning_entity": "Les éclairs détectés autour de chez vous, avec l’intégration Blitzortung (HACS). À moins de 30 km, le capteur Orage s’allume.",
-    "temperature_entity": "La température dehors, à l’ombre.",
-    "rain_rate_entity": "Dit s’il pleut maintenant (mm/h). Un cumul de la journée ne le dit pas.",
-    "wind_gust_entity": "Les pointes de vent : elles déclenchent l’alerte de vent fort.",
-    "wind_bearing_entity": "D’où vient le vent, en degrés.",
-    "station_history": "Cumuls de pluie, tendance de la température et rafale du jour, quand la station ne les donne pas.",
+    "weather_entity": N_("Les prévisions heure par heure et jour par jour, par exemple Météo-France ou MétéoSuisse. Une station facultative ajoute les mesures chez vous."),
+    "vigilance_entity": N_("Les alertes officielles de Météo-France ou de MétéoSuisse s’ajoutent à celles que calcule Hestia."),
+    "season_entity": N_("Sans capteur, la saison suit la date."),
+    "water_restriction_entity": N_("Les restrictions d’eau de votre commune, avec l’intégration Vigieau (HACS). Choisissez la zone de l’eau du robinet (AEP)."),
+    "lightning_entity": N_("Les éclairs détectés autour de chez vous, avec l’intégration Blitzortung (HACS). À moins de 30 km, le capteur Orage s’allume."),
+    "temperature_entity": N_("La température dehors, à l’ombre."),
+    "rain_rate_entity": N_("Dit s’il pleut maintenant (mm/h). Un cumul de la journée ne le dit pas."),
+    "wind_gust_entity": N_("Les pointes de vent : elles déclenchent l’alerte de vent fort."),
+    "wind_bearing_entity": N_("D’où vient le vent, en degrés."),
+    "station_history": N_("Cumuls de pluie, tendance de la température et rafale du jour, quand la station ne les donne pas."),
 }
-MODELS = (("gw2000a", "Ecowitt GW2000A", "Passerelle Ecowitt et ses capteurs"),
-          ("ws90", "Ecowitt WS90", "Capteur tout-en-un, souvent via Zigbee2MQTT"),
-          (detection.NETATMO, "Netatmo", "Station Netatmo et ses modules : extérieur, pluviomètre, anémomètre"),
-          ("manual", "Une autre station", "Vous choisissez chaque capteur"),
-          (NONE, "Pas de station", "Hestia Weather s’appuie sur le service météo seul"))
+MODELS = (("gw2000a", "Ecowitt GW2000A", N_("Passerelle Ecowitt et ses capteurs")),
+          ("ws90", "Ecowitt WS90", N_("Capteur tout-en-un, souvent via Zigbee2MQTT")),
+          (detection.NETATMO, "Netatmo", N_("Station Netatmo et ses modules : extérieur, pluviomètre, anémomètre")),
+          ("manual", N_("Une autre station"), N_("Vous choisissez chaque capteur")),
+          (NONE, N_("Pas de station"), N_("Hestia Weather s’appuie sur le service météo seul")))
 
 
 @cache
+def _read(lang: str) -> dict[str, Any]:
+    return json.loads((Path(__file__).parent / "translations" / f"{lang}.json").read_text(encoding="utf-8"))
+
+
 def _translations() -> dict[str, Any]:
-    return json.loads((Path(__file__).parent / "translations" / "fr.json").read_text(encoding="utf-8"))
+    """Home Assistant's own words for the fields, entities and families, in the panel's language (French or English)."""
+    return _read("fr" if language() == "fr" else "en")
 
 
 async def async_load_labels(hass: HomeAssistant) -> None:
     """Reads the labels once, outside the event loop: the tab's commands then find them in the cache."""
-    await hass.async_add_executor_job(_translations)
+    for lang in ("fr", "en"):
+        await hass.async_add_executor_job(_read, lang)
 
 
 def _label(text: str) -> tuple[str, str]:
@@ -80,7 +87,7 @@ def family_label(family: str) -> tuple[str, str]:
 
 
 def needs_text(key: str, text: str) -> str:
-    return f"{entity_label(key)[0]} : il faut {text}"
+    return t("{name} : il faut {need}", name=entity_label(key)[0], need=t(text))
 
 
 def _settings(sources: dict[str, Any]) -> Settings:
@@ -93,6 +100,13 @@ class Draft(_SourceSteps):
 
     def __init__(self, hass: HomeAssistant, sources: dict[str, Any], entry: ConfigEntry | None = None) -> None:
         self.hass, self.sources, self.entry = hass, dict(sources), entry
+        self._seen: tuple[list[Any], dict[str, dict[str, Any]], dict[str, dict[str, Any]]] | None = None
+
+    def _read(self) -> tuple[list[Any], dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
+        """States and registries, read once per command of the panel: a draft lives for one command only."""
+        if self._seen is None:
+            self._seen = _context(self.hass)
+        return self._seen
 
     @classmethod
     def start(cls, hass: HomeAssistant, entry: ConfigEntry | None) -> Draft:
@@ -115,11 +129,11 @@ class Draft(_SourceSteps):
         return draft
 
     def _fill(self, category: str, fill_empty: bool = False) -> None:
-        states, registry, devices = _context(self.hass)
+        states, registry, devices = self._read()
         self.sources = detection.fill(states, registry, devices, self.sources, category, fill_empty)
 
     def _pollen_found(self) -> dict[str, bool]:
-        states, registry, _ = _context(self.hass)
+        states, registry, _ = self._read()
         return {p: bool(polleninfo.candidates(states, registry, p)[0]) for p in polleninfo.PROVIDERS}
 
     def pollen_choice(self) -> str:
@@ -150,7 +164,7 @@ class Draft(_SourceSteps):
                         s.pop(field, None)
                 self._fill("station")
             else:
-                return "Modèle de station inconnu."
+                return t("Modèle de station inconnu.")
         elif op == "device":
             s["station_device_id"] = "" if value in (None, NONE) else value
             for field in detection.STATION_FIELDS:
@@ -163,37 +177,37 @@ class Draft(_SourceSteps):
         elif op == "pollen":
             return self._pollen(value, change.get("area"))
         elif op == "pollen_station" and self.pollen_choice() in (polleninfo.SWISS_POLLEN, polleninfo.KLEENEX):
-            states, registry, _ = _context(self.hass)
+            states, registry, _ = self._read()
             if value not in polleninfo.stations(states, registry, self.pollen_choice()):
-                return "Choisissez un lieu de mesure disponible pour cette source de pollens."
+                return t("Choisissez un lieu de mesure disponible pour cette source de pollens.")
             s["pollen_station"] = value
             s["pollens"] = [polleninfo.pollen_option(st.entity_id, st, registry) for st in states
                             if polleninfo.place_of_source(st.entity_id, registry, self.pollen_choice()) == value]
         elif op == "pollens":
-            states, registry, _ = _context(self.hass)
+            states, registry, _ = self._read()
             by_id = {st.entity_id: st for st in states}
             if self.pollen_choice() in (polleninfo.SWISS_POLLEN, polleninfo.KLEENEX) and any(
                     polleninfo.place_of_source(i, registry, self.pollen_choice()) != s.get("pollen_station") for i in value or []):
-                return "Choisissez les espèces de la station ou du lieu sélectionné."
+                return t("Choisissez les espèces de la station ou du lieu sélectionné.")
             s["pollens"] = [polleninfo.pollen_option(i, by_id.get(i), registry) for i in value or []]
         elif op == "families" and self.entry is None:
             s["families"] = [f for f, _ in families.FAMILIES if f in (value or [])]
         else:
-            return "Changement inconnu."
+            return t("Changement inconnu.")
         return ""
 
     def _air_source(self, source: Any, area: str | None) -> str:
         areas, s = self._areas(), self.sources
         if source not in AIR_SOURCES:
-            return "Source de qualité de l’air inconnue."
+            return t("Source de qualité de l’air inconnue.")
         if source == "atmo" and not areas:
-            return "Atmo France n’est pas installée."
+            return t("Atmo France n’est pas installée.")
         if source == "waqi":
             stations = [x["value"] for x in self._stations()]
             if not stations:
-                return "WAQI n’est pas installée."
+                return t("WAQI n’est pas installée.")
             if area and area not in stations:
-                return "Choisissez une station WAQI disponible."
+                return t("Choisissez une station WAQI disponible.")
             self._set_air(f"waqi:{area or (s.get('waqi_station') if s.get('waqi_station') in stations else stations[0])}")
             return ""
         if source == "atmo":
@@ -205,11 +219,11 @@ class Draft(_SourceSteps):
     def _pollen(self, source: Any, area: str | None) -> str:
         areas, found, s = self._areas(), self._pollen_found(), self.sources
         if source not in POLLEN_SOURCES:
-            return "Source de pollens inconnue."
+            return t("Source de pollens inconnue.")
         if source == "atmo" and not areas:
-            return "Atmo France n’est pas installée."
+            return t("Atmo France n’est pas installée.")
         if source in found and not found[source]:
-            return f"{polleninfo.PROVIDERS[source]} n’est pas installée."
+            return t("{name} n’est pas installée.", name=polleninfo.PROVIDERS[source])
         if source in found:
             if source != self.pollen_choice():
                 # Another integration: its own sensors are proposed, not the other one's.
@@ -219,7 +233,7 @@ class Draft(_SourceSteps):
             s["pollen_provider"], s["pollen_source"] = source, "legacy"
             if "pollens" not in s:
                 # First time with this source: all its species, and the overall risk of its only place.
-                states, registry, _ = _context(self.hass)
+                states, registry, _ = self._read()
                 by_id = {st.entity_id: st for st in states}
                 detected = polleninfo.detect(states, registry, source)
                 s["pollens"] = (detected.get("pollens") or []) if source in (polleninfo.SWISS_POLLEN, polleninfo.KLEENEX) else (
@@ -255,11 +269,11 @@ class Draft(_SourceSteps):
         value = self.sources.get(key) or ""
         entity = self._entity(value)
         if not warning and entity:
-            warning = ("Ce capteur n’existe plus dans Home Assistant." if entity["missing"]
-                       else "Ce capteur ne répond pas pour l’instant." if not entity["available"] else "")
+            warning = (t("Ce capteur n’existe plus dans Home Assistant.") if entity["missing"]
+                       else t("Ce capteur ne répond pas pour l’instant.") if not entity["available"] else "")
         allowed = sorted(set(ids) | ({value} if value else set()))
-        return {"key": key, "label": label, "help": HELP.get(key, ""), "value": value, "entity": entity,
-                "need": "Obligatoire" if required else "Conseillé" if key in RECOMMENDED else "Facultatif",
+        return {"key": key, "label": label, "help": t(HELP[key]) if key in HELP else "", "value": value, "entity": entity,
+                "need": t("Obligatoire") if required else t("Conseillé") if key in RECOMMENDED else t("Facultatif"),
                 "options": [e for e in map(self._entity, allowed) if e], "warning": warning,
                 # Recognised by their name and measure: listed first, the others after.
                 "recognized": [i for i in recognized or [] if i in allowed],
@@ -273,25 +287,25 @@ class Draft(_SourceSteps):
                 "pollen": self._pollens(), "entities": self.entities(), "summary": self._summary(), "needs": self.needs()}
 
     def _prevision(self) -> dict[str, Any]:
-        states, registry, _ = _context(self.hass)
+        states, registry, _ = self._read()
         s = self.sources
         own = {i for i, e in registry.items() if i.startswith("weather.") and e.get("platform") == DOMAIN}
         vigilance = detection.vigilance_candidates(states, registry)
         return {
             "fields": [
-                self._field("weather_entity", "Service météo", [st.entity_id for st in states if st.entity_id.startswith("weather.") and st.entity_id not in own],
-                            required=True, warning="" if s.get("weather_entity") else "Choisissez le service qui donne les prévisions."),
-                self._field("vigilance_entity", "Vigilance officielle", vigilance,
+                self._field("weather_entity", t("Service météo"), [st.entity_id for st in states if st.entity_id.startswith("weather.") and st.entity_id not in own],
+                            required=True, warning="" if s.get("weather_entity") else t("Choisissez le service qui donne les prévisions.")),
+                self._field("vigilance_entity", t("Vigilance officielle"), vigilance,
                             warning="" if vigilance or s.get("vigilance_entity") else
-                            "Aucun capteur de vigilance trouvé : installez Météo-France ou MeteoSwiss pour votre région, puis « Actualiser la détection »."),
-                self._field("season_entity", "Saison", detection.season_candidates(states, registry)),
-                self._field("water_restriction_entity", "Restrictions d’eau (Vigieau)", detection.water_candidates(states, registry)),
-                self._field("lightning_entity", "Éclairs (Blitzortung)", detection.lightning_candidates(states, registry)),
+                            t("Aucun capteur de vigilance trouvé : installez Météo-France ou MeteoSwiss pour votre région, puis « Actualiser la détection ».")),
+                self._field("season_entity", t("Saison"), detection.season_candidates(states, registry)),
+                self._field("water_restriction_entity", t("Restrictions d’eau (Vigieau)"), detection.water_candidates(states, registry)),
+                self._field("lightning_entity", t("Éclairs (Blitzortung)"), detection.lightning_candidates(states, registry)),
             ],
             "location": s.get("location") or "", "location_placeholder": self._title(),
             "advanced": [
-                self._field("sun_entity", "Soleil", [st.entity_id for st in states if st.entity_id.startswith("sun.")]),
-                self._field("sun_elevation_entity", "Hauteur du soleil",
+                self._field("sun_entity", t("Soleil"), [st.entity_id for st in states if st.entity_id.startswith("sun.")]),
+                self._field("sun_elevation_entity", t("Hauteur du soleil"),
                             [st.entity_id for st in states if st.entity_id.startswith("sensor.") and detection.measurement_matches(st, "sun_elevation_entity")]),
             ],
             "forecast_source": s.get("forecast_source") or "",
@@ -304,7 +318,7 @@ class Draft(_SourceSteps):
         return detection.selected_station_model(s)
 
     def _station(self) -> dict[str, Any]:
-        states, registry, devices = _context(self.hass)
+        states, registry, devices = self._read()
         s, model, groups = self.sources, self.station_model(), []
         netatmo = model == detection.NETATMO
         disabled = detection.netatmo_disabled(registry, devices, s) if netatmo else {}
@@ -315,23 +329,23 @@ class Draft(_SourceSteps):
                 warning, better = "", ""
                 state = self.hass.states.get(value) if value else None
                 if state is not None and not detection.function_matches(state, field, registry.get(value)):
-                    warning = f"Ce capteur ne semble pas donner : {field_label(field).lower()}."
+                    warning = t("Ce capteur ne semble pas donner : {what}.", what=field_label(field).lower())
                     better = found[0] if len(found) == 1 and found[0] != value else ""
                 elif s.get(field) is None and len(found) > 1:
-                    warning = "Plusieurs capteurs possibles : choisissez le bon."
+                    warning = t("Plusieurs capteurs possibles : choisissez le bon.")
                 elif field in disabled:
                     module = devices.get((registry.get(disabled[field]) or {}).get("device_id") or "") or {}
-                    warning = (f"Home Assistant livre ce capteur Netatmo désactivé : activez {disabled[field]} "
-                               f"(appareil « {module.get('name_by_user') or module.get('name') or 'Netatmo'} »), puis « Rechercher à nouveau les capteurs ».")
+                    warning = t("Home Assistant livre ce capteur Netatmo désactivé : activez {entity} (appareil « {device} »), puis « Rechercher à nouveau les capteurs ».",
+                                entity=disabled[field], device=module.get('name_by_user') or module.get('name') or 'Netatmo')
                 fields.append(self._field(field, field_label(field), detection.manual_candidates(states, field, registry, s, devices),
                                           warning=warning, better=better, recognized=found))
-            groups.append({"name": name, "title": title, "fields": fields})
-        return {"model": model, "models": [{"value": v, "label": label, "hint": hint} for v, label, hint in MODELS],
+            groups.append({"name": name, "title": t(title), "fields": fields})
+        return {"model": model, "models": [{"value": v, "label": t(label), "hint": t(hint)} for v, label, hint in MODELS],
                 "device": s.get("station_device_id") or NONE,
-                "devices": [{"value": NONE, "label": "Aucun appareil — capteurs séparés"},
+                "devices": [{"value": NONE, "label": t("Aucun appareil — capteurs séparés")},
                             *(self._netatmo_devices(devices) if netatmo else detection.source_devices(states, registry, devices))],
-                "profile": detection.station_profile(states, registry, devices, s.get("station_device_id")),
-                "history": bool(s.get("station_history", True)), "history_help": HELP["station_history"], "groups": groups}
+                "profile": t(detection.station_profile(states, registry, devices, s.get("station_device_id"))),
+                "history": bool(s.get("station_history", True)), "history_help": t(HELP["station_history"]), "groups": groups}
 
     @staticmethod
     def _netatmo_devices(devices: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
@@ -342,23 +356,23 @@ class Draft(_SourceSteps):
         """Like the pollens: the integration that gives the air first, then its zone."""
         s, areas = self.sources, self._areas()
         stations = self._stations()
-        sources = [{"value": "atmo", "label": "Atmo France", "hint": "La prévision de votre commune : indice de 1 à 6 et ses polluants",
+        sources = [{"value": "atmo", "label": "Atmo France", "hint": t("La prévision de votre commune : indice de 1 à 6 et ses polluants"),
                     "available": bool(areas)},
-                   {"value": "waqi", "label": "WAQI", "hint": "La mesure d’une station près de chez vous ; demain : prévision Open-Meteo",
+                   {"value": "waqi", "label": "WAQI", "hint": t("La mesure d’une station près de chez vous ; demain : prévision Open-Meteo"),
                     "available": bool(stations)},
-                   {"value": NONE, "label": "Pas de qualité de l’air", "hint": "", "available": True}]
+                   {"value": NONE, "label": t("Pas de qualité de l’air"), "hint": "", "available": True}]
         value = "waqi" if s.get("air_source") == "waqi" else "atmo" if s.get("air_source") != "none" and s.get("atmo_area") else NONE
         return {"value": value, "sources": sources, "area": s.get("atmo_area") or "", "areas": areas,
                 "station": s.get("waqi_station") or "", "stations": stations}
 
     def _pollens(self) -> dict[str, Any]:
-        states, registry, devices = _context(self.hass)
+        states, registry, devices = self._read()
         areas, found, choice = self._areas(), self._pollen_found(), self.pollen_choice()
-        sources = [{"value": "atmo", "label": polleninfo.source_label("atmo"), "hint": "Un indice de 1 à 6 par espèce, pour une zone Atmo France",
+        sources = [{"value": "atmo", "label": polleninfo.source_label("atmo"), "hint": t("Un indice de 1 à 6 par espèce, pour une zone Atmo France"),
                     "available": bool(areas)},
                    *({"value": p, "label": polleninfo.source_label(p),
-                      "hint": ("Groupes et espèces, niveaux de 1 à 4 ; aujourd’hui et demain" if p == polleninfo.KLEENEX else "Un capteur par espèce, niveaux de 0 à 4"), "available": found[p]} for p in polleninfo.PROVIDERS),
-                   {"value": NONE, "label": "Pas de pollens", "hint": "", "available": True}]
+                      "hint": t("Groupes et espèces, niveaux de 1 à 4 ; aujourd’hui et demain" if p == polleninfo.KLEENEX else "Un capteur par espèce, niveaux de 0 à 4"), "available": found[p]} for p in polleninfo.PROVIDERS),
+                   {"value": NONE, "label": t("Pas de pollens"), "hint": "", "available": True}]
         result: dict[str, Any] = {"value": choice, "sources": sources, "area": self.sources.get("atmo_pollen_area", self.sources.get("atmo_area")) or "", "areas": areas,
                                   "species": [], "risk": None, "station": self.sources.get("pollen_station") or "",
                                   "stations": polleninfo.places(states, registry, choice, devices) if choice in (polleninfo.SWISS_POLLEN, polleninfo.KLEENEX) else []}
@@ -374,16 +388,16 @@ class Draft(_SourceSteps):
                     health = self.hass.states.get(option.get("station_state_entity", ""))
                     entity["available"] = entity.get("available", False) and health is not None and health.state == "online"
                     if not entity["available"]:
-                        entity["state"] = "station indisponible"
+                        entity["state"] = t("station indisponible")
                 elif choice == polleninfo.KLEENEX:
                     settings = _settings({**self.sources, "pollens": [option]})
                     level = polleninfo.usable_level(self.hass.states.get, settings, settings.pollens[0],
                                                    now=dt_util.utcnow(), zone=ZoneInfo(self.hass.config.time_zone))
                     entity["available"] = level is not None
-                    entity["state"] = polleninfo.WORDS[level] if level is not None else "données indisponibles ou trop anciennes"
+                    entity["state"] = t(polleninfo.WORDS[level]) if level is not None else t("données indisponibles ou trop anciennes")
                 result["species"].append({**entity, "label": option["nom"] or entity.get("name"), "chosen": entity_id in chosen})
             if choice == polleninfo.POLLENINFORMATION:
-                result["risk"] = self._field("pollen_risk_entity", "Risque allergique global", risks)
+                result["risk"] = self._field("pollen_risk_entity", t("Risque allergique global"), risks)
         return result
 
     def entities(self) -> dict[str, Any]:
@@ -396,18 +410,18 @@ class Draft(_SourceSteps):
         return {"new": False, "families": [
             {"key": f, "name": family_label(f)[0], "entities": [
                 {"key": k, "name": entity_label(k)[0], "hint": entity_label(k)[1], "enabled": present[k],
-                 "need": (f"Source facultative : {needs[k]}." if k in families.STATION_DEPENDENT else f"Il faut {needs[k]}.") if k in needs else "",
+                 "need": (t("Source facultative : {need}.", need=t(needs[k])) if k in families.STATION_DEPENDENT else t("Il faut {need}.", need=t(needs[k]))) if k in needs else "",
                  "optional": k in families.STATION_DEPENDENT} for k in keys if k in present]}
             for f, keys in families.FAMILIES if any(k in present for k in keys)]}
 
     def needs(self) -> list[str]:
         """What the enabled (or, for a new place, chosen) entities still miss."""
-        needs = {k: t for k, t in families.needs(_settings(self.sources)).items() if k not in families.STATION_DEPENDENT}
+        needs = {k: text for k, text in families.needs(_settings(self.sources)).items() if k not in families.STATION_DEPENDENT}
         if self.entry is None:
             chosen = set(self.sources.get("families") or [])
-            return [needs_text(k, t) for k, t in needs.items() if families.family_of(k) in chosen]
+            return [needs_text(k, text) for k, text in needs.items() if families.family_of(k) in chosen]
         present = entity_keys(self.hass, self.entry)
-        return [needs_text(k, t) for k, t in needs.items() if present.get(k)]
+        return [needs_text(k, text) for k, text in needs.items() if present.get(k)]
 
     # ---- Saving ----
 
@@ -415,7 +429,7 @@ class Draft(_SourceSteps):
         """Saves the place (a new one through the assistant, as Paramètres would) and its entities switched on or off."""
         sources = _clean(self.sources)
         if not sources.get("weather_entity") or self.hass.states.get(sources["weather_entity"]) is None:
-            raise ValueError("Choisissez le service météo (étape Prévisions).")
+            raise ValueError(t("Choisissez le service météo (étape Prévisions)."))
         if self.entry is None:
             result = await self.hass.config_entries.flow.async_init(DOMAIN, context={"source": "panel"},
                                                                     data={"title": self._title(), "options": sources})
