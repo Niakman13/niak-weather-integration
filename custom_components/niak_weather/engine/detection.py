@@ -219,7 +219,7 @@ def netatmo_disabled(registry: Registry, devices: Devices, options: Mapping[str,
             if not options.get(field) and ids and not any(on for _, on in ids)}
 
 
-# Computed values, never taken for station sensors: Thermal Comfort's (humidex, dew point…) and Niak Weather's own.
+# Computed values, never taken for station sensors: Thermal Comfort's (humidex, dew point…) and Hestia Weather's own.
 DERIVED = ("thermal_comfort", "niak_weather")
 
 
@@ -428,7 +428,7 @@ def detect_sources(states: Sequence[StateLike], registry: Registry, options: Map
     """The weather service (Météo-France first), its vigilance, the sun, the season, Vigieau and Blitzortung, each only when there is a
     single choice (for Vigieau, the drinking water zone among several)."""
     detected: dict[str, str] = {}
-    # Niak Weather's own weather entity is a result, never a source.
+    # Hestia Weather's own weather entity is a result, never a source.
     weather = [s for s in states if s.entity_id.startswith("weather.") and (registry.get(s.entity_id) or {}).get("platform") != "niak_weather"]
     preferred = [s for s in weather if (registry.get(s.entity_id) or {}).get("platform") == "meteo_france"
                  or re.search(r"meteo.france", normal(s.attributes.get("attribution")))]

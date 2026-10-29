@@ -1,4 +1,4 @@
-"""The settings of a place in the « Météo » tab of the Niak panel: a draft changed step by step, then saved at once.
+"""The settings of a place in the « Météo » tab of the Hestia panel: a draft changed step by step, then saved at once.
 
 It follows the assistant of Paramètres (config_flow.py) step for step and reuses its detection, so that both give the same
 settings; that assistant stays available while the panel takes over. Nothing is saved before `save`.
@@ -31,7 +31,7 @@ SIMPLE = frozenset({"weather_entity", "location", "vigilance_entity", "season_en
 RECOMMENDED = frozenset({"temperature_entity", "humidity_entity", "rain_rate_entity", "wind_gust_entity", "wind_bearing_entity"})
 HELP = {
     "weather_entity": "Les prévisions heure par heure et jour par jour, par exemple Météo-France ou MétéoSuisse. Une station facultative ajoute les mesures chez vous.",
-    "vigilance_entity": "Les alertes officielles de Météo-France ou de MétéoSuisse s’ajoutent à celles que calcule Niak.",
+    "vigilance_entity": "Les alertes officielles de Météo-France ou de MétéoSuisse s’ajoutent à celles que calcule Hestia.",
     "season_entity": "Sans capteur, la saison suit la date.",
     "water_restriction_entity": "Les restrictions d’eau de votre commune, avec l’intégration Vigieau (HACS). Choisissez la zone de l’eau du robinet (AEP).",
     "lightning_entity": "Les éclairs détectés autour de chez vous, avec l’intégration Blitzortung (HACS). À moins de 30 km, le capteur Orage s’allume.",
@@ -45,7 +45,7 @@ MODELS = (("gw2000a", "Ecowitt GW2000A", "Passerelle Ecowitt et ses capteurs"),
           ("ws90", "Ecowitt WS90", "Capteur tout-en-un, souvent via Zigbee2MQTT"),
           (detection.NETATMO, "Netatmo", "Station Netatmo et ses modules : extérieur, pluviomètre, anémomètre"),
           ("manual", "Une autre station", "Vous choisissez chaque capteur"),
-          (NONE, "Pas de station", "Niak Weather s’appuie sur le service météo seul"))
+          (NONE, "Pas de station", "Hestia Weather s’appuie sur le service météo seul"))
 
 
 @cache

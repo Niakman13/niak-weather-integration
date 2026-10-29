@@ -1,4 +1,4 @@
-"""Niak shared panel (socle v1): one sidebar entry « Niak » for every installed Niak brick.
+"""Hestia shared panel (socle v1): one sidebar entry « Hestia » for every installed Hestia brick.
 
 Copied unchanged into each brick from niak-ecosysteme/socle/ (see ECOSYSTEME.md § 8).
 Several copies may run side by side: the newest one shows the panel and every brick
@@ -18,13 +18,13 @@ from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.storage import Store
 
 SOCLE_VERSION = (1, 9)
-# 1.1: an optional `tab`, the tab's own name when it is not the brick's (« Météo » for Niak Weather).
+# 1.1: an optional `tab`, the tab's own name when it is not the brick's (« Météo » for Hestia Weather).
 # 1.2: async_register_card, the brick's card on every dashboard, also as a dashboard resource.
 # 1.3: the home page says « À découvrir » and « Voir » for the bricks not installed (same contract as 1.2).
 # 1.4: guarded card bundles, extra module only as fallback, encoded resource migration.
 # 1.5: the sidebar entry can be hidden (`niak/set_sidebar`, kept in .storage/niak_socle); the panel itself stays reachable at /niak.
 # 1.6: grouped navigation and optional brick `navigation=1` capability; older bricks keep their overview link.
-# 1.7: full-height shell and a persisted HA/Niak theme preference.
+# 1.7: full-height shell and a persisted HA/Hestia theme preference.
 # 1.8: Weather navigation=2 groups its configuration under general settings, like Comfort.
 # 1.9: HA themes keep visible structural outlines even when divider-color equals the page background.
 # The shell's custom element carries its version: two copies never fight over one name.
@@ -32,15 +32,15 @@ ELEMENT = "niak-socle-1-9"
 KEY = "niak_socle"
 STORE_VERSION = 1
 PANEL = "niak"
-TITLE = "Niak"
+TITLE = "Hestia"
 ICON = "mdi:home-heart"
 LEVELS = ("ok", "action", "unknown")
 # Published bricks only: the home page never proposes a brick that does not exist yet.
 CATALOGUE = (
-    {"domain": "niak_weather", "name": "Niak Weather",
+    {"domain": "niak_weather", "name": "Hestia Weather",
      "pitch": "La météo de votre station : prévisions, alertes, qualité de l’air et pollens.",
      "url": "https://github.com/Niakman13/niak-weather-integration"},
-    {"domain": "niak_comfort", "name": "Niak Confort",
+    {"domain": "niak_comfort", "name": "Hestia Confort",
      "pitch": "Le confort de chaque pièce et le bon moment pour ouvrir, fermer ou aérer.",
      "url": "https://github.com/Niakman13/niak-comfort-integration"},
 )
@@ -73,7 +73,7 @@ async def _load_settings(hass, data):
     try:
         stored = await Store(hass, STORE_VERSION, KEY).async_load()
     except Exception:  # noqa: BLE001 - an unreadable file never keeps the panel from opening
-        _LOGGER.warning("Réglages du panneau Niak illisibles : menu affiché par défaut", exc_info=True)
+        _LOGGER.warning("Réglages du panneau Hestia illisibles : menu affiché par défaut", exc_info=True)
     settings = stored if isinstance(stored, dict) else {}
     data["settings"] = {"sidebar": data.get("settings", {}).get("sidebar", settings.get("sidebar", True)) is not False,
                         "theme": settings.get("theme") if settings.get("theme") in ("ha", "niak") else "niak"}
@@ -89,7 +89,7 @@ async def _show_panel(hass, shell_url, sidebar):
 
 
 async def async_set_sidebar(hass, visible):
-    """Show or hide « Niak » in the sidebar, at once, and remember it."""
+    """Show or hide « Hestia » in the sidebar, at once, and remember it."""
     data = hass.data.setdefault(KEY, {"bricks": {}, "panel": None})
     await _load_settings(hass, data)
     data["settings"]["sidebar"] = bool(visible)
@@ -102,7 +102,7 @@ async def async_set_sidebar(hass, visible):
 async def async_set_theme(hass, theme):
     """Remember the hub appearance without changing the Home Assistant theme."""
     if theme not in ("ha", "niak"):
-        raise ValueError("Thème Niak inconnu")
+        raise ValueError("Thème Hestia inconnu")
     data = hass.data.setdefault(KEY, {"bricks": {}, "panel": None})
     await _load_settings(hass, data)
     data["settings"]["theme"] = theme

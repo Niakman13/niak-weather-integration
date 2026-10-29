@@ -8,7 +8,7 @@ Les mesures de la station passent toujours en premier ; le bulletin complète ce
 
 Le chiffre principal est la pluie **des dernières 24 h** si la station la donne, sinon celle **depuis minuit**. Ces deux périodes ne sont pas mélangées.
 
-**Sans compteur 24 h ni compteur du jour**, mais avec un **compteur total** (qui ne fait que monter), Niak Weather calcule lui-même la pluie des dernières 24 h, du jour, de la semaine, du mois et de l’année, à partir de l’historique et des statistiques longue durée de Home Assistant. Une remise à zéro du compteur est suivie ; une petite baisse n’est pas comptée comme de la pluie. Si une partie de la période manque, le total est marqué **≥** : il peut être plus élevé.
+**Sans compteur 24 h ni compteur du jour**, mais avec un **compteur total** (qui ne fait que monter), Hestia Weather calcule lui-même la pluie des dernières 24 h, du jour, de la semaine, du mois et de l’année, à partir de l’historique et des statistiques longue durée de Home Assistant. Une remise à zéro du compteur est suivie ; une petite baisse n’est pas comptée comme de la pluie. Si une partie de la période manque, le total est marqué **≥** : il peut être plus élevé.
 
 Les **7 derniers jours** viennent de l’historique du compteur du jour (son maximum chaque jour, dans le fuseau de Home Assistant), ou du compteur total. Un jour sans données est un tiret, pas un zéro ; un jour incomplet est marqué **≥**.
 

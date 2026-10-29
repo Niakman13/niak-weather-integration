@@ -49,9 +49,9 @@ export function renderSingle(v: WeatherView, format: SingleFormat, blocks: CardB
   else if (format === 'lightning') body = v.lightning ? lightningPanel(v.lightning, parts)
     // Blitzortung is a third-party integration: the card says what it brings and where to choose it.
     : html`<section class="nw-panel lz-missing" aria-label=${t('Éclairs')}>${panelHead('mdi:flash', 'wind', t('Éclairs'), 'Blitzortung')}
-        <p>${t('Cette carte montre les éclairs autour de chez vous grâce à Blitzortung, un réseau de détecteurs bénévoles. Installez l’extension depuis HACS, puis choisissez-la dans les réglages de Niak Weather.')}</p>
+        <p>${t('Cette carte montre les éclairs autour de chez vous grâce à Blitzortung, un réseau de détecteurs bénévoles. Installez l’extension depuis HACS, puis choisissez-la dans les réglages de Hestia Weather.')}</p>
         <div class="links"><a href="https://github.com/mrk-its/homeassistant-blitzortung" target="_blank" rel="noopener noreferrer">${t('Installer Blitzortung')}</a>
-          <a class="second" href=${SETTINGS}>${t('Réglages de Niak Weather')}</a></div></section>`;
+          <a class="second" href=${SETTINGS}>${t('Réglages de Hestia Weather')}</a></div></section>`;
   else {
     const panels = airPanels(v, blocks);
     body = panels.length ? html`<div class="panels-two">${panels.map(airPanel)}</div>` : empty(t('Air et pollens indisponibles pour le moment.'));

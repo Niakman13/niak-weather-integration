@@ -2,7 +2,7 @@
 
 [Accueil](../README.md) · [Les capteurs](capteurs.md) · [La synthèse et les alertes](synthese.md) · [Le bulletin du jour](bulletin.md) · [Sources et réglages](sources.md) · [Pluie, vent, pression](mesures.md) · [Fonctionnement technique](technique.md)
 
-Le ressenti dit quelle température l’air **donne l’impression** d’avoir : plus chaude quand l’air est lourd ou le soleil fort, plus froide sous le vent ou la pluie. Niak Weather le calcule lui-même : **aucune intégration Thermal Comfort n’est nécessaire**.
+Le ressenti dit quelle température l’air **donne l’impression** d’avoir : plus chaude quand l’air est lourd ou le soleil fort, plus froide sous le vent ou la pluie. Hestia Weather le calcule lui-même : **aucune intégration Thermal Comfort n’est nécessaire**.
 
 ## D’où viennent les mesures
 
@@ -39,7 +39,7 @@ Le point de rosée ajoute une nuance quand elle compte : *air sec*, *un peu humi
 
 ## Rosée, givre, gelée et brouillard
 
-Niak Weather calcule aussi le **point de rosée** et le **point de givre**. La synthèse compare la minimale prévue de la nuit :
+Hestia Weather calcule aussi le **point de rosée** et le **point de givre**. La synthèse compare la minimale prévue de la nuit :
 
 - au point de givre : **gelée blanche** possible (dès 3 °C prévus sous abri, car le sol se refroidit de 2 à 3 °C de plus) ;
 - au point de rosée : **brouillard** possible au petit matin, si l’air prévu est saturé, sans vent ni pluie.
@@ -65,6 +65,6 @@ Orage, canicule, gel et rafales dès 80 km/h sont **urgents** (attribut `level` 
 
 ## Les limites
 
-Le ressenti est une **estimation de l’ambiance extérieure** propre à Niak Weather : pas un indice météorologique officiel, ni une mesure physiologique. Ces coefficients sont des règles d’estimation, pas une formule standard validée. Niak Weather ne connaît ni vos vêtements, ni votre activité, ni votre exposition réelle : l’effet du soleil représente une ambiance exposée, pas forcément le ressenti à l’ombre.
+Le ressenti est une **estimation de l’ambiance extérieure** propre à Hestia Weather : pas un indice météorologique officiel, ni une mesure physiologique. Ces coefficients sont des règles d’estimation, pas une formule standard validée. Hestia Weather ne connaît ni vos vêtements, ni votre activité, ni votre exposition réelle : l’effet du soleil représente une ambiance exposée, pas forcément le ressenti à l’ombre.
 
 [Le calcul dans le code](../custom_components/niak_weather/engine/feel.py).

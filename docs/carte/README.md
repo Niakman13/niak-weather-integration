@@ -1,22 +1,22 @@
-# La carte Niak Weather
+# La carte Hestia Weather
 
 **La météo chez vous, en une carte qui parle.** La carte affiche ce que calcule l’intégration : la vigilance, le bulletin du jour, les alertes à leur heure, le ressenti, la pluie, le vent, la pression, l’air et les pollens, sur un ciel animé.
 
-Depuis la 2.3, **la carte est fournie par l’intégration** : rien à installer en plus, et elle a toujours la même version que l’intégration. L’intégration l’ajoute elle-même aux ressources des tableaux de bord (`/niak_weather-assets/niak-weather-card.js`) et la tient à jour, pour que l’application mobile la trouve aussi. Sur un tableau de bord : **Ajouter une carte → Niak Weather**.
+Depuis la 2.3, **la carte est fournie par l’intégration** : rien à installer en plus, et elle a toujours la même version que l’intégration. L’intégration l’ajoute elle-même aux ressources des tableaux de bord (`/niak_weather-assets/niak-weather-card.js`) et la tient à jour, pour que l’application mobile la trouve aussi. Sur un tableau de bord : **Ajouter une carte → Hestia Weather**.
 
 Correction du chargement (2.3.1) : la carte attend l’initialisation de l’interface Home Assistant avant d’enregistrer ses éléments, même si une ancienne page en cache la charge très tôt. Les ressources gérées par l’interface utilisent uniquement la ressource module ; les ressources YAML gardent un chargement automatique protégé. Les contournements locaux avec `%2D` sont regroupés avec la ressource officielle lors du démarrage, sans toucher aux ressources YAML.
 
 Sans station (depuis la 2.3.1), les courbes de vent et de pression utilisent les attributs historiques du service météo sélectionné, si Home Assistant les a enregistrés. Elles conservent le nom du service météo et ne deviennent pas des mesures locales. Si cet historique est absent, exclu de Recorder ou trop court, la carte le précise ; elle n’invente pas de valeurs passées. Les cumuls de pluie mesurés restent un enrichissement facultatif fourni par un pluviomètre. Retirer la station ne crée plus d’alertes « À régler » pour les entités restées actives qui dépendent de ses capteurs.
 
-Vous aviez installé la carte depuis HACS ? Retirez-la (HACS → Niak Weather → ⋮ → **Supprimer**), puis rechargez la page. Vos cartes restent en place : elles s’écrivent toujours `type: custom:niak-weather-card`. Tant qu’elle reste installée, l’accueil du panneau **Niak** l’indique en orange.
+Vous aviez installé la carte depuis HACS ? Retirez-la (HACS → Hestia Weather → ⋮ → **Supprimer**), puis rechargez la page. Vos cartes restent en place : elles s’écrivent toujours `type: custom:niak-weather-card`. Tant qu’elle reste installée, l’accueil du panneau **Hestia** l’indique en orange.
 
 Dans l’application Home Assistant, une carte reste invisible juste après une mise à jour ? Réinitialisez son cache : **Paramètres → Application compagnon → Dépannage → Réinitialiser le cache du frontend**.
 
-![Niak Weather — votre station météo et les prévisions, réunies en une carte qui parle](images/niak-weather-banner.png)
+![Hestia Weather — votre station météo et les prévisions, réunies en une carte qui parle](images/niak-weather-banner.png)
 
 ## Douze cartes à choisir
 
-Dans **Ajouter une carte**, cherchez « Niak » : trois entrées, une par type de carte — **Niak - Météo** (complète ou tuile), **Niak - À la pièce** (ressenti, pluie, vent, pression, éclairs, air et pollens, prévisions) et **Niak - Petite carte** (mini ou alerte). Dans les réglages de la carte, choisissez d’abord le **type**, puis le **format**. Toutes s’écrivent `type: custom:niak-weather-card`, seul `format` change.
+Dans **Ajouter une carte**, cherchez « Hestia » : trois entrées, une par type de carte — **Hestia - Météo** (complète ou tuile), **Hestia - À la pièce** (ressenti, pluie, vent, pression, éclairs, air et pollens, prévisions) et **Hestia - Petite carte** (mini ou alerte). Dans les réglages de la carte, choisissez d’abord le **type**, puis le **format**. Toutes s’écrivent `type: custom:niak-weather-card`, seul `format` change.
 
 | Carte | Pour quoi |
 | --- | --- |
@@ -43,7 +43,7 @@ Dans **Ajouter une carte**, cherchez « Niak » : trois entrées, une par type d
   - **Aujourd’hui** : pluie, vent, pression (et ressenti, pastilles, air et pollens du jour) ;
   - **Prévisions** : les 18 prochaines heures, les 7 prochains jours (et l’air et les pollens de demain).
 
-![Niak Weather — tuile pleine et demi-largeur repliées, puis tuile dépliée, par temps d’orage avec vigilance jaune](images/niak-weather-formats.png)
+![Hestia Weather — tuile pleine et demi-largeur repliées, puis tuile dépliée, par temps d’orage avec vigilance jaune](images/niak-weather-formats.png)
 
 ## Le bandeau
 
@@ -65,7 +65,7 @@ Derrière, **le ciel animé** suit le temps du moment :
 - la neige tombe et tient au sol, la grêle rebondit, la pluie éclabousse ;
 - les saisons s’y glissent : pétales, chaleur, feuilles rousses, givre.
 
-![Niak Weather — bandeau, puis Aujourd’hui : ressenti, pluie, vent, pression, air et pollens](images/1.png)
+![Hestia Weather — bandeau, puis Aujourd’hui : ressenti, pluie, vent, pression, air et pollens](images/1.png)
 
 ## Aujourd’hui et Prévisions
 
@@ -74,7 +74,7 @@ Derrière, **le ciel animé** suit le temps du moment :
 
 Un appui sur une valeur ouvre la fiche de son capteur.
 
-![Niak Weather — prévisions des 18 prochaines heures et des 7 prochains jours, air et pollens de demain](images/2.png)
+![Hestia Weather — prévisions des 18 prochaines heures et des 7 prochains jours, air et pollens de demain](images/2.png)
 
 ## Réglages
 
@@ -159,8 +159,8 @@ Variables : `niak-rain-color`, `niak-wind-color`, `niak-heat-color`, `niak-cold-
 
 | Message | Que faire |
 | --- | --- |
-| Niak Weather a besoin de son intégration | Déjà téléchargée depuis HACS ? Ajoutez-la dans **Paramètres → Appareils et services** : Home Assistant ne la démarre qu’une fois ajoutée. Sinon, [installez-la](https://github.com/Niakman13/niak-weather-integration#installation), redémarrez, puis ajoutez-la. |
-| Ajoutez l’intégration Niak Weather | Elle est installée : ajoutez-la dans **Paramètres → Appareils et services**. |
+| Hestia Weather a besoin de son intégration | Déjà téléchargée depuis HACS ? Ajoutez-la dans **Paramètres → Appareils et services** : Home Assistant ne la démarre qu’une fois ajoutée. Sinon, [installez-la](https://github.com/Niakman13/niak-weather-integration#installation), redémarrez, puis ajoutez-la. |
+| Ajoutez l’intégration Hestia Weather | Elle est installée : ajoutez-la dans **Paramètres → Appareils et services**. |
 | Choisissez un lieu | Plusieurs lieux existent : choisissez celui de la carte dans ses réglages. |
 | Rechargez la page | L’intégration vient d’être mise à jour : rechargez la page (**Ctrl+F5** sur ordinateur). |
 

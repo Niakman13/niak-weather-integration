@@ -193,12 +193,12 @@ export class NiakWeatherCardEditor extends LitElement {
     const data = Object.fromEntries(Object.entries({ ...defaults, ...presses, ...blocks, ...this.config, kind: kindOf(this.config.format) }).filter(([key]) => key !== 'type'));
     const one = this.entries?.length === 1 ? this.entries[0] : undefined;
     return html`
-      ${this.entries === null ? html`<p class="note warn">${t('L’intégration Niak Weather ne répond pas : la carte en a besoin depuis la version 2.0.')}
+      ${this.entries === null ? html`<p class="note warn">${t('L’intégration Hestia Weather ne répond pas : la carte en a besoin depuis la version 2.0.')}
           ${t('Déjà téléchargée ?')} <a href="/config/integrations/dashboard/add?domain=niak_weather" @click=${this.follow}>${t('Ajoutez-la')}</a>.
           ${t('Sinon,')} <a href="https://github.com/Niakman13/niak-weather-integration#installation" target="_blank" rel="noopener noreferrer">${t('installez-la')}</a>.</p>`
-        : this.entries?.length === 0 ? html`<p class="note warn">${t('Ajoutez l’intégration Niak Weather : Paramètres → Appareils et services.')}</p>`
+        : this.entries?.length === 0 ? html`<p class="note warn">${t('Ajoutez l’intégration Hestia Weather : Paramètres → Appareils et services.')}</p>`
         : html`<p class="note">${one ? html`${t('Lieu :')} <b>${one.title}</b>. ` : nothing}${t('Les sources (prévisions, station, air et pollens) se règlent dans')}
-          <a href=${SETTINGS} @click=${this.follow}>${t('l’intégration Niak Weather')}</a>.</p>`}
+          <a href=${SETTINGS} @click=${this.follow}>${t('l’intégration Hestia Weather')}</a>.</p>`}
       <ha-form .hass=${this.hass} .data=${data} .schema=${this.schema()} .computeLabel=${this.computeLabel} .computeHelper=${this.computeHelper} @value-changed=${this.changed}></ha-form>`;
   }
   /** A link inside Home Assistant opens there, without reloading the page. */

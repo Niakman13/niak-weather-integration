@@ -1,4 +1,4 @@
-"""What Niak Weather computes, as sensors for automations (heating, shutters, watering…)."""
+"""What Hestia Weather computes, as sensors for automations (heating, shutters, watering…)."""
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -184,11 +184,11 @@ def prefix(hass: HomeAssistant, entry: NiakWeatherConfigEntry) -> str:
 
 
 def device_name(hass: HomeAssistant, entry: NiakWeatherConfigEntry) -> str:
-    return "Niak Weather" if prefix(hass, entry) == DOMAIN else f"Niak Weather {entry.title}"
+    return "Hestia Weather" if prefix(hass, entry) == DOMAIN else f"Hestia Weather {entry.title}"
 
 
 def rename_place_ids(hass: HomeAssistant, entry: NiakWeatherConfigEntry) -> None:
-    """Sensors created by the betas were named after the place (sensor.gardanne_pluie_sur_24_h): they take their Niak Weather id.
+    """Sensors created by the betas were named after the place (sensor.gardanne_pluie_sur_24_h): they take their Hestia Weather id.
     An id the user chose (one that does not start with the place) is kept."""
     registry, place = er.async_get(hass), f"sensor.{slugify(entry.title)}_"
     for description in SENSORS:
@@ -211,7 +211,7 @@ def first_enabled(coordinator: NiakWeatherCoordinator, key: str, default: bool) 
 
 
 def device_info(coordinator: NiakWeatherCoordinator, device: str) -> DeviceInfo:
-    return DeviceInfo(identifiers={(DOMAIN, coordinator.config_entry.entry_id)}, name=device, manufacturer="Niakman13", model="Niak Weather", configuration_url="homeassistant://niak/meteo",
+    return DeviceInfo(identifiers={(DOMAIN, coordinator.config_entry.entry_id)}, name=device, manufacturer="Niakman13", model="Hestia Weather", configuration_url="homeassistant://niak/meteo",
                       entry_type=DeviceEntryType.SERVICE)
 
 

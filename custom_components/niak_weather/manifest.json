@@ -1,6 +1,6 @@
 {
   "domain": "niak_weather",
-  "name": "Niak Weather",
+  "name": "Hestia Weather",
   "after_dependencies": ["lovelace"],
   "codeowners": ["@Niakman13"],
   "config_flow": true,

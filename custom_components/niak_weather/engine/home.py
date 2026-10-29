@@ -1,4 +1,4 @@
-"""What the « Niak » home page says about Niak Weather (socle v1, ECOSYSTEME.md § 8): one level, one sentence, a few details.
+"""What the « Hestia » home page says about Hestia Weather (socle v1, ECOSYSTEME.md § 8): one level, one sentence, a few details.
 
 Blue (`ok`) when every place is computed with its station answering; orange (`action`) as soon as something needs the user.
 Grey (`unknown`) is left to the socle, for when this status cannot be computed at all.
@@ -23,7 +23,7 @@ class Place:
     down: Sequence[str] = ()
     """The chosen air and pollen sources that do not answer, as « Atmo France ne répond pas : pollens »."""
     links: Sequence[str] = ()
-    """The Niak bricks listening to this place, by name."""
+    """The Hestia bricks listening to this place, by name."""
 
 
 def _plural(n: int, word: str) -> str:
@@ -52,7 +52,7 @@ def status(places: Sequence[Place], card_twice: bool = False) -> dict:
         todo.extend(f"{need}{where}" for need in place.needs)
         todo.extend(f"{source}{where}" for source in place.down)
     if card_twice:
-        todo.append("Carte installée deux fois : retirez la carte Niak Weather de HACS")
+        todo.append("Carte installée deux fois : retirez la carte Hestia Weather de HACS")
     links = [f"Relié à {name} · {place.title}" for place in places for name in place.links]
     followed = f"{len(places)} lieux suivis" if several else "1 lieu suivi"
     if all(p.loaded and p.station for p in places):

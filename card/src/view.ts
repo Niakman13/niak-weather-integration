@@ -1,4 +1,4 @@
-// What the Niak Weather integration sends the card: everything it shows, already computed (contract version 1).
+// What the Hestia Weather integration sends the card: everything it shows, already computed (contract version 1).
 // It mirrors the integration's engine/view.py. Times are seconds since 1970; an unknown value is absent, never null.
 
 export const VIEW_VERSION = 1;

@@ -33,7 +33,7 @@ def comfort_api(hass: HomeAssistant) -> Any:
 
 
 def official(hass: HomeAssistant, entry_id: str | None) -> list[dict[str, Any]]:
-    """Niak's own bricks for this place. Niak Confort keeps the link and Weather reads or changes it through
+    """Hestia's own bricks for this place. Hestia Confort keeps the link and Weather reads or changes it through
     Confort's interface, so turning it off on either side turns it off on both."""
     link = comfort_api(hass)
     installed = link is not None or bool(hass.config_entries.async_entries("niak_comfort"))
@@ -41,11 +41,11 @@ def official(hass: HomeAssistant, entry_id: str | None) -> list[dict[str, Any]]:
     if switchable:
         chosen = link.weather()
     else:
-        # A Niak Confort older than 1.7.21 only says it by listening to a place.
+        # A Hestia Confort older than 1.7.21 only says it by listening to a place.
         weather = hass.data.get("niak_weather_api")
         chosen = entry_id if weather is not None and entry_id and weather.linked(entry_id).get("niak_comfort") else None
     other = hass.config_entries.async_get_entry(chosen) if chosen and chosen != entry_id else None
-    return [{"id": "niak_comfort", "name": "Niak Confort", "official": True, "installed": installed,
+    return [{"id": "niak_comfort", "name": "Hestia Confort", "official": True, "installed": installed,
              "linked": bool(entry_id) and chosen == entry_id, "elsewhere": other.title if other else "",
              "switchable": switchable,
              "description": "Vos pièces comparées au dehors de ce lieu : quand aérer, quand fermer, quand chauffer.",
@@ -56,7 +56,7 @@ async def set_official(hass: HomeAssistant, key: str, entry_id: str, enabled: bo
     """Links this place to the brick, or unlinks it if it is the one linked. Raises ValueError with a sentence to show."""
     link = comfort_api(hass) if key == "niak_comfort" else None
     if link is None or not hasattr(link, "set_weather"):
-        raise ValueError("Mettez à jour Niak Confort pour régler la liaison depuis Niak Weather.")
+        raise ValueError("Mettez à jour Hestia Confort pour régler la liaison depuis Hestia Weather.")
     if enabled:
         await link.set_weather(entry_id)
     elif link.weather() == entry_id:

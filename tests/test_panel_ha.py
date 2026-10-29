@@ -400,9 +400,9 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
         async def ok(hass):
             return {"level": "ok", "summary": "", "details": [], "links": []}
         base = {"version": "1", "icon": "mdi:x", "module_url": "/x.js", "status": ok}
-        await socle.async_register_brick(self.hass, {**base, "domain": "niak_comfort", "name": "Niak Confort", "slug": "confort",
+        await socle.async_register_brick(self.hass, {**base, "domain": "niak_comfort", "name": "Hestia Confort", "slug": "confort",
                                                      "element": "niak-comfort-setup", "legacy_path": None}, "/c/niak-socle.js")
-        await socle.async_register_brick(self.hass, {**base, "domain": "niak_weather", "name": "Niak Weather", "slug": "meteo",
+        await socle.async_register_brick(self.hass, {**base, "domain": "niak_weather", "name": "Hestia Weather", "slug": "meteo",
                                                      "element": "niak-weather-setup", "status": weather_status, "legacy_path": ""}, "/w/niak-socle.js")
         overview = await socle.async_overview(self.hass)
         self.assertEqual([b["slug"] for b in overview["bricks"]], ["meteo", "confort"])
@@ -488,7 +488,7 @@ class OfficialLinkTests(unittest.IsolatedAsyncioTestCase):
     asyncTearDown = PanelTests.asyncTearDown
 
     async def test_niak_confort_link_is_read_and_set_through_its_interface(self):
-        """One link for both bricks: Niak Confort keeps it, Weather's switch changes it there and reads it back."""
+        """One link for both bricks: Hestia Confort keeps it, Weather's switch changes it there and reads it back."""
         from custom_components.niak_weather.extensions import official, set_official
         self.assertEqual(official(self.hass, "nw1")[0]["installed"], False)
         class Comfort:
@@ -505,7 +505,7 @@ class OfficialLinkTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(comfort.chosen, "nw1")
         comfort.chosen = None  # turned off in Confort's own settings
         self.assertFalse(official(self.hass, "nw1")[0]["linked"])
-        del Comfort.set_weather  # an older Niak Confort: shown, but not switchable from here
+        del Comfort.set_weather  # an older Hestia Confort: shown, but not switchable from here
         self.assertFalse(official(self.hass, "nw1")[0]["switchable"])
         with self.assertRaises(ValueError):
             await set_official(self.hass, "niak_comfort", "nw1", True)

@@ -1,4 +1,4 @@
-"""What the « Niak » panel's home page says about Niak Weather: blue when every place is followed, orange with what to do."""
+"""What the « Hestia » panel's home page says about Hestia Weather: blue when every place is followed, orange with what to do."""
 from engine.home import Place, status
 
 
@@ -8,10 +8,10 @@ def test_no_place_is_an_action():
 
 
 def test_a_place_with_its_station_answering_is_blue():
-    result = status([Place("Maison", station=9, links=["Niak Confort"])])
+    result = status([Place("Maison", station=9, links=["Hestia Confort"])])
     assert result["level"] == "ok"
     assert result["summary"] == "1 lieu suivi avec sa station, rien à régler."
-    assert result["links"] == ["Relié à Niak Confort · Maison"]
+    assert result["links"] == ["Relié à Hestia Confort · Maison"]
     assert result["details"] == []
 
 
@@ -38,7 +38,7 @@ def test_the_card_installed_twice_is_an_action():
     assert status([Place("Maison", station=3)])["level"] == "ok"
     result = status([Place("Maison", station=3)], card_twice=True)
     assert result["level"] == "action" and result["summary"] == "1 lieu suivi avec sa station, 1 point à régler."
-    assert result["details"] == ["Carte installée deux fois : retirez la carte Niak Weather de HACS"]
+    assert result["details"] == ["Carte installée deux fois : retirez la carte Hestia Weather de HACS"]
 
 
 def test_a_silent_air_source_is_orange():

@@ -1,5 +1,5 @@
 """Setting up a place: the weather service, the station and the air quality. Every field comes pre-filled from what Home Assistant
-already has, or from an existing Niak Weather card; a field left empty is a deliberate choice that detection never overrides."""
+already has, or from an existing Hestia Weather card; a field left empty is a deliberate choice that detection never overrides."""
 from __future__ import annotations
 
 import json
@@ -64,7 +64,7 @@ def _cards(node: Any) -> Iterator[dict[str, Any]]:
 
 
 async def find_cards(hass: HomeAssistant) -> list[dict[str, Any]]:
-    """The source settings of the Niak Weather cards already on the dashboards, each set once."""
+    """The source settings of the Hestia Weather cards already on the dashboards, each set once."""
     data = hass.data.get("lovelace")
     dashboards = getattr(data, "dashboards", None)
     if dashboards is None and isinstance(data, dict):
@@ -337,7 +337,7 @@ class _SourceSteps:
             chosen = species
         fields: dict[Any, Any] = {
             vol.Optional("pollens"): EntitySelector(EntitySelectorConfig(domain="sensor", multiple=True, include_entities=sorted(set(species) | set(chosen))))}
-        # IRM KMI has no overall risk: Niak keeps the highest species.
+        # IRM KMI has no overall risk: Hestia keeps the highest species.
         if provider == polleninfo.POLLENINFORMATION:
             fields[vol.Optional("pollen_risk_entity")] = EntitySelector(EntitySelectorConfig(domain="sensor", include_entities=sorted(set(risks) | (
                 {self.sources["pollen_risk_entity"]} if self.sources.get("pollen_risk_entity") else set()))))
@@ -386,7 +386,7 @@ class _SourceSteps:
 
     def _title(self) -> str:
         weather = self.hass.states.get(self.sources.get("weather_entity") or "")
-        return self.sources.get("location") or (place_name(str(weather.attributes.get("friendly_name") or "")) if weather else "") or "Niak Weather"
+        return self.sources.get("location") or (place_name(str(weather.attributes.get("friendly_name") or "")) if weather else "") or "Hestia Weather"
 
 
 class NiakWeatherConfigFlow(_SourceSteps, ConfigFlow, domain=DOMAIN):
@@ -403,12 +403,12 @@ class NiakWeatherConfigFlow(_SourceSteps, ConfigFlow, domain=DOMAIN):
         return NiakWeatherOptionsFlow()
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Welcome: what Niak Weather does and the four steps; an existing card's settings can be the starting point."""
+        """Welcome: what Hestia Weather does and the four steps; an existing card's settings can be the starting point."""
         self._cards = await find_cards(self.hass)
         return self.async_show_menu(step_id="user", menu_options=["import_card", "weather"] if self._cards else ["weather"])
 
     async def async_step_panel(self, user_input: dict[str, Any]) -> ConfigFlowResult:
-        """A place set up in the « Météo » tab of the Niak panel (draft.py), which went through the same steps."""
+        """A place set up in the « Météo » tab of the Hestia panel (draft.py), which went through the same steps."""
         return self.async_create_entry(title=user_input["title"], data={}, options=_clean(user_input["options"]))
 
     async def async_step_import_card(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -451,7 +451,7 @@ class NiakWeatherConfigFlow(_SourceSteps, ConfigFlow, domain=DOMAIN):
 
 
 class NiakWeatherOptionsFlow(OptionsFlow):
-    """The settings live in the « Météo » tab of the Niak panel: this screen only leads there."""
+    """The settings live in the « Météo » tab of the Hestia panel: this screen only leads there."""
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:

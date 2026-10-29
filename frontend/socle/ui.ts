@@ -1,4 +1,4 @@
-// Shared Niak interface, embedded independently in each brick.
+// Shared Hestia interface, embedded independently in each brick.
 import {LitElement,html,css,nothing,type TemplateResult,type PropertyValues} from 'lit';
 
 // Popovers live in the browser top layer, so help escapes scrolling panels.
@@ -148,7 +148,7 @@ export const modernStyles=css`
  :host([data-appearance=ha]),:host([data-appearance=ha][data-theme=light]){--primary-background-color:inherit;--card-background-color:inherit;--ha-card-background:inherit;--primary-text-color:inherit;--secondary-text-color:inherit;--divider-color:inherit;--error-color:inherit;--warning-color:inherit;--nk-selected:var(--secondary-background-color,var(--card-background-color));--nk-raised:var(--card-background-color);--nk-button:var(--primary-color,#03a9f4);--nk-on-button:var(--text-primary-color,#fff);--nk-help-accent:var(--primary-color,#03a9f4);--nk-accent:var(--primary-color,#03a9f4);--nk-ok:var(--primary-color,#03a9f4);--nk-todo:var(--warning-color,#ff9800);--nk-action-bg:var(--nk-button);--nc-accent:var(--nk-accent);--nc-todo:var(--nk-todo);--nw-accent:var(--nk-accent);--nw-todo:var(--nk-todo);font-family:var(--ha-font-family-body,var(--paper-font-body1_-_font-family,Roboto,system-ui,sans-serif))}
 
  /* Some HA themes deliberately make divider-color equal the page background (Nordic),
-    so it cannot describe a structural outline. Derive Niak's outlines from the theme's
+    so it cannot describe a structural outline. Derive Hestia's outlines from the theme's
     text and card surface instead, and give frames that same card surface. */
  :host([data-appearance=ha]){--nk-surface:var(--ha-card-background,var(--card-background-color,#222932));--nk-border:color-mix(in srgb,var(--primary-text-color,#edf1f7) 22%,var(--nk-surface))}
  :host([data-appearance=ha]) .nk-section{background:var(--nk-surface)}

@@ -2,7 +2,7 @@
 
 [Accueil](../README.md) · [Le ressenti](ressenti.md) · [La synthèse et les alertes](synthese.md) · [Le bulletin du jour](bulletin.md) · [Sources et réglages](sources.md) · [Pluie, vent, pression](mesures.md) · [Fonctionnement technique](technique.md)
 
-Niak Weather dit **ce que la météo implique** ; chaque maison décide quoi en faire. Arrosage, chauffage, volets, notifications : tous lisent les mêmes valeurs.
+Hestia Weather dit **ce que la météo implique** ; chaque maison décide quoi en faire. Arrosage, chauffage, volets, notifications : tous lisent les mêmes valeurs.
 
 Il y a cinq façons de s’en servir :
 
@@ -26,7 +26,7 @@ Il y a cinq façons de s’en servir :
 
 Une donnée manquante donne **inconnu**, jamais « pas de pluie » ou « pas d’alerte ».
 
-Les entités marquées « à activer » existent mais sont désactivées au départ. Pour en activer : **Paramètres → Appareils et services → Niak Weather → Configurer → Capteurs et automatisations**. Tout y est rangé par famille, et l’écran dit ce qui manque à certaines (un capteur UV, Atmo France…). À la première installation, les familles choisies décident de ce qui est activé.
+Les entités marquées « à activer » existent mais sont désactivées au départ. Pour en activer : **Paramètres → Appareils et services → Hestia Weather → Configurer → Capteurs et automatisations**. Tout y est rangé par famille, et l’écran dit ce qui manque à certaines (un capteur UV, Atmo France…). À la première installation, les familles choisies décident de ce qui est activé.
 
 ## Maintenant
 
@@ -154,9 +154,9 @@ Au-delà des prévisions heure par heure, la réponse vient des prévisions par 
 
 ## L’entité `weather.niak_weather`
 
-Maintenant : la station (sinon le bulletin), le ressenti de Niak Weather, et le temps observé, où la pluie mesurée chez vous passe devant le bulletin. Prévisions : celles de votre fournisseur, par heure et par jour. Toute carte ou intégration qui accepte une entité météo en profite.
+Maintenant : la station (sinon le bulletin), le ressenti de Hestia Weather, et le temps observé, où la pluie mesurée chez vous passe devant le bulletin. Prévisions : celles de votre fournisseur, par heure et par jour. Toute carte ou intégration qui accepte une entité météo en profite.
 
-Elle est désactivée au départ : activez-la si une carte, un thermostat ou l’assistant vocal doit lire votre station. Elle n’est jamais proposée comme source de Niak Weather lui-même.
+Elle est désactivée au départ : activez-la si une carte, un thermostat ou l’assistant vocal doit lire votre station. Elle n’est jamais proposée comme source de Hestia Weather lui-même.
 
 ## Les modèles d’automatisation (blueprints)
 

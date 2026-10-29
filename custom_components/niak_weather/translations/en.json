@@ -5,10 +5,10 @@
     },
     "step": {
       "user": {
-        "title": "Welcome to Niak Weather",
-        "description": "Niak Weather is the brain of the weather at home: it reads your forecast, your station and the air quality, then works out what they mean.\n\nFour steps, each already filled with what Home Assistant knows:\n1. **Weather**: the forecast source.\n2. **Station**: your sensors, if any.\n3. **Air and pollen**: optional.\n4. **Sensors**: what you want for your automations.\n\nEverything can be changed later in **Configure**.",
+        "title": "Welcome to Hestia Weather",
+        "description": "Hestia Weather is the brain of the weather at home: it reads your forecast, your station and the air quality, then works out what they mean.\n\nFour steps, each already filled with what Home Assistant knows:\n1. **Weather**: the forecast source.\n2. **Station**: your sensors, if any.\n3. **Air and pollen**: optional.\n4. **Sensors**: what you want for your automations.\n\nEverything can be changed later in **Configure**.",
         "menu_options": {
-          "import_card": "Start from a Niak Weather card’s settings",
+          "import_card": "Start from a Hestia Weather card’s settings",
           "weather": "Start"
         }
       },
@@ -114,13 +114,13 @@
       },
       "pollen_sensors": {
         "title": "Step 3 of 4 · {source} sensors",
-        "description": "The species to follow (and, for Polleninformation, the overall allergy risk), proposed by Niak: check, add or remove. Without an overall risk, Niak keeps the highest species.",
+        "description": "The species to follow (and, for Polleninformation, the overall allergy risk), proposed by Hestia: check, add or remove. Without an overall risk, Hestia keeps the highest species.",
         "data": {
           "pollens": "Species",
           "pollen_risk_entity": "Overall allergy risk"
         },
         "data_description": {
-          "pollen_risk_entity": "Optional. Without it, Niak uses the highest species."
+          "pollen_risk_entity": "Optional. Without it, Hestia uses the highest species."
         }
       },
       "families": {
@@ -150,7 +150,7 @@
       },
       "pollen_area": {
         "title": "Step 3 of 4 · Atmo zone for pollen",
-        "description": "The Atmo France zone whose pollen Niak reads. It can differ from the air quality zone.",
+        "description": "The Atmo France zone whose pollen Hestia reads. It can differ from the air quality zone.",
         "data": {
           "atmo_area": "Atmo France zone"
         }
@@ -175,8 +175,8 @@
   "options": {
     "step": {
       "init": {
-        "title": "Niak Weather",
-        "description": "Niak Weather's settings are in the Météo tab of the Niak panel.\n\n[Open Niak Weather settings]({link})",
+        "title": "Hestia Weather",
+        "description": "Hestia Weather's settings are in the Météo tab of the Hestia panel.\n\n[Open Hestia Weather settings]({link})",
         "submit": "Close"
       },
       "weather": {
@@ -283,13 +283,13 @@
       },
       "pollen_sensors": {
         "title": "{source} sensors",
-        "description": "The species to follow (and, for Polleninformation, the overall allergy risk), proposed by Niak: check, add or remove. Without an overall risk, Niak keeps the highest species.",
+        "description": "The species to follow (and, for Polleninformation, the overall allergy risk), proposed by Hestia: check, add or remove. Without an overall risk, Hestia keeps the highest species.",
         "data": {
           "pollens": "Species",
           "pollen_risk_entity": "Overall allergy risk"
         },
         "data_description": {
-          "pollen_risk_entity": "Optional. Without it, Niak uses the highest species."
+          "pollen_risk_entity": "Optional. Without it, Hestia uses the highest species."
         }
       },
       "entities": {
@@ -322,14 +322,14 @@
       },
       "pollen_area": {
         "title": "Atmo zone for pollen",
-        "description": "The Atmo France zone whose pollen Niak reads. It can differ from the air quality zone.",
+        "description": "The Atmo France zone whose pollen Hestia reads. It can differ from the air quality zone.",
         "data": {
           "atmo_area": "Atmo France zone"
         }
       },
       "ecosystem": {
-        "title": "Niak ecosystem",
-        "description": "Niak Weather shares its weather with the other Niak bricks. Each brick links itself to this place in its own settings; Niak Weather never changes the others.\n\n{links}\n\nSubmit to go back to the menu."
+        "title": "Hestia ecosystem",
+        "description": "Hestia Weather shares its weather with the other Hestia bricks. Each brick links itself to this place in its own settings; Hestia Weather never changes the others.\n\n{links}\n\nSubmit to go back to the menu."
       },
       "pollen_station": {
         "title": "Pollen location",
@@ -416,7 +416,7 @@
         "givre_pare_brise": "Windscreen frost — yes/no",
         "qualite_air": "Air quality — Atmo index",
         "pollens": "Pollen — today’s index",
-        "weather": "Niak Weather weather entity — for weather cards and voice"
+        "weather": "Hestia Weather weather entity — for weather cards and voice"
       }
     }
   },
@@ -623,10 +623,10 @@
   },
   "exceptions": {
     "unknown_place": {
-      "message": "Niak Weather place not found."
+      "message": "Hestia Weather place not found."
     },
     "choose_place": {
-      "message": "Several Niak Weather places: set « lieu »."
+      "message": "Several Hestia Weather places: set « lieu »."
     },
     "end_before_start": {
       "message": "The end must come after the start."
@@ -650,7 +650,7 @@
         },
         "lieu": {
           "name": "Place",
-          "description": "Only when you have several Niak Weather places."
+          "description": "Only when you have several Hestia Weather places."
         }
       }
     }

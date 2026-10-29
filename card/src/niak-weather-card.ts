@@ -28,17 +28,17 @@ let instances = 0;
 type Problem = 'missing' | 'not_configured' | 'choose_entry' | 'not_found' | 'version' | 'error';
 const PROBLEMS: Record<Problem, { title: string; text: string; links?: [string, string][] }> = {
   // Home Assistant only starts an integration once it is added: downloaded from HACS but not added yet, it does not answer either.
-  missing: { title: fr('Niak Weather a besoin de son intégration'),
-    text: fr('Depuis la version 2.0, la carte reçoit ses calculs de l’intégration Niak Weather. Déjà téléchargée depuis HACS ? Ajoutez-la dans Paramètres → Appareils et services. Sinon, installez-la depuis HACS, redémarrez Home Assistant, puis ajoutez-la. Déjà ajoutée ? Elle n’a pas démarré : les journaux disent pourquoi (Paramètres → Système → Journaux, cherchez « niak »).'),
+  missing: { title: fr('Hestia Weather a besoin de son intégration'),
+    text: fr('Depuis la version 2.0, la carte reçoit ses calculs de l’intégration Hestia Weather. Déjà téléchargée depuis HACS ? Ajoutez-la dans Paramètres → Appareils et services. Sinon, installez-la depuis HACS, redémarrez Home Assistant, puis ajoutez-la. Déjà ajoutée ? Elle n’a pas démarré : les journaux disent pourquoi (Paramètres → Système → Journaux, cherchez « niak »).'),
     links: [[fr('Ajouter l’intégration'), '/config/integrations/dashboard/add?domain=niak_weather'], [fr('L’installer'), 'https://github.com/Niakman13/niak-weather-integration#installation']] },
-  not_configured: { title: fr('Ajoutez l’intégration Niak Weather'),
+  not_configured: { title: fr('Ajoutez l’intégration Hestia Weather'),
     text: fr('Elle est installée mais pas encore configurée. Elle peut reprendre les réglages de vos cartes.'),
     links: [[fr('Ajouter l’intégration'), '/config/integrations/dashboard/add?domain=niak_weather']] },
-  choose_entry: { title: fr('Choisissez un lieu'), text: fr('Plusieurs lieux Niak Weather sont configurés : choisissez celui de cette carte dans ses réglages.') },
+  choose_entry: { title: fr('Choisissez un lieu'), text: fr('Plusieurs lieux Hestia Weather sont configurés : choisissez celui de cette carte dans ses réglages.') },
   not_found: { title: fr('Lieu introuvable'), text: fr('Le lieu de cette carte n’existe plus : choisissez-en un autre dans ses réglages.') },
-  version: { title: fr('Rechargez la page'), text: fr('L’intégration Niak Weather vient d’être mise à jour : rechargez la page pour afficher sa carte.') },
+  version: { title: fr('Rechargez la page'), text: fr('L’intégration Hestia Weather vient d’être mise à jour : rechargez la page pour afficher sa carte.') },
   // The integration answered, with an error: say which, it tells what went wrong.
-  error: { title: fr('L’intégration Niak Weather a renvoyé une erreur'),
+  error: { title: fr('L’intégration Hestia Weather a renvoyé une erreur'),
     text: fr('Les journaux de Home Assistant disent pourquoi : Paramètres → Système → Journaux, cherchez « niak ».'), links: [[fr('Voir les journaux'), '/config/logs']] },
 };
 
@@ -331,7 +331,7 @@ export class NiakWeatherCard extends LitElement {
     /* Frosted glass switched off: no blur anywhere (it costs a lot on slow devices), a more opaque glass keeps the text readable. */
     :host([flat]) { --nw-blur:none; --nw-frost:none; --nw-glass-clear:color-mix(in srgb, var(--nw-bg) 86%, transparent); --nw-glass-strong:color-mix(in srgb, var(--nw-bg) 92%, transparent); }
     ha-card { padding:0; overflow:hidden; container-type:inline-size; }
-    /* Loading: a few grey lines in the card's shape, a light sweeping over them (like Niak Confort's sensors at start-up). */
+    /* Loading: a few grey lines in the card's shape, a light sweeping over them (like Hestia Confort's sensors at start-up). */
     .nw-wait { position:relative; overflow:hidden; display:grid; grid-template-columns:32px minmax(0,1fr); align-items:center; gap:12px 12px;
       min-height:96px; padding:16px; box-sizing:border-box; background:var(--nw-bg); }
     .nw-wait i { display:block; height:10px; border-radius:var(--nw-radius-pill); background:color-mix(in srgb, var(--nw-fg) 9%, transparent); }
@@ -383,9 +383,9 @@ for (const format of FORMATS) {
 }
 // The list is written once, at load: in the language the page was opened in.
 const PICKER: Array<[NonNullable<WeatherCardConfig['format']>, string, string]> = [
-  ['full', fr('Niak - Météo'), fr('La page météo complète ou la tuile qui se déplie. Le format se choisit dans les réglages.')],
-  ['comfort', fr('Niak - À la pièce'), fr('Une seule partie : ressenti, pluie, vent, pression, éclairs, air et pollens ou prévisions.')],
-  ['mini', fr('Niak - Petite carte'), fr('Une seule ligne, ou une alerte visible seulement en cas de vigilance.')],
+  ['full', fr('Hestia - Météo'), fr('La page météo complète ou la tuile qui se déplie. Le format se choisit dans les réglages.')],
+  ['comfort', fr('Hestia - À la pièce'), fr('Une seule partie : ressenti, pluie, vent, pression, éclairs, air et pollens ou prévisions.')],
+  ['mini', fr('Hestia - Petite carte'), fr('Une seule ligne, ou une alerte visible seulement en cas de vigilance.')],
 ];
 guessLanguage();
 window.customCards = window.customCards || [];

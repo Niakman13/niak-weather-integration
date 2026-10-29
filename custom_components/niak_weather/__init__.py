@@ -1,5 +1,5 @@
-"""Niak Weather: the brain of the weather at home. It reads the station, the forecast and the air quality, computes what
-they mean, exposes the results as sensors and sends the Niak Weather card everything it shows."""
+"""Hestia Weather: the brain of the weather at home. It reads the station, the forecast and the air quality, computes what
+they mean, exposes the results as sensors and sends the Hestia Weather card everything it shows."""
 from __future__ import annotations
 
 from homeassistant.const import Platform
@@ -26,9 +26,9 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     version = str((await async_get_integration(hass, DOMAIN)).version or "")
     async_setup_websocket(hass, version)
     async_setup_services(hass)
-    # The contract for the other Niak bricks (Niak Confort, future Niak Chauffage…).
+    # The contract for the other Hestia bricks (Hestia Confort, future Hestia Chauffage…).
     hass.data[API_KEY] = NiakWeatherApi(hass)
-    # The « Météo » tab of the shared « Niak » panel, and Niak Weather's line on its home page.
+    # The « Météo » tab of the shared « Hestia » panel, and Hestia Weather's line on its home page.
     await async_load_labels(hass)
     await async_setup_panel(hass, version)
     return True

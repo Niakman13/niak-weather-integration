@@ -48,7 +48,7 @@
         {
           "key": "vigilance_entity",
           "label": "Vigilance officielle",
-          "help": "Les alertes officielles de Météo-France ou de MétéoSuisse s’ajoutent à celles que calcule Niak.",
+          "help": "Les alertes officielles de Météo-France ou de MétéoSuisse s’ajoutent à celles que calcule Hestia.",
           "value": "",
           "entity": null,
           "need": "Facultatif",
@@ -134,7 +134,7 @@
         {
           "value": "none",
           "label": "Pas de station",
-          "hint": "Niak Weather s’appuie sur le service météo seul"
+          "hint": "Hestia Weather s’appuie sur le service météo seul"
         }
       ],
       "device": "none",

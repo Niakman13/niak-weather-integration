@@ -29,7 +29,7 @@ export type ForecastBlock = 'hours' | 'days' | 'air';
 export type CardBlock = 'now' | 'chart' | 'radar' | 'stats' | 'ahead' | 'feel' | 'gauge' | 'factors' | 'extras'
   | 'air_today' | 'pollen_today' | 'air_tomorrow' | 'pollen_tomorrow' | 'hours' | 'days';
 
-/** The card's own settings: what it shows and how. Its sources (weather, station, air) are set in the Niak Weather integration. */
+/** The card's own settings: what it shows and how. Its sources (weather, station, air) are set in the Hestia Weather integration. */
 /** What a press does: the full weather over the page, the weather page, fold or unfold the tile, or nothing. */
 export type PressAction = 'popup' | 'page' | 'toggle' | 'none';
 

@@ -18,4 +18,4 @@ const server=createServer((req,res)=>{
 });
 const port=Number(process.argv[2] ?? 0);
 if(!Number.isInteger(port) || port<0 || port>65535) throw new Error('Port invalide');
-server.listen(port,'127.0.0.1',()=>console.log(`Aperçu Niak Weather : http://127.0.0.1:${server.address().port}`));
+server.listen(port,'127.0.0.1',()=>console.log(`Aperçu Hestia Weather : http://127.0.0.1:${server.address().port}`));

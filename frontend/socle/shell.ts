@@ -1,4 +1,4 @@
-// Niak shared panel (socle v1.9): header, tabs and the home page listing every Niak brick.
+// Hestia shared panel (socle v1.9): header, tabs and the home page listing every Hestia brick.
 // Copied unchanged into each brick from niak-ecosysteme/socle/ (see ECOSYSTEME.md § 8).
 import {LitElement,html,css,nothing,type PropertyValues} from 'lit';
 import {frame,hubStyles,modernStyles,hubIcon} from './ui';
@@ -18,8 +18,8 @@ export function splitPath(path:string|undefined):[string,string]{
  const parts=(path??'').split('/').filter(Boolean);
  return [parts[0]??'',parts.length>1?'/'+parts.slice(1).join('/'):''];
 }
-export function shortName(name:string){return name.replace(/^Niak /,'');}
-// The tab's name: its own (since socle 1.1, « Météo » for Niak Weather), else the brick's without « Niak ».
+export function shortName(name:string){return name.replace(/^Hestia /,'');}
+// The tab's name: its own (since socle 1.1, « Météo » for Hestia Weather), else the brick's without « Hestia ».
 export function tabName(b:{name:string;tab?:string|null;navigation?:number|null}){return b.tab||shortName(b.name);}
 function navigate(path:string,replace=false){
  history[replace?'replaceState':'pushState'](null,'',path);
@@ -89,17 +89,17 @@ export class NiakShell extends LitElement {
   catch(e){this.error=typeof e==='object'&&e&&'message' in e?String(e.message):'Le thème n’a pas été enregistré.';}
   finally{this.saving=false;}
  }
- private appearance(){return frame('Thème du hub',html`<label class="theme-label" for="hub-theme">Apparence</label><select id="hub-theme" .value=${this.overview?.theme??'niak'} ?disabled=${this.saving} @change=${(e:Event)=>void this.setTheme((e.target as HTMLSelectElement).value as 'ha'|'niak')}><option value="ha">Suivre le thème Home Assistant</option><option value="niak">Utiliser le thème Niak</option></select><p class="muted">Home Assistant reprend les couleurs et la police de votre thème. Niak utilise sa propre palette, en suivant le mode clair ou sombre de Home Assistant.</p>`);}
+ private appearance(){return frame('Thème du hub',html`<label class="theme-label" for="hub-theme">Apparence</label><select id="hub-theme" .value=${this.overview?.theme??'niak'} ?disabled=${this.saving} @change=${(e:Event)=>void this.setTheme((e.target as HTMLSelectElement).value as 'ha'|'niak')}><option value="ha">Suivre le thème Home Assistant</option><option value="niak">Utiliser le thème Hestia</option></select><p class="muted">Home Assistant reprend les couleurs et la police de votre thème. Hestia utilise sa propre palette, en suivant le mode clair ou sombre de Home Assistant.</p>`);}
  private display(){const on=this.overview?.sidebar;
   if(on===undefined)return nothing;
-  return html`${frame('Affichage',html`<section class="other"><div><h3 id="sidebar-label">Niak dans le menu Home Assistant</h3>
-   <p class="muted">${on?'Niak est dans le menu de gauche.':'Niak n’est pas dans le menu de gauche.'}</p>
+  return html`${frame('Affichage',html`<section class="other"><div><h3 id="sidebar-label">Hestia dans le menu Home Assistant</h3>
+   <p class="muted">${on?'Hestia est dans le menu de gauche.':'Hestia n’est pas dans le menu de gauche.'}</p>
    <p class="muted">Masqué, il reste ouvert par la roue de chaque intégration, dans Paramètres.</p></div>
    <button role="switch" aria-checked=${on?'true':'false'} aria-labelledby="sidebar-label" ?disabled=${this.saving} @click=${()=>this.setSidebar(!on)}><span class="track"><span class="thumb"></span></span>${on?'Affiché':'Masqué'}</button></section>`)} `;}
  private menu(){this.dispatchEvent(new CustomEvent('hass-toggle-menu',{bubbles:true,composed:true}));}
  private go(slug:string){this.menuOpen=false;navigate('/niak'+(slug?'/'+slug:''));}
  private home(){const o=this.overview!;
-  return html`<main><div class="nk-home-head"><div><h1>Votre logement, connecté</h1><p>Vos briques Niak et les points à compléter, au même endroit.</p></div></div><div class="nk-bricks">
+  return html`<main><div class="nk-home-head"><div><h1>Votre logement, connecté</h1><p>Vos briques Hestia et les points à compléter, au même endroit.</p></div></div><div class="nk-bricks">
    ${o.bricks.map(b=>html`${frame(b.name,html`<section class="brick ${b.status.level}"><p class="version">Version ${b.version}</p>
     <p class="level"><span class="dot"></span>${levelText[b.status.level]}${b.status.summary?html`<span class="summary">${b.status.summary}</span>`:nothing}</p>
     ${b.status.details.length?html`<ul>${b.status.details.map(d=>html`<li>${d}</li>`)}</ul>`:nothing}
@@ -113,15 +113,15 @@ export class NiakShell extends LitElement {
   if(this.panel?.config?.redirect)return nothing;
   const [slug]=splitPath(this.route?.path);const o=this.overview;
   const active=o?.bricks.some(b=>b.slug===slug)?slug:'';const settings=slug==='reglages';
-  return html`<div class="mobile-bar"><button aria-label="Ouvrir la navigation Niak" aria-expanded=${String(this.menuOpen)} @click=${()=>this.menuOpen=!this.menuOpen}>${hubIcon('settings')}</button><strong>Niak</strong><button aria-label="Ouvrir le menu Home Assistant" @click=${()=>this.menu()}>${hubIcon('home')}</button></div>
-   ${this.menuOpen?html`<button class="backdrop" aria-label="Fermer la navigation Niak" @click=${()=>this.menuOpen=false}></button>`:nothing}
-   <aside class=${this.menuOpen?'open':''} aria-label="Navigation Niak" @keydown=${(e:KeyboardEvent)=>{if(e.key==='Escape'){this.menuOpen=false;this.updateComplete.then(()=>this.renderRoot.querySelector<HTMLButtonElement>('.mobile-bar button')?.focus());}}}><div class="brand"><button class="icon" aria-label="Ouvrir le menu Home Assistant" @click=${()=>this.menu()}>${hubIcon('home')}</button><strong>Niak</strong></div>
-    ${this.navGroup('Accueil Niak',[['','Vue d’ensemble','home'],['reglages','Réglages','settings']])}
+  return html`<div class="mobile-bar"><button aria-label="Ouvrir la navigation Hestia" aria-expanded=${String(this.menuOpen)} @click=${()=>this.menuOpen=!this.menuOpen}>${hubIcon('settings')}</button><strong>Hestia</strong><button aria-label="Ouvrir le menu Home Assistant" @click=${()=>this.menu()}>${hubIcon('home')}</button></div>
+   ${this.menuOpen?html`<button class="backdrop" aria-label="Fermer la navigation Hestia" @click=${()=>this.menuOpen=false}></button>`:nothing}
+   <aside class=${this.menuOpen?'open':''} aria-label="Navigation Hestia" @keydown=${(e:KeyboardEvent)=>{if(e.key==='Escape'){this.menuOpen=false;this.updateComplete.then(()=>this.renderRoot.querySelector<HTMLButtonElement>('.mobile-bar button')?.focus());}}}><div class="brand"><button class="icon" aria-label="Ouvrir le menu Home Assistant" @click=${()=>this.menu()}>${hubIcon('home')}</button><strong>Hestia</strong></div>
+    ${this.navGroup('Accueil Hestia',[['','Vue d’ensemble','home'],['reglages','Réglages','settings']])}
     ${[...(o?.bricks??[])].sort((a,b)=>(a.slug==='meteo'?-1:b.slug==='meteo'?1:0)).map(b=>this.navGroup(shortName(b.name),((b.navigation??0)>=1&&b.slug==='confort'||(b.navigation??0)>=2&&b.slug==='meteo')?[[b.slug,'Vue d’ensemble','home'],[b.slug+'/reglages','Réglages généraux','settings']]:b.navigation===1&&b.slug==='meteo'?[[b.slug,'Vue d’ensemble','home'],[b.slug+'/sources','Sources météo','weather'],[b.slug+'/station','Station météo · capteurs locaux','temperature'],[b.slug+'/air','Qualité de l’air','air'],[b.slug+'/pollens','Pollens','pollen'],[b.slug+'/entites','Entités','entities']]:[[b.slug,'Vue d’ensemble','home']]))}
    </aside>
    <div class="content" ?inert=${this.menuOpen}>${this.error?html`<main><p class="notice" role="alert">${this.error}</p><button @click=${()=>{this.error='';void this.load();}}>Réessayer</button></main>`
     :!o?html`<main><p class="muted" role="status">Chargement…</p></main>`
-    :active?this.tabs.get(active)??html`<main><p class="muted" role="status">Chargement…</p></main>`:settings?html`<main><h1>Réglages Niak</h1><p class="muted">Les préférences communes à votre hub.</p>${this.appearance()}${this.display()}</main>`:slug?html`<main><h1>Cette page est indisponible</h1><p>La brique correspondante n’est pas installée ou cette adresse est inconnue.</p><button @click=${()=>this.go('')}>Retour à l’accueil</button></main>`:this.home()}</div>`;
+    :active?this.tabs.get(active)??html`<main><p class="muted" role="status">Chargement…</p></main>`:settings?html`<main><h1>Réglages Hestia</h1><p class="muted">Les préférences communes à votre hub.</p>${this.appearance()}${this.display()}</main>`:slug?html`<main><h1>Cette page est indisponible</h1><p>La brique correspondante n’est pas installée ou cette adresse est inconnue.</p><button @click=${()=>this.go('')}>Retour à l’accueil</button></main>`:this.home()}</div>`;
  }
  static styles=[css`
   :host{display:flex;flex-direction:column;height:100%;color:var(--primary-text-color,#edf1f7);background:var(--primary-background-color,#151c25);font:16px/1.65 var(--paper-font-body1_-_font-family,Roboto,system-ui,sans-serif);--nk-accent:#a1c9e8;--nk-action-bg:#285f87;--nk-ok:#a1c9e8;--nk-todo:#f2a65a;--nk-border:var(--divider-color,#657386);--nk-muted:var(--secondary-text-color,#bdc5d1);--nk-surface:var(--card-background-color,#222932)}

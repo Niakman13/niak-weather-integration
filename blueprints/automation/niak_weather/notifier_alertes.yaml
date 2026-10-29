@@ -1,9 +1,9 @@
 blueprint:
-  name: Niak Weather · Notifier les alertes
+  name: Hestia Weather · Notifier les alertes
   description: >-
-    Un message quand une alerte Niak Weather commence, change de niveau ou se termine :
+    Un message quand une alerte Hestia Weather commence, change de niveau ou se termine :
     vigilance Météo-France, orage, vent fort, pluie forte, gel, canicule, UV.
-    Toute la météo est calculée par Niak Weather ; cette automatisation ne fait que transmettre.
+    Toute la météo est calculée par Hestia Weather ; cette automatisation ne fait que transmettre.
     Le message de fin remplace celui du début sur le téléphone.
   domain: automation
   source_url: https://github.com/Niakman13/niak-weather-integration/blob/main/blueprints/automation/niak_weather/notifier_alertes.yaml

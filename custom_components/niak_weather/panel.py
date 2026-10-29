@@ -1,6 +1,6 @@
-"""The « Météo » tab of the shared « Niak » panel (socle, see socle.py) and what the panel's home page says about Niak Weather.
+"""The « Météo » tab of the shared « Hestia » panel (socle, see socle.py) and what the panel's home page says about Hestia Weather.
 
-The assistant of Paramètres (Configurer) stays as it is while the panel takes over: Niak Weather keeps no former panel
+The assistant of Paramètres (Configurer) stays as it is while the panel takes over: Hestia Weather keeps no former panel
 address, so the « Configurer » button still opens it.
 """
 from __future__ import annotations
@@ -48,7 +48,7 @@ async def async_setup_panel(hass: HomeAssistant, version: str) -> None:
         await async_register_card(hass, CARD_URL, version)
         hass.data[f"{DOMAIN}_panel"] = True
     await async_register_brick(hass, {
-        "domain": DOMAIN, "name": "Niak Weather", "slug": "meteo", "tab": "Météo", "version": version, "icon": "mdi:weather-partly-cloudy",
+        "domain": DOMAIN, "name": "Hestia Weather", "slug": "meteo", "tab": "Météo", "version": version, "icon": "mdi:weather-partly-cloudy",
         "navigation": 2, "module_url": f"{ASSETS}/panel.js?v={version}", "element": "niak-weather-setup", "status": weather_status, "legacy_path": "",
     }, f"{ASSETS}/niak-socle.js?v={version}")
 
@@ -60,7 +60,7 @@ def _entries(hass: HomeAssistant) -> list[Any]:
 def _entry(hass: HomeAssistant, entry_id: str | None) -> Any:
     entry = hass.config_entries.async_get_entry(entry_id) if entry_id else None
     if entry_id and (entry is None or entry.domain != DOMAIN):
-        raise LookupError("Lieu Niak Weather introuvable.")
+        raise LookupError("Lieu Hestia Weather introuvable.")
     return entry
 
 
@@ -138,7 +138,7 @@ def facts(hass: HomeAssistant, entry: Any, card_twice: bool = False) -> health.F
     ready = [family_label(family)[0] for family, members in families.FAMILIES
              if any(k in keys for k in members) and not any(keys.get(k) for k in members) and not any(k in needs for k in members if k in keys)]
     bricks = linked(hass, entry.entry_id)
-    names = [b["name"] for b in ecosystem_of(hass, entry.entry_id) if b["state"] == "linked"] + (["une autre brique Niak"] if bricks.get("") else [])
+    names = [b["name"] for b in ecosystem_of(hass, entry.entry_id) if b["state"] == "linked"] + (["une autre brique Hestia"] if bricks.get("") else [])
     return health.Facts(
         title=entry.title, failed=failed, restarting=not loaded and not failed,
         weather=_name(weather, sources.get("weather_entity") or "") if weather else (sources.get("weather_entity") or ""),
@@ -208,7 +208,7 @@ async def card_twice(hass: HomeAssistant) -> bool:
 
 
 async def weather_status(hass: HomeAssistant) -> dict[str, Any]:
-    """What the « Niak » home page says about Niak Weather, from its own settings only."""
+    """What the « Hestia » home page says about Hestia Weather, from its own settings only."""
     twice = await card_twice(hass)
     return home.status([place(hass, e, twice)[1] for e in _entries(hass)], twice)
 
@@ -242,7 +242,7 @@ async def ws_open(hass: HomeAssistant, connection: websocket_api.ActiveConnectio
     if entry is None and not _has_weather(hass):
         connection.send_error(msg["id"], "no_weather", "Aucun service météo dans Home Assistant : installez Météo-France, puis revenez ici.")
         return
-    # The saved settings come along: what Niak proposes on top of them shows as proposed.
+    # The saved settings come along: what Hestia proposes on top of them shows as proposed.
     _send_draft(connection, msg, Draft.start(hass, entry), saved=dict(entry.options) if entry else None)
 
 
@@ -282,7 +282,7 @@ async def ws_save(hass: HomeAssistant, connection: websocket_api.ActiveConnectio
 @websocket_api.require_admin
 @websocket_api.async_response
 async def ws_link(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
-    """Links this place to an official Niak brick or unlinks it, saved at once on the brick's side: one link for both."""
+    """Links this place to an official Hestia brick or unlinks it, saved at once on the brick's side: one link for both."""
     try:
         _entry(hass, msg["entry_id"])
         await set_official(hass, msg["brick"], msg["entry_id"], msg["enabled"])

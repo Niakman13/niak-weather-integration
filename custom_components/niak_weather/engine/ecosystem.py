@@ -1,8 +1,8 @@
-"""The Niak bricks Niak Weather can feed, and how each one stands with this place: what the « Écosystème Niak » screen says.
+"""The Hestia bricks Hestia Weather can feed, and how each one stands with this place: what the « Écosystème Hestia » screen says.
 
-Niak Weather consumes no other brick: it only publishes. A brick is « relié » when it listens to this place through the
+Hestia Weather consumes no other brick: it only publishes. A brick is « relié » when it listens to this place through the
 published interface (api.py), « installé » when Home Assistant has it set up but it does not listen here, else missing or yet
-to come. Nothing is guessed from the other bricks' settings (Écosystème Niak, rule 3).
+to come. Nothing is guessed from the other bricks' settings (Écosystème Hestia, rule 3).
 """
 from __future__ import annotations
 
@@ -15,17 +15,17 @@ class Brick:
     domain: str
     name: str
     takes: str
-    """What it takes from Niak Weather, in a few words."""
+    """What it takes from Hestia Weather, in a few words."""
     url: str = ""
     """Where to install it; empty while it does not exist yet."""
 
 
 BRICKS = (
-    Brick("niak_comfort", "Niak Confort", "votre station, vos alertes et vos prévisions, pour conseiller d’ouvrir ou de fermer au bon moment",
+    Brick("niak_comfort", "Hestia Confort", "votre station, vos alertes et vos prévisions, pour conseiller d’ouvrir ou de fermer au bon moment",
           "https://github.com/Niakman13/niak-comfort-integration"),
-    Brick("niak_heating", "Niak Chauffage", "le froid à venir, l’ensoleillement et les degrés-jours, pour chauffer au bon moment"),
-    Brick("niak_garden", "Niak Jardin", "la pluie tombée et à venir, pour n’arroser que si c’est utile"),
-    Brick("niak_energy", "Niak Énergie", "l’ensoleillement prévu, pour estimer la production solaire"),
+    Brick("niak_heating", "Hestia Chauffage", "le froid à venir, l’ensoleillement et les degrés-jours, pour chauffer au bon moment"),
+    Brick("niak_garden", "Hestia Jardin", "la pluie tombée et à venir, pour n’arroser que si c’est utile"),
+    Brick("niak_energy", "Hestia Énergie", "l’ensoleillement prévu, pour estimer la production solaire"),
 )
 
 
@@ -49,7 +49,7 @@ def links(linked: Mapping[str, int], installed: Collection[str]) -> str:
 
 
 def states(linked: Mapping[str, int], installed: Collection[str]) -> list[dict[str, str]]:
-    """The same as `links`, one entry per brick, for the Niak panel: `state` is linked, installed, missing or future."""
+    """The same as `links`, one entry per brick, for the Hestia panel: `state` is linked, installed, missing or future."""
     return [{"domain": b.domain, "name": b.name, "takes": b.takes, "url": b.url,
              "state": "linked" if linked.get(b.domain) else "installed" if b.domain in installed else "missing" if b.url else "future"}
             for b in BRICKS]

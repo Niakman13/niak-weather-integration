@@ -1,4 +1,4 @@
-"""What the Niak Weather card asks for: the configured places, and a live view of one of them."""
+"""What the Hestia Weather card asks for: the configured places, and a live view of one of them."""
 from __future__ import annotations
 
 from typing import Any
@@ -44,9 +44,9 @@ def ws_subscribe(hass: HomeAssistant, connection: websocket_api.ActiveConnection
     wanted = msg.get("entry_id")
     entry = next((e for e in entries if e.entry_id == wanted), None) if wanted else entries[0] if len(entries) == 1 else None
     if entry is None:
-        code, message = (("not_found", "Lieu Niak Weather introuvable") if wanted else
-                         ("choose_entry", "Plusieurs lieux Niak Weather : choisissez-en un") if entries else
-                         ("not_configured", "L’intégration Niak Weather n’est pas configurée"))
+        code, message = (("not_found", "Lieu Hestia Weather introuvable") if wanted else
+                         ("choose_entry", "Plusieurs lieux Hestia Weather : choisissez-en un") if entries else
+                         ("not_configured", "L’intégration Hestia Weather n’est pas configurée"))
         connection.send_error(msg["id"], code, message)
         return
     coordinator = entry.runtime_data

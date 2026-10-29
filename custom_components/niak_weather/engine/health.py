@@ -142,7 +142,7 @@ def report(f: Facts) -> dict:
     oldest = max((s.age for s in broken if s.age is not None), default=None)
     if f.sensors and len(broken) == len(f.sensors):
         todo.append(_line("bad", "La station ne répond pas",
-                          f"Aucun de ses {len(f.sensors)} capteurs ne donne de valeur{_since(oldest)} : Niak s’appuie sur le service météo.", 1))
+                          f"Aucun de ses {len(f.sensors)} capteurs ne donne de valeur{_since(oldest)} : Hestia s’appuie sur le service météo.", 1))
     elif broken:
         verb = "ne répond pas" if len(broken) == 1 else "ne répondent pas"
         when = _since(oldest)
@@ -160,7 +160,7 @@ def report(f: Facts) -> dict:
     for text in silent_sources(f):
         todo.append(_line("bad", text, "Ses valeurs restent vides tant qu’elle ne revient pas : voyez son intégration dans Appareils et services.", 2))
     if f.card_twice:
-        todo.append(_line("bad", "Carte installée deux fois", "Retirez la carte Niak Weather de HACS : l’intégration la fournit maintenant.", None))
+        todo.append(_line("bad", "Carte installée deux fois", "Retirez la carte Hestia Weather de HACS : l’intégration la fournit maintenant.", None))
 
     # ---- What could be set better ----
     if not f.station:
@@ -175,10 +175,10 @@ def report(f: Facts) -> dict:
                               "Cumuls de pluie, tendance de la température et rafale du jour, quand la station ne les donne pas.", 1))
     if not f.vigilance and "vigilance" not in enabled:
         tips.append(_line("tip", "Choisir la vigilance officielle",
-                          f"Un capteur est disponible (« {f.vigilance_found} ») : les alertes officielles s’ajoutent à celles de Niak.", 0)
+                          f"Un capteur est disponible (« {f.vigilance_found} ») : les alertes officielles s’ajoutent à celles de Hestia.", 0)
                     if f.vigilance_found else
                     _line("tip", "Ajouter la vigilance officielle",
-                          "Installez Météo-France ou MeteoSwiss pour votre région : les alertes officielles s’ajoutent à celles de Niak.", 0))
+                          "Installez Météo-France ou MeteoSwiss pour votre région : les alertes officielles s’ajoutent à celles de Hestia.", 0))
     if not f.air:
         tips.append(_line("tip", "Choisir une zone Atmo France", "Atmo France est installée : l’indice de l’air du jour et ses polluants.", 2)
                     if f.atmo_installed else
@@ -186,8 +186,8 @@ def report(f: Facts) -> dict:
     if not f.pollen and f.pollen_available:
         tips.append(_line("tip", "Suivre les pollens", "Une source de pollens est installée : l’indice du jour, espèce par espèce.", 3))
     if f.ready_families:
-        tips.append(_line("tip", "Entités Niak Weather à activer : " + ", ".join(f.ready_families),
-                          "Niak Weather peut les créer pour vos automatisations : leurs sources sont en place. La carte n’en a pas besoin.", 4))
+        tips.append(_line("tip", "Entités Hestia Weather à activer : " + ", ".join(f.ready_families),
+                          "Hestia Weather peut les créer pour vos automatisations : leurs sources sont en place. La carte n’en a pas besoin.", 4))
 
     # ---- Sources ----
     forecast_ok = f.weather_ok and f.forecast_age is not None and f.forecast_age <= STALE_FORECAST
@@ -245,7 +245,7 @@ def report(f: Facts) -> dict:
     versions.append({"level": "bad" if f.card_twice else "ok", "text": f"Carte {f.integration}",
                      "why": "installée deux fois : retirez celle de HACS" if f.card_twice else "fournie par l’intégration"})
     versions += [{"level": "ok", "text": f"Relié à {name}", "why": ""} for name in f.links] or [
-        {"level": "none", "text": "Aucune brique Niak reliée", "why": "Niak Confort peut reprendre la station, les alertes et les prévisions de ce lieu"}]
+        {"level": "none", "text": "Aucune brique Hestia reliée", "why": "Hestia Confort peut reprendre la station, les alertes et les prévisions de ce lieu"}]
 
     return {"title": f.title, "level": "action" if todo else "ok",
             "summary": _plural(len(todo), "point") + " à régler" if todo else "Tout est suivi",

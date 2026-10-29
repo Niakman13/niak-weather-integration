@@ -1,7 +1,7 @@
-"""The interface Niak Weather publishes for the other Niak bricks (version 1).
+"""The interface Hestia Weather publishes for the other Hestia bricks (version 1).
 
 Other bricks read `hass.data["niak_weather_api"]` and check `version` before using it.
-They never read Niak Weather's own settings: this object is the contract, and it only grows
+They never read Hestia Weather's own settings: this object is the contract, and it only grows
 compatibly within a major version.
 """
 from __future__ import annotations
@@ -15,7 +15,7 @@ DOMAIN = "niak_weather"
 
 API_KEY = "niak_weather_api"
 API_VERSION = 1
-# Station roles published to the other bricks, mapped to Niak Weather's own settings.
+# Station roles published to the other bricks, mapped to Hestia Weather's own settings.
 STATION = {"temperature": "temperature_entity", "humidity": "humidity_entity", "rain_rate": "rain_rate_entity",
            "wind_speed": "wind_speed_entity", "wind_gust": "wind_gust_entity", "wind_bearing": "wind_bearing_entity",
            "solar_radiation": "solar_radiation_entity", "uv_index": "uv_index_entity", "pressure": "pressure_entity"}
@@ -43,7 +43,7 @@ class NiakWeatherApi:
         return [{"entry_id": e.entry_id, "title": e.title} for e in self._entries()]
 
     def station(self, entry_id: str | None = None) -> dict[str, Any] | None:
-        """The station sensors chosen in Niak Weather, by role. Roles without a sensor are left out."""
+        """The station sensors chosen in Hestia Weather, by role. Roles without a sensor are left out."""
         entry = self._entry(entry_id)
         if entry is None:
             return None
@@ -52,8 +52,8 @@ class NiakWeatherApi:
         return {"entry_id": entry.entry_id, "title": entry.title, "sensors": sensors}
 
     def hourly(self, entry_id: str | None = None) -> list[dict[str, Any]]:
-        """The hourly forecast as Niak Weather reads it: °C, %, mm, km/h and degrees, ISO times; `cloud_coverage` in %
-        when the weather service gives it (Niak Confort estimates with it the sun its station cannot see)."""
+        """The hourly forecast as Hestia Weather reads it: °C, %, mm, km/h and degrees, ISO times; `cloud_coverage` in %
+        when the weather service gives it (Hestia Confort estimates with it the sun its station cannot see)."""
         entry = self._entry(entry_id)
         if entry is None:
             return []
@@ -63,7 +63,7 @@ class NiakWeatherApi:
                 for h in entry.runtime_data.hours if h.time is not None]
 
     def air(self, entry_id: str | None = None) -> dict[str, Any] | None:
-        """Today's outdoor air from the source chosen in Niak Weather, on Atmo's scale: 1 Bon to 6 Extrêmement mauvais.
+        """Today's outdoor air from the source chosen in Hestia Weather, on Atmo's scale: 1 Bon to 6 Extrêmement mauvais.
 
         `source` is « atmo » (the regional index of the day) or « waqi » (a station's measure); `entity_id` its sensor.
         `index` is None while the source does not answer. None without a place or without an air source."""
@@ -83,7 +83,7 @@ class NiakWeatherApi:
                 "at": data.computed.isoformat() if data is not None else None}
 
     def season(self, entry_id: str | None = None) -> dict[str, Any] | None:
-        """Today's season for this place, as Niak Weather shows it: the Season sensor chosen in its settings when it
+        """Today's season for this place, as Hestia Weather shows it: the Season sensor chosen in its settings when it
         answers, else the astronomical date. `season` is « spring », « summer », « autumn » or « winter »;
         `day_length` the hours of daylight. None without a place."""
         entry = self._entry(entry_id)
@@ -152,7 +152,7 @@ class NiakWeatherApi:
     def add_listener(self, entry_id: str | None, update: Callable[[], None], brick: str | None = None) -> Callable[[], None]:
         """Calls `update` whenever this place is recomputed (new measures or forecasts).
 
-        `brick`: the listener's own domain (« niak_comfort »), so that Niak Weather's settings show it linked to this place."""
+        `brick`: the listener's own domain (« niak_comfort »), so that Hestia Weather's settings show it linked to this place."""
         entry = self._entry(entry_id)
         if entry is None:
             return lambda: None

@@ -1,4 +1,4 @@
-"""The interface published for the other Niak bricks: places, station by role, hourly forecast."""
+"""The interface published for the other Hestia bricks: places, station by role, hourly forecast."""
 from datetime import datetime, timezone
 from pathlib import Path
 import sys
@@ -103,7 +103,7 @@ def test_rain_ahead_is_published_once_computed():
 
 
 def test_season_is_shared_with_the_other_bricks():
-    """Niak Confort asks it, to propose an airing at hours that suit the season (21 October 2026)."""
+    """Hestia Confort asks it, to propose an airing at hours that suit the season (21 October 2026)."""
     e = entry("e1", "Gardanne", Settings(weather_entity="weather.home", season_entity="sensor.season"))
     states = {"sensor.season": SimpleNamespace(state="autumn")}
     hass = SimpleNamespace(config_entries=SimpleNamespace(async_entries=lambda domain: [e]), states=SimpleNamespace(get=states.get),

@@ -2,7 +2,7 @@
   "name": "niak-weather-card",
   "version": "2.6.0",
   "private": true,
-  "description": "The Niak Weather card, served by the integration on every dashboard",
+  "description": "The Hestia Weather card, served by the integration on every dashboard",
   "type": "module",
   "scripts": {
     "build": "node ./scripts/build.mjs",

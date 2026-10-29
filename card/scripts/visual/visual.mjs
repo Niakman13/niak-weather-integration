@@ -1,4 +1,4 @@
-// Banc visuel de Niak Weather.
+// Banc visuel de Hestia Weather.
 //   node scripts/visual/visual.mjs capture [--card ../custom_components/niak_weather/frontend/niak-weather-card.js] [--out actuel] [--only ciel,alertes]
 //   node scripts/visual/visual.mjs compare reference actuel     → images de différences + rapport
 //   node scripts/visual/visual.mjs sheet actuel                 → une planche PNG par groupe
@@ -91,7 +91,7 @@ async function sheet() {
       h1{font-size:26px;margin:0 0 4px} p{margin:0 0 22px;color:#606b7c}
       main{display:grid;grid-template-columns:repeat(${cols},minmax(0,1fr));gap:18px 16px;align-items:start}
       figure{margin:0} figure.wide{grid-column:1/-1} img{display:block;max-width:100%;height:auto;border-radius:10px} figcaption{margin-top:6px;font-weight:600;font-size:13px}
-    </style><h1>Niak Weather · ${title}</h1><p>Version actuelle, données de démonstration, jeudi 8 octobre 17 h 40, animations figées.</p><main>${cells}</main>`);
+    </style><h1>Hestia Weather · ${title}</h1><p>Version actuelle, données de démonstration, jeudi 8 octobre 17 h 40, animations figées.</p><main>${cells}</main>`);
     const file = join(RESULTS, 'planches', `${group}.png`); mkdirSync(dirname(file), { recursive: true });
     await page.screenshot({ path: file, fullPage: true });
     console.log(`Planche ${title} : ${file}`);
@@ -141,7 +141,7 @@ async function docs() {
     const stage = document.getElementById('stage');
     stage.style.cssText = 'display:flex;flex-direction:column;align-items:center;box-sizing:border-box;width:1672px;height:767px;padding:44px 86px 0;'
       + 'background:radial-gradient(120% 90% at 50% 0%,#f7f9fc 0%,#edf1f7 60%,#e6ebf3 100%);font-family:Roboto,system-ui,sans-serif;color:#1d2a3d';
-    stage.innerHTML = `<h1 style="margin:0;font-size:84px;line-height:1;font-weight:800;letter-spacing:-3px">Niak Weather</h1>
+    stage.innerHTML = `<h1 style="margin:0;font-size:84px;line-height:1;font-weight:800;letter-spacing:-3px">Hestia Weather</h1>
       <p style="margin:20px 0 0;font-size:30px;color:#566275">Votre station météo et les prévisions, réunies en une carte qui parle.</p>
       <div style="display:flex;gap:12px;margin:22px 0 34px">${['Station locale', 'Prévisions', 'Vigilance Météo-France', 'Air et pollens', 'Ciel animé']
         .map(t => `<span style="padding:6px 16px;border-radius:999px;border:1px solid #d5dce6;background:#fffc;font-size:18px;color:#3c495c">${t}</span>`).join('')}</div>

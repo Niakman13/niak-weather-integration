@@ -210,11 +210,11 @@ try {
   });
   assert.deepEqual(problems, {
     // Downloaded but not added, the integration is not started either: the message offers to add it first, then to install it.
-    unknown_command: ['Niak Weather a besoin de son intégration', '/config/integrations/dashboard/add?domain=niak_weather', 'https://github.com/Niakman13/niak-weather-integration#installation'],
-    not_configured: ['Ajoutez l’intégration Niak Weather', '/config/integrations/dashboard/add?domain=niak_weather'],
+    unknown_command: ['Hestia Weather a besoin de son intégration', '/config/integrations/dashboard/add?domain=niak_weather', 'https://github.com/Niakman13/niak-weather-integration#installation'],
+    not_configured: ['Ajoutez l’intégration Hestia Weather', '/config/integrations/dashboard/add?domain=niak_weather'],
     choose_entry: ['Choisissez un lieu'],
     // Any other answer is the integration's own error: shown as it is, with the way to the logs.
-    unknown_error: ['L’intégration Niak Weather a renvoyé une erreur', '/config/logs', '« Erreur de test · unknown_error »'] }, 'Messages without the integration');
+    unknown_error: ['L’intégration Hestia Weather a renvoyé une erreur', '/config/logs', '« Erreur de test · unknown_error »'] }, 'Messages without the integration');
   report.problems = problems;
 
   // 11. The card loaded twice (one from HACS next to the integration's): nothing breaks, each kind is offered once.

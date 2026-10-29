@@ -2,13 +2,13 @@
 
 [Accueil](../README.md) · [Les capteurs](capteurs.md) · [Le ressenti](ressenti.md) · [La synthèse et les alertes](synthese.md) · [Le bulletin du jour](bulletin.md) · [Sources et réglages](sources.md) · [Pluie, vent, pression](mesures.md)
 
-Cette page s’adresse à qui veut comprendre ou modifier Niak Weather.
+Cette page s’adresse à qui veut comprendre ou modifier Hestia Weather.
 
 ## Le but
 
-Niak Weather est **le cerveau** : il lit les sources, calcule, et donne le résultat à ceux qui l’affichent ou s’en servent.
+Hestia Weather est **le cerveau** : il lit les sources, calcule, et donne le résultat à ceux qui l’affichent ou s’en servent.
 
-- La [carte Niak Weather](carte/README.md) ne fait qu’afficher ce qu’il lui envoie. Son code est dans `card/`, compilé dans `custom_components/niak_weather/frontend/niak-weather-card.js` ; l’intégration la charge sur chaque tableau de bord (depuis 2.3), à sa propre version.
+- La [carte Hestia Weather](carte/README.md) ne fait qu’afficher ce qu’il lui envoie. Son code est dans `card/`, compilé dans `custom_components/niak_weather/frontend/niak-weather-card.js` ; l’intégration la charge sur chaque tableau de bord (depuis 2.3), à sa propre version.
 - Les capteurs servent aux automatisations : volets, chauffage, arrosage, notifications.
 
 Les calculs sont faits **une fois, dans Home Assistant**, au lieu de l’être dans chaque navigateur ouvert.
@@ -52,19 +52,19 @@ La **vue** contient tout ce que la carte affiche, déjà calculé et rédigé en
 - elle est décrite par `engine/view.py`, et côté carte par `src/view.ts` ;
 - `version` monte seulement si une carte plus ancienne ne peut plus la lire : elle demande alors sa mise à jour.
 
-## L’interface pour les autres briques Niak
+## L’interface pour les autres briques Hestia
 
-Niak Weather publie pour les autres briques (Niak Confort, futur Niak Chauffage…) un objet versionné, `hass.data["niak_weather_api"]` (`api.py`, version 1). Les autres briques vérifient `version` et ne lisent jamais les réglages internes de Niak Weather.
+Hestia Weather publie pour les autres briques (Hestia Confort, futur Hestia Chauffage…) un objet versionné, `hass.data["niak_weather_api"]` (`api.py`, version 1). Les autres briques vérifient `version` et ne lisent jamais les réglages internes de Hestia Weather.
 
 | Méthode | Ce qu’elle donne |
 | --- | --- |
 | `places()` | Les lieux configurés (`entry_id`, `title`). |
-| `station(entry_id)` | Les capteurs de la station choisis dans Niak Weather, par rôle : `temperature`, `humidity`, `rain_rate`, `wind_speed`, `wind_gust`, `wind_bearing`, `solar_radiation`, `uv_index`, `pressure`. |
-| `hourly(entry_id)` | Les prévisions horaires lues par Niak Weather : heure ISO, °C, %, mm, km/h, direction du vent en degrés, condition. |
-| `add_listener(entry_id, rappel, brick=None)` | Prévient quand le lieu est recalculé ; renvoie la fonction qui arrête l’écoute. `brick` : le domaine de la brique qui écoute (`niak_comfort`), pour qu’elle apparaisse « reliée » dans les réglages de Niak Weather. |
+| `station(entry_id)` | Les capteurs de la station choisis dans Hestia Weather, par rôle : `temperature`, `humidity`, `rain_rate`, `wind_speed`, `wind_gust`, `wind_bearing`, `solar_radiation`, `uv_index`, `pressure`. |
+| `hourly(entry_id)` | Les prévisions horaires lues par Hestia Weather : heure ISO, °C, %, mm, km/h, direction du vent en degrés, condition. |
+| `add_listener(entry_id, rappel, brick=None)` | Prévient quand le lieu est recalculé ; renvoie la fonction qui arrête l’écoute. `brick` : le domaine de la brique qui écoute (`niak_comfort`), pour qu’elle apparaisse « reliée » dans les réglages de Hestia Weather. |
 | `linked(entry_id)` | Les briques qui écoutent ce lieu, par domaine. |
 
-Dans Niak Weather, **Configurer → Écosystème Niak** montre chaque brique : reliée à ce lieu, installée mais pas reliée, non installée, ou à venir.
+Dans Hestia Weather, **Configurer → Écosystème Hestia** montre chaque brique : reliée à ce lieu, installée mais pas reliée, non installée, ou à venir.
 
 Sans `entry_id`, le seul lieu configuré est utilisé ; avec plusieurs lieux, la brique doit en choisir un. Les entités restent l’autre moyen de lecture : elles sont reconnues par leur identifiant interne `<entrée>_<clé>`.
 

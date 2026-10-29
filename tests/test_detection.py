@@ -244,9 +244,9 @@ def test_niak_weather_never_offers_its_own_sensors_or_device_as_a_station() -> N
         entity_id: str
         state: str
         attributes: dict = field(default_factory=dict)
-    states = [S("sensor.niak_weather_point_de_rosee", "12", {"unit_of_measurement": "°C", "device_class": "temperature", "friendly_name": "Niak Weather Point de rosée"})]
+    states = [S("sensor.niak_weather_point_de_rosee", "12", {"unit_of_measurement": "°C", "device_class": "temperature", "friendly_name": "Hestia Weather Point de rosée"})]
     registry = {"sensor.niak_weather_point_de_rosee": {"platform": "niak_weather", "device_id": "niak"}}
-    assert source_devices(states, registry, {"niak": {"name": "Niak Weather"}}) == []
+    assert source_devices(states, registry, {"niak": {"name": "Hestia Weather"}}) == []
     assert candidates(states, "dew_point_entity", registry) == []
 
 

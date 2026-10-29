@@ -19,7 +19,7 @@ Les délais se calculent avec les dates des prévisions, jamais avec la place d�
 
 ## Les seuils
 
-Ce sont des **règles de lecture** de Niak Weather, pas des seuils départementaux officiels ni des recommandations médicales.
+Ce sont des **règles de lecture** de Hestia Weather, pas des seuils départementaux officiels ni des recommandations médicales.
 
 | Point | À surveiller | Attention renforcée |
 | --- | --- | --- |
@@ -76,6 +76,6 @@ Les références restent le [dispositif officiel Météo-France](https://vigilan
 - Sans humidité, le ressenti le dit.
 - Ce qui manque est listé dans le **i**, sous « À vérifier ».
 
-Aucune alerte de Niak Weather ne remplace les consignes officielles.
+Aucune alerte de Hestia Weather ne remplace les consignes officielles.
 
 [Les règles dans le code](../custom_components/niak_weather/engine/brief.py).

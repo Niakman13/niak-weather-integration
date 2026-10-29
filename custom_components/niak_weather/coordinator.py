@@ -116,10 +116,10 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
         self.hours: list[Hour] = []
         self.days: list[Day] = []
         self.forecast_rows: dict[str, list[dict[str, Any]]] = {"hourly": [], "daily": []}
-        """The provider's forecasts in the engine's units, passed on by the Niak Weather weather entity."""
+        """The provider's forecasts in the engine's units, passed on by the Hestia Weather weather entity."""
         self.forecast_version = 0
         self.forecast_at: datetime | None = None
-        """When the hourly forecast last arrived, for the Niak panel."""
+        """When the hourly forecast last arrived, for the Hestia panel."""
         self.watch = AlertWatch()
         self._store = alert_store(hass, entry.entry_id)
         self.history: dict[str, list[Change]] = {}
@@ -419,7 +419,7 @@ class NiakWeatherCoordinator(DataUpdateCoordinator[Snapshot]):
 
     async def _hourly(self, entity_id: str, start: datetime, now: datetime, kind: str, statistic: str) -> list[Change] | None:
         """Hourly means or maxima, or None when the sensor keeps no statistics. The sensor itself may not have started yet
-        (Niak Weather often starts before the station): the statistics are read without it, in the unit they are kept in."""
+        (Hestia Weather often starts before the station): the statistics are read without it, in the unit they are kept in."""
         state = self.hass.states.get(entity_id)
         unit = state.attributes.get("unit_of_measurement") if state is not None else None
 

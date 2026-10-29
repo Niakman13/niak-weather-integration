@@ -46,7 +46,7 @@ class Units:
     pressure: str = "hPa"
 
 
-# Forecast fields carrying a measure, converted to the engine's units when Niak Weather passes a forecast on.
+# Forecast fields carrying a measure, converted to the engine's units when Hestia Weather passes a forecast on.
 _ROW_KINDS = {"temperature": Kind.TEMPERATURE, "templow": Kind.TEMPERATURE, "apparent_temperature": Kind.TEMPERATURE, "dew_point": Kind.TEMPERATURE,
               "precipitation": Kind.RAIN, "wind_speed": Kind.WIND, "wind_gust_speed": Kind.WIND, "pressure": Kind.PRESSURE}
 

@@ -1,4 +1,4 @@
-# Niak Weather — intégration
+# Hestia Weather — intégration
 
 [![release](https://img.shields.io/github/v/release/Niakman13/niak-weather-integration?cacheSeconds=86400)](https://github.com/Niakman13/niak-weather-integration/releases)
 [![Validate](https://github.com/Niakman13/niak-weather-integration/actions/workflows/validate.yml/badge.svg)](https://github.com/Niakman13/niak-weather-integration/actions/workflows/validate.yml)
@@ -15,11 +15,11 @@
 
 Elle donne le résultat à **sa carte**, fournie avec elle, et à vos automatisations.
 
-![Niak Weather — la météo de chez vous, expliquée et anticipée : la synthèse sous l’orage, entre les cartes Pluie et Air et pollens](docs/carte/images/niak-weather-banner.png)
+![Hestia Weather — la météo de chez vous, expliquée et anticipée : la synthèse sous l’orage, entre les cartes Pluie et Air et pollens](docs/carte/images/niak-weather-banner.png)
 
 ## Pourquoi
 
-Une station météo donne des chiffres ; Météo-France donne des prévisions pour la commune. Niak Weather les met ensemble et les explique :
+Une station météo donne des chiffres ; Météo-France donne des prévisions pour la commune. Hestia Weather les met ensemble et les explique :
 
 - **Maintenant** : ce que l’on ressent vraiment, et pourquoi (humidité, soleil, vent, pluie).
 - **À venir** : la pluie, l’orage, le gel des prochaines heures, à leur heure.
@@ -37,9 +37,9 @@ Tout est calculé une fois, dans Home Assistant : la carte affiche, vos automati
 ## Installation
 
 1. Dans HACS, ⋮ → **Dépôts personnalisés** : ajoutez `https://github.com/Niakman13/niak-weather-integration`, catégorie **Intégration**.
-2. Installez **Niak Weather**, puis redémarrez Home Assistant.
-3. **Paramètres → Appareils et services → Ajouter une intégration → Niak Weather.**
-4. Sur un tableau de bord : **Ajouter une carte → Niak Weather**. La carte est fournie par l’intégration (depuis la 2.3) : rien d’autre à installer.
+2. Installez **Hestia Weather**, puis redémarrez Home Assistant.
+3. **Paramètres → Appareils et services → Ajouter une intégration → Hestia Weather.**
+4. Sur un tableau de bord : **Ajouter une carte → Hestia Weather**. La carte est fournie par l’intégration (depuis la 2.3) : rien d’autre à installer.
 
 [![Ouvrir dans HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Niakman13&repository=niak-weather-integration&category=integration)
 
@@ -54,25 +54,25 @@ Un guide en quatre étapes, puis un récapitulatif :
 3. **Qualité de l’air**, puis **Pollens** : l’air d’Atmo France, et les pollens d’Atmo France, de Polleninformation, d’IRM KMI (Belgique), de Swiss Pollen (Suisse) ou de Kleenex / Scottex (France et autres pays couverts).
 4. **Capteurs et automatisations** : les familles d’entités à activer.
 
-Vous utilisez déjà la carte Niak Weather ? Le guide propose de reprendre ses réglages. Un champ laissé vide est un choix : il n’est jamais rempli à votre place.
+Vous utilisez déjà la carte Hestia Weather ? Le guide propose de reprendre ses réglages. Un champ laissé vide est un choix : il n’est jamais rempli à votre place.
 
-**Configurer** conduit au **hub Niak**. Depuis la version **2.5.0**, son menu regroupe Accueil Niak, Weather et Confort selon les briques installées. La vue d’ensemble Weather présente les lieux et leur bouton **Configurer**. Les rubriques **Sources météo**, **Station météo · capteurs locaux**, **Qualité de l’air**, **Pollens** et **Entités** ouvrent directement le réglage correspondant. Plusieurs lieux ? Choisissez le lieu à configurer. Le récapitulatif permet de vérifier et d’enregistrer l’ensemble.
+**Configurer** conduit au **hub Hestia**. Depuis la version **2.5.0**, son menu regroupe Accueil Hestia, Weather et Confort selon les briques installées. La vue d’ensemble Weather présente les lieux et leur bouton **Configurer**. Les rubriques **Sources météo**, **Station météo · capteurs locaux**, **Qualité de l’air**, **Pollens** et **Entités** ouvrent directement le réglage correspondant. Plusieurs lieux ? Choisissez le lieu à configurer. Le récapitulatif permet de vérifier et d’enregistrer l’ensemble.
 
-L’interface s’adapte au téléphone et remplit la hauteur disponible. Dans **Accueil Niak → Réglages**, choisissez le thème Home Assistant (couleurs et police) ou la palette Niak, qui suit le mode clair ou sombre. Ce choix est mémorisé. Les explications sont dans les aides nommées ; les recommandations restent visibles. Weather fonctionne seul. L’entrée Niak du menu Home Assistant peut être masquée dans **Accueil Niak → Réglages** ; le panneau reste accessible depuis la roue de l’intégration et le bouton **Visiter** de ses appareils. [Détail des sources et des réglages](docs/sources.md).
+L’interface s’adapte au téléphone et remplit la hauteur disponible. Dans **Accueil Hestia → Réglages**, choisissez le thème Home Assistant (couleurs et police) ou la palette Hestia, qui suit le mode clair ou sombre. Ce choix est mémorisé. Les explications sont dans les aides nommées ; les recommandations restent visibles. Weather fonctionne seul. L’entrée Hestia du menu Home Assistant peut être masquée dans **Accueil Hestia → Réglages** ; le panneau reste accessible depuis la roue de l’intégration et le bouton **Visiter** de ses appareils. [Détail des sources et des réglages](docs/sources.md).
 
 ## La carte
 
-Douze cartes, rangées en trois types dans **Ajouter une carte** : **Niak - Météo** (complète, tuile, tuile dépliée), **Niak - À la pièce** (ressenti, pluie, vent, pression, éclairs, air et pollens, prévisions) et **Niak - Petite carte** (mini, alerte). Chacune montre les parties que vous cochez. Toutes s’écrivent `type: custom:niak-weather-card`, seul `format` change. [La carte en détail : formats, réglages, visuel](docs/carte/README.md).
+Douze cartes, rangées en trois types dans **Ajouter une carte** : **Hestia - Météo** (complète, tuile, tuile dépliée), **Hestia - À la pièce** (ressenti, pluie, vent, pression, éclairs, air et pollens, prévisions) et **Hestia - Petite carte** (mini, alerte). Chacune montre les parties que vous cochez. Toutes s’écrivent `type: custom:niak-weather-card`, seul `format` change. [La carte en détail : formats, réglages, visuel](docs/carte/README.md).
 
-![Niak Weather — tuile pleine et demi-largeur repliées, puis tuile dépliée, par temps d’orage avec vigilance jaune](docs/carte/images/niak-weather-formats.png)
+![Hestia Weather — tuile pleine et demi-largeur repliées, puis tuile dépliée, par temps d’orage avec vigilance jaune](docs/carte/images/niak-weather-formats.png)
 
-Vous aviez installé la carte depuis HACS ? **Retirez-la de HACS**, puis rechargez la page : vos cartes restent en place. Tant qu’elle reste installée, l’accueil du panneau **Niak** l’indique en orange.
+Vous aviez installé la carte depuis HACS ? **Retirez-la de HACS**, puis rechargez la page : vos cartes restent en place. Tant qu’elle reste installée, l’accueil du panneau **Hestia** l’indique en orange.
 
 Dans l’application Home Assistant, une carte reste invisible juste après une mise à jour ? Réinitialisez son cache : **Paramètres → Application compagnon → Dépannage → Réinitialiser le cache du frontend**.
 
 ## Les capteurs et les automatisations
 
-Niak Weather dit ce que la météo implique ; vos automatisations décident quoi en faire. Les entités sont rangées en sept familles :
+Hestia Weather dit ce que la météo implique ; vos automatisations décident quoi en faire. Les entités sont rangées en sept familles :
 
 | Famille | Par exemple |
 | --- | --- |
@@ -108,7 +108,7 @@ Chaque entité dit **pourquoi** (attribut `raison`) et **d’où vient** sa vale
 
 ## Limites
 
-Le ressenti est une **estimation locale**, pas une mesure physiologique ni une vigilance officielle. Niak Weather n’est pas un modèle de prévision : il lit et explique les prévisions de votre fournisseur. Il ne détecte pas la foudre. Ses alertes ne remplacent ni la vigilance Météo-France ni les consignes de sécurité.
+Le ressenti est une **estimation locale**, pas une mesure physiologique ni une vigilance officielle. Hestia Weather n’est pas un modèle de prévision : il lit et explique les prévisions de votre fournisseur. Il ne détecte pas la foudre. Ses alertes ne remplacent ni la vigilance Météo-France ni les consignes de sécurité.
 
 ## Licence
 

@@ -9,7 +9,7 @@ def place(**changes):
     base = dict(title="Gardanne", weather="Gardanne", forecast_age=12, vigilance="Gardanne 13 Weather alert", station="GW2000A",
                 sensors=[Sensor("Température extérieure", "GW2000A Outdoor Temperature", "ok", 1)], air="Atmo France · Gardanne",
                 pollen="Atmo France · Gardanne", entities=ENTITIES[:1] + ENTITIES[2:], integration="2.3.0b1",
-                links=["Niak Confort"], season="Saison", atmo_installed=True)
+                links=["Hestia Confort"], season="Saison", atmo_installed=True)
     return Facts(**{**base, **changes})
 
 
@@ -75,7 +75,7 @@ def test_tips_name_what_home_assistant_already_has():
                      air="", atmo_installed=False, pollen="", pollen_available=True, ready_families=["Jardin"], history=False))
     texts = [t["text"] for t in r["tips"]]
     assert texts == ["Ajouter : pression", "Calculer depuis l’historique", "Choisir la vigilance officielle", "Ajouter la qualité de l’air",
-                     "Suivre les pollens", "Entités Niak Weather à activer : Jardin"]
+                     "Suivre les pollens", "Entités Hestia Weather à activer : Jardin"]
     assert "« GW2000A Relative Pressure »" in r["tips"][0]["why"] and r["tips_summary"] == "6 réglages à améliorer"
     assert all(t["level"] == "tip" for t in r["tips"])
 
@@ -92,7 +92,7 @@ def test_entities_versions_and_links():
     assert [e["text"] for e in r["entities"]] == ["2 actives sur 3", "1 active sans valeur", "1 désactivée"]
     assert r["entities"][2]["why"] == "Jardin"
     assert r["versions"][1] == {"level": "ok", "text": "Carte 2.3.0b1", "why": "fournie par l’intégration"}
-    assert r["versions"][-1]["text"] == "Aucune brique Niak reliée"
+    assert r["versions"][-1]["text"] == "Aucune brique Hestia reliée"
     twice = report(place(card_twice=True))
     assert twice["level"] == "action" and twice["versions"][1]["level"] == "bad"
     assert [t["text"] for t in twice["todo"]] == ["Carte installée deux fois"]
@@ -127,7 +127,7 @@ def test_technical_overview_counts_only_selected_station_sensors_and_active_enti
     assert r['technical']['entities'] == {'active': 2, 'with_value': 1, 'total': 3}
     assert r['technical']['forecast'] == {'hours': 24, 'days': 6, 'received': 'il y a 12 min'}
     assert r['technical']['computation'] == 'à l’instant'
-    assert r['technical']['links'] == ['Niak Confort']
+    assert r['technical']['links'] == ['Hestia Confort']
 
 
 def test_technical_overview_keeps_absent_forecasts_and_history_unknown():

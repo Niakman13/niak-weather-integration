@@ -1,4 +1,4 @@
-"""Constants of the Niak Weather integration."""
+"""Constants of the Hestia Weather integration."""
 from __future__ import annotations
 
 import logging

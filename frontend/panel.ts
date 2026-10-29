@@ -1,5 +1,5 @@
-// The « Météo » tab of the shared « Niak » panel: each place's settings, step by step, then saved at once.
-// Niak Weather computes everything (draft.py): this page shows the draft, sends each change and saves it.
+// The « Météo » tab of the shared « Hestia » panel: each place's settings, step by step, then saved at once.
+// Hestia Weather computes everything (draft.py): this page shows the draft, sends each change and saves it.
 import {LitElement,html,unsafeCSS,nothing,type TemplateResult,type PropertyValues} from 'lit';
 import {customElement,property,state} from 'lit/decorators.js';
 import styles from './styles.css';
@@ -10,7 +10,7 @@ const categories=['sources','station','air','pollens','entites','recapitulatif',
 const order=[0,1,2,3,6,4,7,5];
 const sections=[{stage:0,label:'Sources météo',icon:'weather'},{stage:1,label:'Station météo',icon:'temperature'},{stage:2,label:'Qualité de l’air',icon:'air'},{stage:3,label:'Pollens',icon:'pollen'},{stage:6,label:'Eau et jardin',icon:'pollen'},{stage:4,label:'Entités',icon:'entities'},{stage:7,label:'Extensions',icon:'settings'}];
 const sectionStage=(section:string)=>categories.indexOf(section);
-// The same words and colours as Niak Confort's general settings: blue when used, orange when something is to do.
+// The same words and colours as Hestia Confort's general settings: blue when used, orange when something is to do.
 const extIcon:Record<string,string>={niak_comfort:'home',meteo_france:'weather',atmo:'air',waqi:'air',vigieau:'pollen',blitzortung:'weather',polleninformation:'pollen',irm_kmi:'pollen',swiss_pollen:'pollen',kleenex_pollenradar:'pollen'};
 const hacsUrl=(url:string)=>{const [owner,repository]=url.replace('https://github.com/','').split('/');return `https://my.home-assistant.io/redirect/hacs_repository/?owner=${owner}&repository=${repository}&category=integration`;};
 
@@ -177,7 +177,7 @@ export class WeatherSetup extends LitElement {
    ${frame('Alertes et saison',html`${p.fields.slice(1).filter(f=>!['water_restriction_entity','lightning_entity'].includes(f.key)).map(f=>this.field(f))}`,{className:'nk-field-section nk-plain'})}
    ${frame('Orages et éclairs',html`<h3>Blitzortung</h3>${this.integrationInfo(v.extensions?.find(e=>e.id==='blitzortung'),!!p.fields.find(f=>f.key==='lightning_entity')?.options.length)}${p.fields.filter(f=>f.key==='lightning_entity').map(f=>this.field(f))}`,{className:'nk-field-section nk-plain'})}
    ${this.refreshSources()}
-   ${frame('Réglages avancés',html`${helpTip('Soleil et prévisions','Laissés vides, Niak prend le soleil de Home Assistant.')}${p.advanced.map(f=>this.field(f))}
+   ${frame('Réglages avancés',html`${helpTip('Soleil et prévisions','Laissés vides, Hestia prend le soleil de Home Assistant.')}${p.advanced.map(f=>this.field(f))}
     <div class="field nk-setting-row"><div class="field-top"><h3 id="l-source">Nom de la source des prévisions</h3><span>Facultatif</span></div><input aria-labelledby="l-source" .value=${p.forecast_source} ?disabled=${this.busy} @change=${(e:Event)=>this.set('forecast_source',(e.target as HTMLInputElement).value.trim())}></div>`,{collapsible:true,open:false})}${this.bottom()}`;
  }
  private station(v:View){const s=v.station;
@@ -185,7 +185,7 @@ export class WeatherSetup extends LitElement {
    ${this.choiceList('model',s.models,s.model,m=>void this.change({op:'station',value:m}))}
    ${s.model!==NONE?html`<div class="field nk-setting-row"><div class="field-top"><h3 id="l-device">Appareil</h3><span>Facultatif</span>${helpTip('Appareil de la station','Limite les capteurs proposés à cet appareil.')}</div>
     <select aria-labelledby="l-device" ?disabled=${this.busy} @change=${(e:Event)=>void this.change({op:'device',value:(e.target as HTMLSelectElement).value})}>${s.devices.map(d=>html`<option value=${d.value} ?selected=${d.value===s.device}>${d.label}</option>`)}</select></div>`:nothing}`,{className:'nk-field-section nk-plain'})}
-   ${s.model===NONE?html`<p class="muted">Sans station, Niak Weather s’appuie sur le service météo seul : pas de pluie mesurée, pas d’alerte de la station.</p>`:html`
+   ${s.model===NONE?html`<p class="muted">Sans station, Hestia Weather s’appuie sur le service météo seul : pas de pluie mesurée, pas d’alerte de la station.</p>`:html`
     ${s.groups.map((g,i)=>frame(g.title,html`${g.fields.map(f=>this.field(f))}`,{count:`${g.fields.filter(f=>f.value).length} sur ${g.fields.length}${g.fields.some(f=>f.warning)?' · à vérifier':''}`,className:i<3||g.fields.some(f=>f.warning)?'nk-field-section nk-plain':'',collapsible:i>=3&&!g.fields.some(f=>f.warning),open:false}))}
     ${frame('Historique de la station',html`<label class="check"><input type="checkbox" .checked=${s.history} ?disabled=${this.busy} @change=${(e:Event)=>this.set('station_history',(e.target as HTMLInputElement).checked)}><span><strong>Calculer depuis l’historique</strong></span></label>${helpTip('Calculer depuis l’historique',s.history_help,'Comprendre ce réglage')}`,{className:'nk-field-section nk-plain'})}
     <button class="link" ?disabled=${this.busy} @click=${()=>void this.change({op:'redetect',value:'station'})}>Rechercher à nouveau les capteurs</button>`}${this.bottom()}`;
@@ -230,19 +230,19 @@ export class WeatherSetup extends LitElement {
  }
  private water(v:View){return html`${frame('Restrictions d’eau',html`<h3>Vigieau</h3>${this.integrationInfo(v.extensions?.find(e=>e.id==='vigieau'),!!v.prevision.fields.find(f=>f.key==='water_restriction_entity')?.options.length)}
   ${v.prevision.fields.filter(f=>f.key==='water_restriction_entity').map(f=>this.field(f))}`,{className:'nk-field-section nk-plain'})}${this.refreshSources()}${this.bottom()}`;}
- // ---- Extensions: Niak's own bricks, then the integrations of Home Assistant this place reads ----
+ // ---- Extensions: Hestia's own bricks, then the integrations of Home Assistant this place reads ----
  private extensions(v:View){const third=v.in_draft??v.extensions??[];
-  return html`<h2 class="ex-sec">Extensions officielles Niak</h2>${(v.official??[]).map(o=>this.officialCard(o))}
+  return html`<h2 class="ex-sec">Extensions officielles Hestia</h2>${(v.official??[]).map(o=>this.officialCard(o))}
    <h2 class="ex-sec">Extensions tierces</h2><p class="hint">Toutes facultatives, sauf le service météo. Un changement ici s’enregistre avec le lieu.</p>
    ${third.map(e=>this.extensionCard(e,v))}${this.refreshSources()}${this.bottom()}`;}
  private exCard(icon:string,name:string,pill:[string,string],use:string,detail:unknown,act:unknown,toggle:unknown,todo=false){
   return html`<section class=${'nk-section ex-card'+(todo?' act':'')}><div class="nk-body"><div class="ex-head"><span class="ex-icon">${hubIcon(icon)}</span>
    <div class="ex-body"><h3>${name} <span class=${'tw-pill '+pill[1]}>${pill[0]}</span></h3><p class="hint">${use}</p>${detail?html`<p class="hint ex-detail">${detail}</p>`:nothing}</div>${act}</div>${toggle}</div></section>`;}
- /** A Niak brick: its link is saved at once, on its own side, so both bricks always say the same. */
+ /** A Hestia brick: its link is saved at once, on its own side, so both bricks always say the same. */
  private officialCard(o:Official){
   const pill:[string,string]=!o.installed?['non installée','']:o.linked?['liée','ok']:o.elsewhere?['liée à '+o.elsewhere,'']:['à lier','act'];
-  const detail=!o.installed?'':!this.entryId?'Enregistrez d’abord ce lieu pour le relier.':!o.switchable?'Mettez à jour Niak Confort pour régler la liaison d’ici.'
-   :o.elsewhere&&!o.linked?`Niak Confort lit le lieu « ${o.elsewhere} ». L’allumer ici lui fait lire celui-ci.`:'';
+  const detail=!o.installed?'':!this.entryId?'Enregistrez d’abord ce lieu pour le relier.':!o.switchable?'Mettez à jour Hestia Confort pour régler la liaison d’ici.'
+   :o.elsewhere&&!o.linked?`Hestia Confort lit le lieu « ${o.elsewhere} ». L’allumer ici lui fait lire celui-ci.`:'';
   const act=o.installed?nothing:html`<a class="ex-act" href=${hacsUrl(o.url)} target="_blank" rel="noreferrer">Installer avec HACS</a>`;
   const toggle=o.installed&&o.switchable&&this.entryId?html`<label class="check ex-switch"><input type="checkbox" role="switch" .checked=${o.linked} ?disabled=${this.busy}
    @change=${(e:Event)=>void this.link(o.id,(e.target as HTMLInputElement).checked)}>Donner le dehors de ce lieu à ${o.name}</label>
@@ -259,7 +259,7 @@ export class WeatherSetup extends LitElement {
    @change=${(ev:Event)=>void this.applyAll((ev.target as HTMLInputElement).checked?sw.on:sw.off)}>Utiliser ${e.name} pour ce lieu</label>`:nothing;
   return this.exCard(extIcon[e.id]??'settings',e.name,pill,e.description,detail,act,toggle);}
  private async applyAll(changes:Change[]){for(const c of changes)await this.change(c);}
- /** Links this place to a Niak brick or unlinks it: the brick saves it, then both settings pages read it back. */
+ /** Links this place to a Hestia brick or unlinks it: the brick saves it, then both settings pages read it back. */
  private async link(brick:string,enabled:boolean){
   if(!this.entryId||!this.view)return;
   this.busy=true;this.error='';
@@ -283,7 +283,7 @@ export class WeatherSetup extends LitElement {
     <dt>Orages et éclairs</dt><dd>${v.prevision.fields.find(f=>f.key==='lightning_entity')?.entity?.name||v.prevision.fields.find(f=>f.key==='lightning_entity')?.value||'Non configuré'}</dd>
     <dt>Entités</dt><dd>${entities}</dd></dl>`)}
    ${v.needs.length?html`${frame('À savoir',html`<ul>${v.needs.map(n=>html`<li class="warn">${n}. L’entité restera vide.</li>`)}</ul>`)}`:nothing}
-   <p class="notice">${this.entryId?'En enregistrant, le lieu redémarre avec ses nouveaux réglages : la carte se met à jour quelques secondes plus tard.':'En enregistrant, Niak Weather crée ce lieu et ses entités.'}</p>
+   <p class="notice">${this.entryId?'En enregistrant, le lieu redémarre avec ses nouveaux réglages : la carte se met à jour quelques secondes plus tard.':'En enregistrant, Hestia Weather crée ce lieu et ses entités.'}</p>
    ${this.bottom(html`<div class="end"><button ?disabled=${this.busy} @click=${()=>this.leave()}>Abandonner</button>
     <button class="primary" ?disabled=${this.busy||!this.draft?.weather_entity} @click=${()=>void this.save()}>${this.entryId?'Enregistrer':'Créer ce lieu'}</button></div>`)}`;
  }
@@ -332,7 +332,7 @@ export class WeatherSetup extends LitElement {
     </dl>`)}
    </div>
    ${frame('Extensions',html`${extensions?html`<p class="hint extension-summary">${extensions.filter(e=>e.installed).length} / ${extensions.length} installées dans Home Assistant · ${extensions.filter(e=>e.configured).length} configurée${extensions.filter(e=>e.configured).length>1?'s':''} pour ce lieu</p>
-    <div class="extension-overview">${p.official?.length?html`<div class="extension-overview-group"><h3>Briques Niak</h3><ul>${p.official.map(o=>html`<li><span>${o.name}</span><span class="extension-badge ${o.linked?'ok':'none'}">${!o.installed?'Pas installée':o.linked?'Liée':o.elsewhere?'Liée à '+o.elsewhere:'Pas liée'}</span></li>`)}</ul></div>`:nothing}${extensionGroups(extensions).map(group=>html`<div class="extension-overview-group"><h3>${group.label}</h3><ul>${group.items.map(e=>html`<li><span>${e.name}</span>${badge(e)}</li>`)}</ul></div>`)}</div>`:html`<p class="muted">État des extensions non reçu. Actualisez le bilan.</p>`}
+    <div class="extension-overview">${p.official?.length?html`<div class="extension-overview-group"><h3>Briques Hestia</h3><ul>${p.official.map(o=>html`<li><span>${o.name}</span><span class="extension-badge ${o.linked?'ok':'none'}">${!o.installed?'Pas installée':o.linked?'Liée':o.elsewhere?'Liée à '+o.elsewhere:'Pas liée'}</span></li>`)}</ul></div>`:nothing}${extensionGroups(extensions).map(group=>html`<div class="extension-overview-group"><h3>${group.label}</h3><ul>${group.items.map(e=>html`<li><span>${e.name}</span>${badge(e)}</li>`)}</ul></div>`)}</div>`:html`<p class="muted">État des extensions non reçu. Actualisez le bilan.</p>`}
     <button class="link" ?disabled=${this.busy} @click=${()=>void this.open(p.entry_id,7)}>Régler les extensions →</button>`,{className:'overview-extensions'})}
    ${frame('Configuration',html`<nav class="dashboard-config" aria-label=${'Configuration de '+p.title}>${[0,1,2,3,6,4,7].map(config)}</nav>`)}
    ${frame('Versions et liens',html`<div class="dashboard-main dashboard-meta"><div>

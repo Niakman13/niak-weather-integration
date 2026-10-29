@@ -1,6 +1,6 @@
 """The weather observed at home, with the provider's forecasts: anything that accepts a weather entity gets the station's view.
 
-Now comes from the station when there is one (the bulletin otherwise), the condition as Niak Weather sees it (rain measured here
+Now comes from the station when there is one (the bulletin otherwise), the condition as Hestia Weather sees it (rain measured here
 wins over the bulletin); the forecasts are the provider's, passed on in the same units as the rest.
 """
 from __future__ import annotations
@@ -117,7 +117,7 @@ class NiakWeatherEntity(CoordinatorEntity[NiakWeatherCoordinator], WeatherEntity
     @property
     def attribution(self) -> str | None:
         source = self._bulletin.get("attribution")
-        return f"Niak Weather · prévisions : {source}" if source else "Niak Weather"
+        return f"Hestia Weather · prévisions : {source}" if source else "Hestia Weather"
 
     async def async_forecast_hourly(self) -> list[Forecast] | None:
         return [Forecast(**row) for row in self.coordinator.forecast_rows["hourly"]] or None

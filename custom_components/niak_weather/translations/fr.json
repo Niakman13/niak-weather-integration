@@ -5,10 +5,10 @@
     },
     "step": {
       "user": {
-        "title": "Bienvenue dans Niak Weather",
-        "description": "Niak Weather est le cerveau de la météo chez vous : il lit vos prévisions, votre station et la qualité de l’air, puis calcule ce qu’ils veulent dire.\n\nQuatre étapes, chacune déjà remplie avec ce que Home Assistant connaît :\n1. **Météo** : la source des prévisions (Météo-France conseillé).\n2. **Station** : vos capteurs, si vous en avez.\n3. **Air et pollens** : Atmo France ou Polleninformation, facultatif.\n4. **Capteurs** : ce que vous voulez pour vos automatisations.\n\nTout se modifie ensuite dans **Configurer**.",
+        "title": "Bienvenue dans Hestia Weather",
+        "description": "Hestia Weather est le cerveau de la météo chez vous : il lit vos prévisions, votre station et la qualité de l’air, puis calcule ce qu’ils veulent dire.\n\nQuatre étapes, chacune déjà remplie avec ce que Home Assistant connaît :\n1. **Météo** : la source des prévisions (Météo-France conseillé).\n2. **Station** : vos capteurs, si vous en avez.\n3. **Air et pollens** : Atmo France ou Polleninformation, facultatif.\n4. **Capteurs** : ce que vous voulez pour vos automatisations.\n\nTout se modifie ensuite dans **Configurer**.",
         "menu_options": {
-          "import_card": "Reprendre les réglages d’une carte Niak Weather",
+          "import_card": "Reprendre les réglages d’une carte Hestia Weather",
           "weather": "Commencer"
         }
       },
@@ -114,13 +114,13 @@
       },
       "pollen_sensors": {
         "title": "Étape 3 sur 4 · Capteurs {source}",
-        "description": "Les espèces à suivre (et, pour Polleninformation, le risque d’allergie global). Niak les a proposées : vérifiez, ajoutez ou retirez. Sans risque global, Niak retient l’espèce la plus élevée.",
+        "description": "Les espèces à suivre (et, pour Polleninformation, le risque d’allergie global). Hestia les a proposées : vérifiez, ajoutez ou retirez. Sans risque global, Hestia retient l’espèce la plus élevée.",
         "data": {
           "pollens": "Espèces",
           "pollen_risk_entity": "Risque d’allergie global"
         },
         "data_description": {
-          "pollen_risk_entity": "Facultatif. Sans lui, Niak retient l’espèce la plus élevée."
+          "pollen_risk_entity": "Facultatif. Sans lui, Hestia retient l’espèce la plus élevée."
         }
       },
       "families": {
@@ -150,7 +150,7 @@
       },
       "pollen_area": {
         "title": "Étape 3 sur 4 · Zone Atmo des pollens",
-        "description": "La zone Atmo France dont Niak lira les pollens. Elle peut être différente de celle de la qualité de l’air.",
+        "description": "La zone Atmo France dont Hestia lira les pollens. Elle peut être différente de celle de la qualité de l’air.",
         "data": {
           "atmo_area": "Zone Atmo France"
         }
@@ -175,8 +175,8 @@
   "options": {
     "step": {
       "init": {
-        "title": "Niak Weather",
-        "description": "Les réglages de Niak Weather se font dans l’onglet Météo du panneau Niak.\n\n[Ouvrir les paramètres de Niak Weather]({link})",
+        "title": "Hestia Weather",
+        "description": "Les réglages de Hestia Weather se font dans l’onglet Météo du panneau Hestia.\n\n[Ouvrir les paramètres de Hestia Weather]({link})",
         "submit": "Fermer"
       },
       "weather": {
@@ -283,13 +283,13 @@
       },
       "pollen_sensors": {
         "title": "Capteurs {source}",
-        "description": "Les espèces à suivre (et, pour Polleninformation, le risque d’allergie global). Niak les a proposées : vérifiez, ajoutez ou retirez. Sans risque global, Niak retient l’espèce la plus élevée.",
+        "description": "Les espèces à suivre (et, pour Polleninformation, le risque d’allergie global). Hestia les a proposées : vérifiez, ajoutez ou retirez. Sans risque global, Hestia retient l’espèce la plus élevée.",
         "data": {
           "pollens": "Espèces",
           "pollen_risk_entity": "Risque d’allergie global"
         },
         "data_description": {
-          "pollen_risk_entity": "Facultatif. Sans lui, Niak retient l’espèce la plus élevée."
+          "pollen_risk_entity": "Facultatif. Sans lui, Hestia retient l’espèce la plus élevée."
         }
       },
       "entities": {
@@ -322,14 +322,14 @@
       },
       "pollen_area": {
         "title": "Zone Atmo des pollens",
-        "description": "La zone Atmo France dont Niak lira les pollens. Elle peut être différente de celle de la qualité de l’air.",
+        "description": "La zone Atmo France dont Hestia lira les pollens. Elle peut être différente de celle de la qualité de l’air.",
         "data": {
           "atmo_area": "Zone Atmo France"
         }
       },
       "ecosystem": {
-        "title": "Écosystème Niak",
-        "description": "Niak Weather partage sa météo avec les autres briques Niak. Chaque brique se relie à ce lieu dans ses propres réglages ; Niak Weather ne modifie jamais les autres.\n\n{links}\n\nValidez pour revenir au menu."
+        "title": "Écosystème Hestia",
+        "description": "Hestia Weather partage sa météo avec les autres briques Hestia. Chaque brique se relie à ce lieu dans ses propres réglages ; Hestia Weather ne modifie jamais les autres.\n\n{links}\n\nValidez pour revenir au menu."
       },
       "pollen_station": {
         "title": "Lieu des pollens",
@@ -416,7 +416,7 @@
         "givre_pare_brise": "Givre sur le pare-brise — oui/non",
         "qualite_air": "Qualité de l’air — indice Atmo",
         "pollens": "Pollens — indice du jour",
-        "weather": "Entité météo Niak Weather — pour les cartes météo et l’assistant vocal"
+        "weather": "Entité météo Hestia Weather — pour les cartes météo et l’assistant vocal"
       }
     }
   },
@@ -623,10 +623,10 @@
   },
   "exceptions": {
     "unknown_place": {
-      "message": "Lieu Niak Weather introuvable."
+      "message": "Lieu Hestia Weather introuvable."
     },
     "choose_place": {
-      "message": "Plusieurs lieux Niak Weather : précisez « lieu »."
+      "message": "Plusieurs lieux Hestia Weather : précisez « lieu »."
     },
     "end_before_start": {
       "message": "La fin doit venir après le début."
@@ -650,7 +650,7 @@
         },
         "lieu": {
           "name": "Lieu",
-          "description": "Seulement si vous avez plusieurs lieux Niak Weather."
+          "description": "Seulement si vous avez plusieurs lieux Hestia Weather."
         }
       }
     }

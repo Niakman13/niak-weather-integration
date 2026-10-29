@@ -1,7 +1,7 @@
 blueprint:
-  name: Niak Weather · Protéger avant le gel
+  name: Hestia Weather · Protéger avant le gel
   description: >-
-    La veille au soir, si Niak Weather annonce du gel : un rappel avec la liste de ce qu’il faut rentrer,
+    La veille au soir, si Hestia Weather annonce du gel : un rappel avec la liste de ce qu’il faut rentrer,
     le givre sur le pare-brise s’il est prévu, et vos actions (hors-gel, chauffage de la serre…).
   domain: automation
   source_url: https://github.com/Niakman13/niak-weather-integration/blob/main/blueprints/automation/niak_weather/proteger_gel.yaml
