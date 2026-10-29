@@ -1,0 +1,43 @@
+name: Lire une extension · Read an extension
+description: Demander que Hestia Weather lise une intégration installée chez vous. Ask Hestia Weather to read an integration you have.
+title: "Lire l’extension "
+labels: ["extension"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci ! Le bouton « Demander » du panneau Hestia a rempli les premiers champs. Il ne manque que **comment vous l’utilisez**.
+        Déjà demandée ? Un 👍 sur [la demande existante](https://github.com/hestiaFB/hestia-weather-integration/issues?q=label%3Aextension) compte autant.
+
+        Thanks! The « Ask » button of the Hestia panel filled in the first fields. Only **how you use it** is missing.
+  - type: input
+    id: extension
+    attributes:
+      label: Extension
+      description: Son nom et son domaine dans Home Assistant. Its name and Home Assistant domain.
+      placeholder: Scheduler (scheduler)
+    validations:
+      required: true
+  - type: textarea
+    id: usage
+    attributes:
+      label: Comment vous l’utilisez · How you use it
+      description: Ce qu’elle fait chez vous, sur quelles pièces ou quels appareils. What it does at your place, for which rooms or devices.
+      placeholder: "Mon chauffage suit un planning : éco la nuit, confort à 6 h 30 et à 17 h."
+    validations:
+      required: true
+  - type: textarea
+    id: wish
+    attributes:
+      label: Ce que vous aimeriez voir · What you would like to see
+      description: Facultatif. Un conseil, une information sur la carte… Optional.
+  - type: textarea
+    id: idea
+    attributes:
+      label: Ce que Hestia Weather pourrait en faire · What Hestia Weather could do with it
+      description: Le texte du panneau, à corriger si besoin. The panel's text, change it if needed.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: Hestia Weather 2.1.0

@@ -27,7 +27,7 @@ from .draft import Draft, ecosystem_of, entity_keys, entity_label, family_label,
 from .engine import atmo, detection, families, health, home, polleninfo
 from .engine.settings import Settings
 from .engine.i18n import speaking, t
-from .extensions import inventory, official, set_official
+from .extensions import inventory, official, others, set_official
 from . import domain_migration, migration
 from .engine import legacy
 from .websocket import VERSION_KEY
@@ -263,7 +263,8 @@ def _has_weather(hass: HomeAssistant) -> bool:
 async def ws_places(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
     twice = await card_twice(hass)
     context = _context(hass)  # read once for every place
-    connection.send_result(msg["id"], {"places": [place(hass, e, twice, context)[0] for e in _entries(hass)], "can_add": _has_weather(hass)})
+    connection.send_result(msg["id"], {"places": [place(hass, e, twice, context)[0] for e in _entries(hass)], "can_add": _has_weather(hass),
+                                          "others": others(hass)})
 
 
 def _send_draft(connection: websocket_api.ActiveConnection, msg: dict[str, Any], draft: Draft, error: str = "", **extra: Any) -> None:

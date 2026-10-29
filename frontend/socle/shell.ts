@@ -4,7 +4,7 @@ import {LitElement,html,css,nothing,type PropertyValues} from 'lit';
 import {frame,hubStyles,modernStyles,hubIcon,line,type NkLine} from './ui';
 import {t,fr,setLanguage} from './i18n';
 
-export const ELEMENT='hestia-socle-1-17';
+export const ELEMENT='hestia-socle-1-18';
 // The panel's address (socle 1.12): /hestia; the former address leads there, keeping the rest of the address.
 export const BASE='/hestia';
 // The Hestia logo (logo-github): its gradient reads on a light or a dark menu alike.

@@ -82,6 +82,36 @@ class HestiaWeatherApi:
                 "entity_id": entity_id, "index": index, "label": item.extra.get("libelle") if index is not None else None,
                 "at": data.computed.isoformat() if data is not None else None}
 
+    def pollen(self, entry_id: str | None = None) -> dict[str, Any] | None:
+        """Today's pollens from the source chosen in Hestia Weather (Atmo France, Polleninformation, IRM KMI, Swiss Pollen, Kleenex).
+
+        `level` is the same for every source: 0 none, 1 low, 2 moderate, 3 high, 4 very high (Atmo's 1-6 index brought onto it);
+        `high` is True from « high » on. `index` and `scale` are the source's own value and top (6 for Atmo, 4 for the others),
+        `label` its word, `main` the species that weighs most, `tomorrow` tomorrow's `level`. `level` is None while the source
+        does not answer. None without a place or without a pollen source."""
+        entry = self._entry(entry_id)
+        if entry is None:
+            return None
+        settings = entry.runtime_data.settings
+        if not (settings.atmo_pollens or settings.pollen_source == "legacy"):
+            return None
+        data = getattr(entry.runtime_data, "data", None)
+        item = data.catalogue.get("pollens") if data is not None else None
+        atmo = item is not None and item.source == "atmo"
+        scale = 6 if atmo else 4
+
+        def level(value: Any) -> int | None:
+            if not isinstance(value, int) or isinstance(value, bool) or not (1 if atmo else 0) <= value <= scale:
+                return None
+            # Atmo: 1 very low and 2 low → low, 3 moderate, 4 high, 5 very high and 6 extremely high → very high.
+            return (1, 1, 2, 3, 4, 4)[value - 1] if atmo else value
+        today = level(item.value if item is not None else None)
+        extra = item.extra if item is not None and today is not None else {}
+        return {"entry_id": entry.entry_id, "source": item.source if item is not None else None, "level": today,
+                "high": today is not None and today >= 3, "index": item.value if today is not None else None, "scale": scale,
+                "label": extra.get("libelle"), "main": extra.get("principal"), "tomorrow": level(extra.get("demain")),
+                "at": data.computed.isoformat() if data is not None else None}
+
     def season(self, entry_id: str | None = None) -> dict[str, Any] | None:
         """Today's season for this place, as Hestia Weather shows it: the Season sensor chosen in its settings when it
         answers, else the astronomical date. `season` is « spring », « summer », « autumn » or « winter »;

@@ -24,6 +24,18 @@ CATALOGUE = (
     ("swiss_pollen", "swiss_pollen", "Swiss Pollen", N_("Mesures de pollens en Suisse."), "frimtec/hass-swiss-pollen", 3, ""),
     ("kleenex_pollenradar", "kleenex_pollenradar", "Kleenex / Scottex", N_("Pollens en France et dans les pays couverts."), "MarcoGos/kleenex_pollenradar", 3, ""),
 )
+# Integrations Weather could read one day: listed only when Home Assistant has them loaded (socle 1.18, « Demander »).
+OTHERS = (
+    {"key": "vigicrues", "name": "Vigicrues", "use": N_("Pourrait dire la hauteur de la rivière proche et sa vigilance crues.")},
+    {"key": "meteoalarm", "name": "Meteoalarm", "use": N_("Pourrait donner les vigilances officielles hors de France.")},
+    {"key": "pirateweather", "name": "Pirate Weather", "use": N_("Pourrait donner les prévisions et la pluie à venir hors de France.")},
+)
+
+
+def others(hass: HomeAssistant) -> list[dict[str, str]]:
+    """The OTHERS this Home Assistant has loaded, with what Weather could do with each, in the reader's language."""
+    loaded = getattr(hass.config, "components", None) or set()
+    return [{**o, "use": t(o["use"])} for o in OTHERS if o["key"] in loaded]
 
 
 COMFORT_API = "hestia_comfort_api"

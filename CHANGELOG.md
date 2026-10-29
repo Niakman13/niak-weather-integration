@@ -1,3 +1,19 @@
+## 3.1.0b2 — Bêta : les pollens pour Hestia Confort
+
+**En bref**
+
+- **Les pollens pour Hestia Confort** : Confort lit les pollens du jour de la source choisie dans Hestia Weather.
+- **Demander une extension en un clic** : Vigicrues, Meteoalarm ou Pirate Weather trouvés chez vous se demandent avec un formulaire déjà rempli.
+
+### Avant de mettre à jour
+
+- Mettez à jour Hestia Confort en même temps (2.1.0b2), si vous l’avez.
+
+### Nouveautés
+
+- Les pollens du jour et de demain sont partagés avec Hestia Confort, quelle que soit leur source.
+- Dans Extensions, les intégrations trouvées mais pas encore lues, avec un bouton pour les demander.
+
 ## 3.1.0b1 — Bêta : Hestia Weather en allemand
 
 **En bref**

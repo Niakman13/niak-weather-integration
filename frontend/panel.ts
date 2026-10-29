@@ -3,7 +3,7 @@
 import {LitElement,html,unsafeCSS,nothing,type TemplateResult,type PropertyValues} from 'lit';
 import {customElement,property,state} from 'lit/decorators.js';
 import styles from './styles.css';
-import {frame,hubStyles,modernStyles,helpTip,pageHead,todoFrame,itemsFrame,stepMenu,stepFooter,leaveNotice,extensionsFrame,versionsFrame,extensionCard,removeBlock,pageStyles,setLanguage,addDictionary,t,fr,type NkLine,type NkLevel,type NkSwitch} from './socle/ui';
+import {frame,hubStyles,modernStyles,helpTip,pageHead,todoFrame,itemsFrame,stepMenu,stepFooter,leaveNotice,extensionsFrame,detectedFrame,versionsFrame,extensionCard,removeBlock,pageStyles,setLanguage,addDictionary,t,fr,type NkLine,type NkLevel,type NkSwitch} from './socle/ui';
 import {PANEL_EN} from './i18n-en';
 import {PANEL_DE} from './i18n-de';
 import {NONE,stages,intros,extensionGroups,extensionSwitch,enabledKeys,provenance,sameSet,entityLine,grouped,capital,type Change,type Choice,type DraftReply,type Field,type Hass,type Place,type Places,type Sources,type View,type Extension,type Official,type RenamePreview,type RenameReply,type RenameUse} from './model';
@@ -325,6 +325,7 @@ export class WeatherSetup extends LitElement {
       :html`<a class="ex-act" href=${'https://my.home-assistant.io/redirect/config_flow_start/?domain='+e.integration} target="_blank" rel="noreferrer">${t('Ajouter')}</a>`):go,
      switches:mine.map(x=>({p:x.p,sw:extensionSwitch(x.e,x.v.view)})).filter(x=>x.sw.shown).map(({p,sw}):NkSwitch=>({label:forPlace(fr('Utiliser {name} pour « {place} »'),fr('Utiliser {name} pour ce lieu'),e.name,p),checked:sw.checked,disabled:this.busy||!sw.checked&&!sw.available,
       onChange:on=>void this.usePlace(p.entry_id,on?sw.on:sw.off)}))});})}`)}
+   ${detectedFrame({brick:t('Météo'),repository:'https://github.com/hestiaFB/hestia-weather-integration',version:places[0]?.health.technical?.integration??'',rows:this.places?.others??[]})}
    <button class="link" ?disabled=${this.busy} @click=${()=>void this.loadExtensions()}>${t('Actualiser la détection')}</button>`}
   </main>${this.busy?html`<p class="busy" role="status">${t('Un instant…')}</p>`:nothing}`;
  }

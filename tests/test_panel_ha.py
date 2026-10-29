@@ -115,6 +115,12 @@ class PanelTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(atmo["air_configured"])
         self.assertFalse(atmo["pollen_configured"])
 
+    async def test_only_loaded_integrations_are_proposed_to_ask_for(self):
+        from custom_components.hestia_weather.extensions import others
+        self.hass.config.components.add("vigicrues")
+        self.assertEqual([o["key"] for o in others(self.hass)], ["vigicrues"])
+        self.assertTrue(others(self.hass)[0]["use"])
+
     async def test_hacs_download_counts_as_installed_before_an_integration_is_added(self):
         from types import SimpleNamespace
         from custom_components.hestia_weather.extensions import inventory

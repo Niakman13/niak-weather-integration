@@ -162,7 +162,7 @@ export const modernStyles=css`
  @media(prefers-reduced-motion:no-preference){.room-menu button{transition:background-color .15s,color .15s}}
 `;
 // Line icons are decorative; all controls retain visible and accessible labels.
-export function hubIcon(kind:string){const paths:Record<string,string>={home:'M3 10 12 3l9 7M5 9v12h14V9M9 21v-8h6v8',settings:'M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6',temperature:'M9 14V5a3 3 0 0 1 6 0v9a5 5 0 1 1-6 0ZM12 8v10',openings:'M5 21V3h14v18M3 21h18M14 12h1',air:'M3 8h13a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h7',presence:'M16 6a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 22v-3a8 8 0 0 1 16 0v3',heating:'M5 21V3M19 21V3M5 6h14M5 18h14M9 6v12M15 6v12',room:'M3 21h18M5 21V4h14v17M9 8h2M14 8h1M9 12h2M14 12h1M10 21v-5h4v5',weather:'M5 16a5 5 0 1 1 4-9 5 5 0 1 1 8 6H5M4 3l1 2M14 2v2M2 10h2',pollen:'M12 21V10M6 8a3 3 0 1 1 6-3 3 3 0 1 1 6 3 3 3 0 1 1-6 3 3 3 0 1 1-6-3ZM5 15l7 4 7-4',entities:'M3 3h7v7H3ZM14 3h7v7h-7ZM3 14h7v7H3ZM14 14h7v7h-7Z',review:'M4 20V10M10 20V4M16 20v-7M22 20H2',extensions:'M9 3h5v3a2 2 0 1 0 4 0V3h3v7h-3a2 2 0 1 0 0 4h3v7h-7v-3a2 2 0 1 0-4 0v3H3v-7h3a2 2 0 1 0 0-4H3V3h6Z'};return html`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d=${paths[kind]??paths.settings}></path></svg>`;}
+export function hubIcon(kind:string){const paths:Record<string,string>={home:'M3 10 12 3l9 7M5 9v12h14V9M9 21v-8h6v8',settings:'M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6',temperature:'M9 14V5a3 3 0 0 1 6 0v9a5 5 0 1 1-6 0ZM12 8v10',openings:'M5 21V3h14v18M3 21h18M14 12h1',air:'M3 8h13a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h7',presence:'M16 6a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 22v-3a8 8 0 0 1 16 0v3',heating:'M5 21V3M19 21V3M5 6h14M5 18h14M9 6v12M15 6v12',room:'M3 21h18M5 21V4h14v17M9 8h2M14 8h1M9 12h2M14 12h1M10 21v-5h4v5',weather:'M5 16a5 5 0 1 1 4-9 5 5 0 1 1 8 6H5M4 3l1 2M14 2v2M2 10h2',pollen:'M12 21V10M6 8a3 3 0 1 1 6-3 3 3 0 1 1 6 3 3 3 0 1 1-6 3 3 3 0 1 1-6-3ZM5 15l7 4 7-4',entities:'M3 3h7v7H3ZM14 3h7v7h-7ZM3 14h7v7H3ZM14 14h7v7h-7Z',review:'M4 20V10M10 20V4M16 20v-7M22 20H2',light:'M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3Z',extensions:'M9 3h5v3a2 2 0 1 0 4 0V3h3v7h-3a2 2 0 1 0 0 4h3v7h-7v-3a2 2 0 1 0-4 0v3H3v-7h3a2 2 0 1 0 0-4H3V3h6Z'};return html`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d=${paths[kind]??paths.settings}></path></svg>`;}
 
 // ---- The pages every brick builds the same way (socle 1.12) ----
 // Three pages per brick: its Accueil (read only), its Réglages généraux (its places or rooms, extensions, cards) and
@@ -232,6 +232,19 @@ export function extensionCard(o:{icon:string;name:string;pill:{text:string;level
   ${(o.switches??[]).map(sw=>html`<label class="check ex-switch"><input type="checkbox" role="switch" .checked=${sw.checked} ?disabled=${sw.disabled} @change=${(e:Event)=>sw.onChange((e.target as HTMLInputElement).checked)}>${sw.label}</label>${sw.note?html`<p class="hint ex-note">${sw.note}</p>`:nothing}`)}
   ${o.body??nothing}</div></section>`;
 }
+/** An integration this Home Assistant has that the brick does not read yet (socle 1.18). `use` is what the brick could do with it. */
+export interface NkDetected {key:string;name:string;use:string}
+/** « Demander »: the brick's GitHub form (.github/ISSUE_TEMPLATE/extension.yml), its fields filled in; the person adds how they use it. */
+export const askUrl=(repository:string,o:NkDetected,brick:string,version:string)=>`${repository}/issues/new?${new URLSearchParams({template:'extension.yml',
+ title:t('Lire l’extension {name}',{name:o.name}),extension:`${o.name} (${o.key})`,idea:o.use,version:`${brick} ${version}`})}`;
+/** « Détectées, pas encore lues par … »: found in Home Assistant, each with « Demander »; nothing at all when there is none. */
+export function detectedFrame(o:{brick:string;repository:string;version:string;rows:NkDetected[]}):TemplateResult|typeof nothing{
+ if(!o.rows.length)return nothing;
+ return html`<h2 class="ex-sec">${t('Détectées, pas encore lues par {brick}',{brick:o.brick})}</h2>${frame(t('À proposer'),html`<p class="hint">${t('Trouvées dans votre Home Assistant. {brick} ne s’en sert pas encore ; dites-nous si elles vous seraient utiles.',{brick:o.brick})}</p>
+  <ul class="nk-rows ex-others">${o.rows.map(r=>html`<li><div><b>${r.name}</b><small class="hint">${r.use}</small></div><span class="nk-pill">${t('pas encore lue')}</span>
+   <a class="ex-act" href=${askUrl(o.repository,r,o.brick,o.version)} target="_blank" rel="noreferrer">${t('Demander')}</a></li>`)}</ul>
+  <p class="hint">${t('« Demander » ouvre une demande toute prête sur GitHub : dites-y comment vous utilisez l’extension. Si elle a déjà été demandée, un 👍 sur la demande existante suffit. Rien n’est envoyé sans vous.')}</p>`)}`;
+}
 /** « Supprimer ce lieu », « Supprimer cette pièce »: asked once in the page; what stays (the sensors) is said. */
 export function removeBlock(o:{link:string;title:string;lines:string[];keep:string;confirm:string;asking:boolean;busy?:boolean;onAsk:()=>void;onCancel:()=>void;onConfirm:()=>void}):TemplateResult{
  return o.asking?html`<section class="notice nk-remove" role="alertdialog" aria-label=${o.link}><h2>${o.title}</h2>${o.lines.map(l=>html`<p>${l}</p>`)}
@@ -251,6 +264,7 @@ export const pageStyles=css`
  .ex-switch input[type=checkbox]:checked{background:var(--nk-accent)}.ex-switch input:checked::after{transform:translateX(18px)}
  .ex-switch input:focus-visible{outline:2px solid var(--nk-accent);outline-offset:2px}.ex-switch input:disabled{opacity:.5;cursor:default}
  .ex-act{display:inline-flex;align-items:center;min-height:36px;padding:6px 14px;font-size:14px;font-weight:600;border:1px solid var(--nk-accent);border-radius:8px;text-decoration:none;white-space:nowrap}
+ .ex-others li{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}.ex-others li>div{flex:1 1 220px;min-width:0}.ex-others small{display:block;margin-top:2px}
  .nk-remove{margin-top:28px}.nk-remove .danger{background:var(--error-color,#ae3e32);border-color:var(--error-color,#ae3e32);color:#fff}.danger-link{color:var(--error-color,#ae3e32)!important}
  .nk-remove .actions{display:flex;gap:8px;flex-wrap:wrap}.nk-remove h2{margin:0 0 6px;font-size:17px}
  @media(max-width:600px){.ex-head{grid-template-columns:24px minmax(0,1fr)}.ex-head>.ex-act,.ex-head>button{grid-column:2;justify-self:start}}

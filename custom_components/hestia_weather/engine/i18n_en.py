@@ -574,6 +574,9 @@ EN: dict[str, str] = {
     # The « Météo » tab of the Hestia panel: a place's report, its settings and the hub's status line.
     "Prévisions du lieu et vigilance officielle.": "The place’s forecasts and official weather warnings.",
     "Qualité de l’air et pollens de votre commune.": "Air quality and pollen of your town.",
+    "Pourrait dire la hauteur de la rivière proche et sa vigilance crues.": "Could give the height of the nearby river and its flood alert.",
+    "Pourrait donner les vigilances officielles hors de France.": "Could give the official weather warnings outside France.",
+    "Pourrait donner les prévisions et la pluie à venir hors de France.": "Could give the forecast and the coming rain outside France.",
     "Restrictions d’eau et usages concernés.": "Water restrictions and the uses they cover.",
     "Éclairs à proximité, distance et direction de l’orage.": "Nearby lightning, the storm’s distance and direction.",
     "Qualité de l’air mesurée par une station près de chez vous.": "Air quality measured by a station near you.",

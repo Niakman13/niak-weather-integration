@@ -49,4 +49,6 @@ export const SOCLE_EN:Record<string,string>={
  'Continuer à modifier':'Keep editing','Quitter sans enregistrer':'Leave without saving','Versions et liens':'Versions and links','Liens utiles':'Useful links',
  'Intégration Home Assistant':'Home Assistant integration','Journaux Home Assistant':'Home Assistant logs','Documentation':'Documentation','Versions publiées':'Releases',
  'Signaler un problème':'Report an issue','Soutenez mon travail':'Support my work',
+ // « Détectées, pas encore lues » (1.18)
+ 'Lire l’extension {name}':'Read the {name} extension','Détectées, pas encore lues par {brick}':'Detected, not read by {brick} yet','À proposer':'To suggest','Trouvées dans votre Home Assistant. {brick} ne s’en sert pas encore ; dites-nous si elles vous seraient utiles.':'Found in your Home Assistant. {brick} does not use them yet; tell us if they would help you.','pas encore lue':'not read yet','Demander':'Ask','« Demander » ouvre une demande toute prête sur GitHub : dites-y comment vous utilisez l’extension. Si elle a déjà été demandée, un 👍 sur la demande existante suffit. Rien n’est envoyé sans vous.':'“Ask” opens a ready-made request on GitHub: say there how you use the extension. If it was already asked for, a 👍 on that request is enough. Nothing is sent without you.',
 };

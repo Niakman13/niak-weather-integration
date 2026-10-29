@@ -91,6 +91,33 @@ def test_air_follows_the_chosen_source_on_atmo_scale():
     assert HestiaWeatherApi(hass_with(entry("e3", "Gardanne", Settings(weather_entity="weather.home")))).air() is None
 
 
+def test_pollen_is_published_on_one_scale_whatever_the_source():
+    """Hestia Confort asks it, to air short and early for a household that says it is allergic (29 October 2026)."""
+    from engine.catalogue import Item
+    at = datetime(2026, 10, 29, 9, tzinfo=timezone.utc)
+    e = entry("e1", "Gardanne", Settings(weather_entity="weather.home", pollen_source="atmo"))
+    api = HestiaWeatherApi(hass_with(e))
+    e.runtime_data.data = SimpleNamespace(catalogue={"pollens": Item(4, "Élevé (4/6) · Ambroisie", "atmo",
+                                                                     extra={"libelle": "Élevé", "principal": "Ambroisie", "demain": 2})}, computed=at)
+    assert api.pollen() == {"entry_id": "e1", "source": "atmo", "level": 3, "high": True, "index": 4, "scale": 6, "label": "Élevé",
+                            "main": "Ambroisie", "tomorrow": 1, "at": "2026-10-29T09:00:00+00:00"}
+    e.runtime_data.data.catalogue["pollens"] = Item(3, "Modéré (3/6)", "atmo", extra={"libelle": "Modéré"})
+    assert (api.pollen()["level"], api.pollen()["high"]) == (2, False)
+    # Polleninformation, IRM KMI, Kleenex: their own 0-4 scale is the shared one.
+    e.runtime_data.settings = Settings(weather_entity="weather.home", pollen_source="legacy", pollen_provider="kleenex_pollenradar")
+    e.runtime_data.data.catalogue["pollens"] = Item(3, "Élevé (3/4) · Graminées", "kleenex_pollenradar",
+                                                    extra={"libelle": "Élevé", "principal": "Graminées", "demain": 4})
+    found = api.pollen()
+    assert (found["level"], found["high"], found["index"], found["scale"], found["main"], found["tomorrow"]) == (3, True, 3, 4, "Graminées", 4)
+    e.runtime_data.data.catalogue["pollens"] = Item(None, "Kleenex / Scottex indisponible", "kleenex_pollenradar")
+    found = api.pollen()
+    assert found["level"] is None and found["high"] is False and found["label"] is None  # the source does not answer
+    e.runtime_data.data = None  # before the first calculation
+    assert api.pollen()["level"] is None
+    assert HestiaWeatherApi(hass_with(entry("e2", "Gardanne", Settings(weather_entity="weather.home", pollen_source="none")))).pollen() is None
+    assert HestiaWeatherApi(hass_with()).pollen() is None
+
+
 def test_rain_ahead_is_published_once_computed():
     e = entry("e1", "Gardanne", Settings(weather_entity="weather.home"))
     api = HestiaWeatherApi(hass_with(e))

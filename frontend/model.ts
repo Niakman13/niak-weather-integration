@@ -19,7 +19,7 @@ export interface Extension {id:string;name:string;description:string;installed:b
 // A Hestia brick: Hestia Confort keeps the link, Hestia Weather reads and changes it through Confort's interface.
 export interface Official {id:string;name:string;official:true;installed:boolean;linked:boolean;elsewhere:string;switchable:boolean;description:string;url:string}
 export interface Place {entry_id:string;title:string;loaded:boolean;failed:boolean;health:Health;extensions?:Extension[];official?:Official[]}
-export interface Places {places:Place[];can_add:boolean;extensions?:Extension[]}
+export interface Places {places:Place[];can_add:boolean;extensions?:Extension[];others?:{key:string;name:string;use:string}[]}
 export interface Species extends Entity {label:string;chosen:boolean}
 export interface EntityItem {key:string;name:string;hint:string;enabled:boolean;need:string;optional?:boolean}
 export interface Family {key:string;name:string;hint?:string;chosen?:boolean;entities?:EntityItem[]}
