@@ -11,9 +11,10 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from collections.abc import Iterator
 
+from .i18n_de import DE
 from .i18n_en import EN
 
-DICTIONARIES: dict[str, dict[str, str]] = {"en": EN}
+DICTIONARIES: dict[str, dict[str, str]] = {"en": EN, "de": DE}
 _language = "fr"
 # One panel request's language (speaking()), over the card's (localized()): two people reading the panel in two
 # languages at once never mix their words, and a request never changes the card's.

@@ -90,13 +90,13 @@ Chaque entité dit **pourquoi** (attribut `raison`) et **d’où vient** sa vale
 
 ## Langues
 
-Hestia Weather parle **français** et **anglais**. La carte, le panneau et les noms des entités suivent la langue de Home Assistant ; toute autre langue s’affiche en anglais pour l’instant.
+Hestia Weather parle **français**, **anglais** et **allemand**. La carte, le panneau et les noms des entités suivent la langue de Home Assistant ; toute autre langue s’affiche en anglais pour l’instant.
 
 Les valeurs des capteurs (bulletin, raisons, alertes) restent en français, pour que vos automatisations ne changent pas avec la langue.
 
-**D’autres langues arriveront, avec votre aide.** Hestia est un projet d’entraide : vous parlez allemand, néerlandais, italien, espagnol… ? [Proposez votre traduction](https://github.com/hestiaFB/hestia-weather-integration/issues/new?title=Traduction%20%3A%20) : une liste de phrases à traduire, sans rien connaître au code. Votre nom sera cité.
+**D’autres langues arriveront, avec votre aide.** Hestia est un projet d’entraide : vous parlez néerlandais, italien, espagnol… ? Une traduction vous semble maladroite ? [Proposez votre traduction](https://github.com/hestiaFB/hestia-weather-integration/issues/new?title=Traduction%20%3A%20) : une liste de phrases à traduire, sans rien connaître au code. Votre nom sera cité. Le guide : [Traductions](docs/traductions.md).
 
-> **In English.** Hestia Weather speaks French and English. More languages will come through mutual help: if you speak another language, [offer a translation](https://github.com/hestiaFB/hestia-weather-integration/issues/new?title=Translation%3A%20). No coding needed.
+> **In English.** Hestia Weather speaks French, English and German. More languages will come through mutual help: if you speak another language, [offer a translation](https://github.com/hestiaFB/hestia-weather-integration/issues/new?title=Translation%3A%20). No coding needed.
 
 ## Documentation
 
@@ -110,6 +110,7 @@ Les valeurs des capteurs (bulletin, raisons, alertes) restent en français, pour
 | [Sources et réglages](docs/sources.md) | Météo-France, station, soleil, Atmo France, Vigieau, Blitzortung, historique, toutes les clés |
 | [Pluie, vent, pression](docs/mesures.md) | Cumuls, courbes, tendances, ce qui est calculé depuis l’historique |
 | [Fonctionnement technique](docs/technique.md) | Moteur, coordinateur, capteurs, API, tests ; le code de la carte est dans `card/` |
+| [Traductions](docs/traductions.md) | Corriger un texte ou ajouter une langue, sans connaître git |
 
 ## Limites
 

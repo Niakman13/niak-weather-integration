@@ -88,18 +88,18 @@ La CI lance aussi `hassfest` et la validation HACS.
 
 ## Traduire
 
-Hestia Weather parle français et anglais. Le français est écrit dans le code ; chaque autre langue est un dictionnaire « phrase française → traduction ». Pour ajouter une langue, il suffit de traduire ces fichiers, en partant de l’anglais :
+Hestia Weather parle français, anglais et allemand. Le français est écrit dans le code ; chaque autre langue est un dictionnaire « phrase française → traduction ». Pour ajouter une langue, il suffit de traduire ces fichiers, en partant de l’anglais :
 
 | Fichier | Ce qu’il traduit |
 | --- | --- |
 | `card/src/i18n/en.ts` | La carte |
-| `frontend/i18n-en.ts` et `frontend/socle/i18n-en.ts` | Le panneau Hestia |
+| `frontend/i18n-en.ts` et `frontend/socle/i18n-en.ts` | Le panneau Hestia (en allemand, `frontend/i18n-de.ts` porte aussi les mots du socle, qui n’a pas encore d’allemand) |
 | `custom_components/hestia_weather/engine/i18n_en.py` | Les textes calculés pour la carte et le panneau |
 | `custom_components/hestia_weather/translations/en.json` | L’assistant de Paramètres et les noms des entités |
 
 Les valeurs des capteurs restent en français : elles servent aux automatisations. Les tests vérifient qu’aucune phrase n’est oubliée et que les `{noms}` entre accolades sont gardés.
 
-Pas à l’aise avec ces fichiers ? [Ouvrez une demande « Traduction »](https://github.com/hestiaFB/hestia-weather-integration/issues/new?title=Traduction%20%3A%20) : on vous envoie la liste des phrases, et on s’occupe du reste.
+Le guide pas à pas, sans git : [Traductions](traductions.md). Pas à l’aise avec ces fichiers ? [Ouvrez une demande « Traduction »](https://github.com/hestiaFB/hestia-weather-integration/issues/new?title=Traduction%20%3A%20) : on vous envoie la liste des phrases, et on s’occupe du reste.
 
 ## L’icône
 

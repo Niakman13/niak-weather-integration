@@ -49,19 +49,23 @@ MODELS = (("gw2000a", "Ecowitt GW2000A", N_("Passerelle Ecowitt et ses capteurs"
           (NONE, N_("Pas de station"), N_("Hestia Weather s’appuie sur le service météo seul")))
 
 
+# The languages of translations/: the engine's dictionaries and French.
+LANGUAGES = ("fr", "en", "de")
+
+
 @cache
 def _read(lang: str) -> dict[str, Any]:
     return json.loads((Path(__file__).parent / "translations" / f"{lang}.json").read_text(encoding="utf-8"))
 
 
 def _translations() -> dict[str, Any]:
-    """Home Assistant's own words for the fields, entities and families, in the panel's language (French or English)."""
-    return _read("fr" if language() == "fr" else "en")
+    """Home Assistant's own words for the fields, entities and families, in the panel's language (English when it has none)."""
+    return _read(language() if language() in LANGUAGES else "en")
 
 
 async def async_load_labels(hass: HomeAssistant) -> None:
     """Reads the labels once, outside the event loop: the tab's commands then find them in the cache."""
-    for lang in ("fr", "en"):
+    for lang in LANGUAGES:
         await hass.async_add_executor_job(_read, lang)
 
 

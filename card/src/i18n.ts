@@ -2,8 +2,9 @@
 // and `t()` gives it in the user's language from that language's dictionary, French when the dictionary lacks it.
 // Another language: add its dictionary (same keys as en.ts) to DICTIONARIES.
 import { EN } from './i18n/en';
+import { DE } from './i18n/de';
 
-const DICTIONARIES: Record<string, Record<string, string>> = { en: EN };
+const DICTIONARIES: Record<string, Record<string, string>> = { en: EN, de: DE };
 
 let language = 'fr', locale = 'fr-FR';
 

@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from engine import i18n
+from engine.i18n_de import DE
 from engine.i18n_en import EN
 
 ROOT = Path(__file__).parent.parent / "custom_components" / "hestia_weather"
@@ -88,3 +89,24 @@ def test_a_panel_request_speaks_its_own_language_and_never_the_cards():
             assert i18n.language() == "en"
     assert i18n.language() == "fr"
     assert home.status([home.Place(title="Maison", station=3)])["summary"] == "1 lieu suivi avec sa station, rien à régler."
+
+
+def test_every_french_text_has_german_words_and_none_is_left_over():
+    assert sorted(TEXTS - DE.keys()) == []
+    assert sorted(DE.keys() - TEXTS) == []
+
+
+def test_german_keeps_the_same_names():
+    def names(s: str) -> list[str]:
+        return sorted(re.findall(r"\{(\w+)\}", s))
+    assert [k for k, v in DE.items() if names(k) != names(v)] == []
+
+
+def test_a_view_in_german_leaves_french_untouched():
+    i18n.set_language("de-DE")
+    assert i18n.language() == "de"
+    assert i18n.t("Pluie") == "Regen"
+    assert i18n.t("{weekday} {day} {month}", weekday="Mittwoch", day=28, month="Oktober") == "Mittwoch, 28. Oktober"
+    with i18n.localized("fr"):
+        assert i18n.t("Pluie") == "Pluie"
+    assert i18n.t("Pluie") == "Regen"

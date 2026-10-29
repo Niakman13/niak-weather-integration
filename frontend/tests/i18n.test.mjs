@@ -1,4 +1,4 @@
-// Weather's panel in English: every French text given to t() or fr() in panel.ts and model.ts has its English words
+// Weather's panel in English and German: every French text given to t() or fr() in panel.ts and model.ts has its English words
 // (in i18n-en.ts, or in the hub's dictionary), the dictionary keeps no word nothing shows, and a translation keeps the
 // same {names} as its French.
 import {test,after} from 'node:test';
@@ -15,10 +15,11 @@ after(()=>rmSync(temp,{recursive:true,force:true}));
 // One bundle, so that model.ts and the test share the same language.
 writeFileSync(join(temp,'entry.ts'),[`export * from ${JSON.stringify(join(root,'model.ts'))};`,
  `export {setLanguage,addDictionary} from ${JSON.stringify(join(root,'socle/i18n.ts'))};`,
- `export {SOCLE_EN} from ${JSON.stringify(join(root,'socle/i18n-en.ts'))};`,`export {PANEL_EN} from ${JSON.stringify(join(root,'i18n-en.ts'))};`].join('\n'));
+ `export {SOCLE_EN} from ${JSON.stringify(join(root,'socle/i18n-en.ts'))};`,`export {PANEL_EN} from ${JSON.stringify(join(root,'i18n-en.ts'))};`,
+ `export {PANEL_DE,SOCLE_DE} from ${JSON.stringify(join(root,'i18n-de.ts'))};`].join('\n'));
 await build({entryPoints:[join(temp,'entry.ts')],bundle:true,platform:'node',format:'esm',outfile:join(temp,'entry.mjs'),logLevel:'silent'});
 const m=await import(pathToFileURL(join(temp,'entry.mjs')).href);
-const {PANEL_EN,SOCLE_EN}=m;
+const {PANEL_EN,SOCLE_EN,PANEL_DE,SOCLE_DE}=m;
 
 /** The French literals given to t() and fr(): both sides of a ternary, never a template string. */
 function frenchTexts(source){
@@ -52,4 +53,20 @@ test('the steps and the sensor groups follow the language, French staying the so
   assert.equal(m.entityLine({id:'sensor.x',missing:true}),'sensor.x · not found');
  }finally{m.setLanguage('fr');}
  assert.equal(m.entityLine({id:'sensor.x',missing:true}),'sensor.x · introuvable');
+});
+
+test('the panel and the hub have German words for every English one, and none left over',()=>{
+ const keys=o=>Object.keys(o).sort();
+ assert.deepEqual(keys(PANEL_DE),keys(PANEL_EN));
+ assert.deepEqual(keys(SOCLE_DE),keys(SOCLE_EN));
+ assert.deepEqual(Object.entries({...PANEL_DE,...SOCLE_DE}).filter(([french,german])=>names(french)!==names(german)).map(([french])=>french),[]);
+});
+test('the panel speaks German, English for a language without a dictionary',()=>{
+ m.addDictionary('en',PANEL_EN);m.addDictionary('de',{...SOCLE_DE,...PANEL_DE});
+ try{
+  m.setLanguage('de-DE');
+  assert.equal(m.entityLine({id:'sensor.x',missing:true}),'sensor.x · nicht gefunden');
+  m.setLanguage('nl');
+  assert.equal(m.entityLine({id:'sensor.x',missing:true}),'sensor.x · not found');
+ }finally{m.setLanguage('fr');}
 });
