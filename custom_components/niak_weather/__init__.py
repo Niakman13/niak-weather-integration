@@ -9,6 +9,7 @@ from homeassistant.helpers.typing import ConfigType
 from homeassistant.loader import async_get_integration
 
 from .api import API_KEY, NiakWeatherApi
+from .bridge import async_setup_bridge
 from .const import DOMAIN
 from .coordinator import NiakWeatherConfigEntry, NiakWeatherCoordinator, alert_store
 from .draft import async_load_labels
@@ -31,6 +32,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     # The « Météo » tab of the shared « Hestia » panel, and Hestia Weather's line on its home page.
     await async_load_labels(hass)
     await async_setup_panel(hass, version)
+    # Hestia Weather 3, once installed next to this version, is started: it carries the home over to the Hestia name.
+    async_setup_bridge(hass)
     return True
 
 

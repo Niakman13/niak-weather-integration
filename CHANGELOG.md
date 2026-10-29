@@ -1,3 +1,35 @@
+## 2.9.7 — Le panneau en anglais, vos entités au nom Hestia, et le passage à la version 3 préparé
+
+**En bref**
+
+- **Le panneau de réglages parle anglais**, comme la carte.
+- **Vos entités peuvent prendre le nom Hestia**, si vous le voulez, depuis les Réglages généraux, avec un retour en arrière possible.
+- **Le passage à Hestia Weather 3 est préparé** : quand vous l’installerez, il se fera tout seul.
+
+### Nouveautés
+
+- Le panneau Hestia est rangé comme celui de Hestia Confort : Accueil, Réglages généraux, Extensions, puis les réglages de chaque lieu.
+- Une page « Extensions » à part, rangée par thème : sources météo, qualité de l’air, pollens, eau et jardin, orages et éclairs.
+- « Supprimer ce lieu » directement depuis le panneau.
+- La carte « Nom des entités » montre d’abord ce qui change ; automatisations, scripts, scènes et tableaux de bord suivent ; l’historique est gardé.
+- Une nouvelle installation reçoit les noms Hestia : `hestia_weather_…` et `custom:hestia-weather-card`.
+
+### Améliorations
+
+- Le panneau répond plus vite, et la semaine de pluie et de vent est lue plus légèrement.
+- Les modèles d’automatisation ne proposent plus d’entité par défaut.
+- Les diagnostics masquent le lieu, les zones et les éclairs.
+- Quand Hestia Weather 3 sera installé, cette version le démarre : il reprend vos lieux, entités, historiques et tableaux de bord sous le nom Hestia.
+
+### Corrections
+
+- Sur un téléphone étroit, une ligne « À régler » avec un raccourci redevient lisible.
+- Le lien « En savoir plus » du ressenti mène à la bonne documentation.
+
+### À savoir
+
+- Home Assistant 2026.7 ou plus récent est demandé. Sur une version plus ancienne, HACS ne propose pas cette mise à jour ; la version installée continue de fonctionner.
+
 ## 2.9.6 — Préversion : renommer ses entités en hestia_weather
 
 **En bref**
