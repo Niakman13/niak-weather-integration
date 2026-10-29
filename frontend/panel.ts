@@ -5,7 +5,7 @@ import {customElement,property,state} from 'lit/decorators.js';
 import styles from './styles.css';
 import {frame,hubStyles,modernStyles,helpTip,pageHead,todoFrame,itemsFrame,stepMenu,stepFooter,leaveNotice,extensionsFrame,versionsFrame,extensionCard,removeBlock,pageStyles,setLanguage,addDictionary,t,fr,type NkLine,type NkLevel,type NkSwitch} from './socle/ui';
 import {PANEL_EN} from './i18n-en';
-import {NONE,stages,intros,extensionGroups,extensionSwitch,enabledKeys,provenance,sameSet,entityLine,grouped,capital,type Change,type Choice,type DraftReply,type Field,type Hass,type Place,type Places,type Sources,type View,type Extension,type Official} from './model';
+import {NONE,stages,intros,extensionGroups,extensionSwitch,enabledKeys,provenance,sameSet,entityLine,grouped,capital,type Change,type Choice,type DraftReply,type Field,type Hass,type Place,type Places,type Sources,type View,type Extension,type Official,type RenamePreview,type RenameReply,type RenameUse} from './model';
 
 // Weather's words beside the hub's (socle 1.13): French in the code, English for any other language.
 addDictionary('en',PANEL_EN);
@@ -43,6 +43,12 @@ export class WeatherSetup extends LitElement {
  // The Extensions page reads each place's draft: its switches change and save that place at once.
  @state() private extViews=new Map<string,{draft:Sources;view:View;enabled:string[]}>();
  @state() private confirmRemove=false;
+ // Renaming the entities « hestia_weather » (Réglages généraux): read when the page opens, shown only to a home that has old ids.
+ @state() private rename?:RenamePreview;
+ @state() private renameShown=false;
+ @state() private renameAsk=false;
+ @state() private renameDone:string[]=[];
+ private renameRead=false;
  private routeHandled:string|undefined;
  private routeGeneration=0;
  private drafts=new Map<string,{draft:Sources;view:View;stage:number;enabled:string[];error:string;initial:string;initialEnabled:string[];savedOptions?:Sources;touched:Set<string>;placeTitle:string}>();
@@ -61,6 +67,7 @@ export class WeatherSetup extends LitElement {
   this.setAttribute('data-theme',this.hass?.themes?.darkMode===false?'light':'dark');
   if(this.hass&&!this.places&&!this.busy&&!this.error)void this.load();
   if(changed.has('route')&&this.places)void this.followRoute();
+  if(this.page==='settings'&&!this.editing&&this.hass&&!this.renameRead){this.renameRead=true;void this.readRename();}
  }
  /** A command of Weather, answered in the panel's language (engine/i18n.py). */
  private ws<T>(msg:Record<string,unknown>){return this.hass!.callWS<T>({...msg,language:this.hass!.language});}
@@ -404,8 +411,59 @@ export class WeatherSetup extends LitElement {
     add:p.can_add?{label:t('Ajouter un lieu'),onClick:()=>void this.open(null),disabled:this.busy}:undefined,
     items:p.places.map(x=>({name:x.title,detail:this.placeDetail(x),pill:{text:this.placeState(x),level:this.placeLevel(x)},edit:{label:t('Modifier'),onClick:()=>void this.open(x.entry_id,0),disabled:this.busy}})),
     empty:html`<p class="muted">${p.can_add?t('Aucun lieu pour l’instant : ajoutez le vôtre.'):t('Aucun service météo dans Home Assistant : installez Météo-France dans Appareils et services, puis revenez ici.')}</p>`})}
+   ${this.renameFrame()}
    ${frame(t('Les cartes'),html`<p class="hint">${t('Dans un tableau de bord :')} <strong>${t('Ajouter une carte')}</strong>${t(', puis')} <strong>${t('Hestia Weather')}</strong>${t('. Choisissez le lieu et la taille de la carte dans ses réglages.')}</p>`)}
   </main>`;
+ }
+ // ---- Renaming the entities « hestia_weather » (migration.py): a preview first, nothing changes before « Renommer » ----
+ private async readRename(){
+  try{this.rename=await this.ws<RenamePreview>({type:'niak_weather/rename/preview'});}
+  catch{this.rename=undefined;}  // An older Hestia Weather, or Home Assistant busy: the frame does not show.
+ }
+ private async runRename(type:'niak_weather/rename/apply'|'niak_weather/rename/undo'){
+  if(this.busy)return;
+  this.busy=true;this.error='';this.renameDone=[];
+  try{
+   const reply=await this.ws<RenameReply>({type}),d=reply.done;
+   this.rename=reply.preview;this.renameShown=false;this.renameAsk=false;
+   this.renameDone=type==='niak_weather/rename/undo'?[t('Vos entités ont repris l’ancien nom « niak_weather ».')]:[
+    d.entities>1?t('{n} entités renommées.',{n:d.entities}):t('{n} entité renommée.',{n:d.entities}),
+    ...(d.files?[t('Automatisations, scripts et scènes mis à jour.')]:[]),
+    ...(d.dashboards?[d.dashboards>1?t('{n} tableaux de bord mis à jour.',{n:d.dashboards}):t('{n} tableau de bord mis à jour.',{n:d.dashboards})]:[]),
+    ...(d.helpers?[d.helpers>1?t('{n} assistants mis à jour.',{n:d.helpers}):t('{n} assistant mis à jour.',{n:d.helpers})]:[])];
+  }catch(e){this.error=this.message(e);}
+  finally{this.busy=false;}
+ }
+ private renameUse(u:RenameUse){
+  const kind={automation:t('Automatisation'),script:t('Script'),scene:t('Scène'),dashboard:t('Tableau de bord'),helper:t('Assistant'),file:t('Fichier')}[u.kind];
+  const lines=u.lines?.length?(u.lines.length>1?t('lignes {list}',{list:u.lines.join(', ')}):t('ligne {n}',{n:u.lines[0]})):'';
+  return html`<li><strong>${u.name}</strong><span class="hint inline"> · ${kind}${lines?` · ${lines}`:''}</span></li>`;
+ }
+ private renameFrame(){
+  const r=this.rename;if(!r||(!r.entities.length&&!r.undo))return nothing;
+  const done=this.renameDone.length?html`<div class="notice" role="status">${this.renameDone.map(l=>html`<p>${l}</p>`)}</div>`:nothing;
+  if(!r.entities.length){
+   const when=r.renamed_at?new Date(r.renamed_at).toLocaleDateString(this.hass?.language):'';
+   return frame(t('Nom des entités'),html`${done}<p>${t('Vos entités portent le nom « hestia_weather ».')}</p>${when?html`<p class="hint">${t('Renommées le {date}.',{date:when})}</p>`:nothing}
+    ${this.renameAsk?html`<div class="notice" role="alertdialog"><p>${t('Revenir à l’ancien nom « niak_weather » ?')}</p><p class="hint">${t('Les automatisations et tableaux de bord mis à jour reviennent aussi.')}</p>
+     <div class="actions"><button @click=${()=>{this.renameAsk=false;}}>${t('Garder « hestia_weather »')}</button><button class="primary" ?disabled=${this.busy} @click=${()=>void this.runRename('niak_weather/rename/undo')}>${t('Revenir à l’ancien nom')}</button></div></div>`
+    :html`<button class="link" ?disabled=${this.busy} @click=${()=>{this.renameAsk=true;}}>${t('Revenir à l’ancien nom')}</button>`}`);
+  }
+  const n=r.entities.length;
+  const intro=html`${done}<p>${t('Vos entités portent encore l’ancien nom « niak_weather ».')}</p><p>${t('Vous pouvez les renommer en « hestia_weather ».')}</p><p class="hint">${t('Rien ne change tant que vous ne validez pas.')}</p>`;
+  if(!this.renameShown)return frame(t('Nom des entités'),html`${intro}<button ?disabled=${this.busy} @click=${()=>{this.renameShown=true;}}>${t('Voir ce qui change')}</button>`);
+  return frame(t('Nom des entités'),html`${intro}
+   <h3>${n>1?t('{n} entités renommées',{n}):t('{n} entité renommée',{n})}</h3>
+   <ul class="hint">${r.entities.map(e=>html`<li>${e.from} → <strong>${e.to}</strong></li>`)}</ul>
+   <h3>${t('Mis à jour tout seuls')}</h3>
+   ${r.auto.length?html`<ul>${r.auto.map(u=>this.renameUse(u))}</ul>`:html`<p class="hint">${t('Aucune automatisation, aucun script ni tableau de bord ne les utilise.')}</p>`}
+   ${r.manual.length?html`<h3>${t('À corriger vous-même')}</h3><p class="hint">${t('Écrits à la main : Hestia ne les modifie pas.')}</p><ul>${r.manual.map(u=>this.renameUse(u))}</ul>`:nothing}
+   ${r.taken.length?html`<h3>${t('Gardés tels quels')}</h3><p class="hint">${t('Leur nouveau nom est déjà pris.')}</p><ul class="hint">${r.taken.map(id=>html`<li>${id}</li>`)}</ul>`:nothing}
+   <p>${t('L’historique et les statistiques sont conservés.')}</p>
+   <p class="hint">${t('Hors de Home Assistant (Node-RED, applications…), changez les noms vous-même.')}</p>
+   <p class="warn">${t('Faites une sauvegarde de Home Assistant avant.')}</p>
+   <div class="actions"><button @click=${()=>{this.renameShown=false;}}>${t('Annuler')}</button>
+    <button class="primary" ?disabled=${this.busy} @click=${()=>void this.runRename('niak_weather/rename/apply')}>${t('Renommer')}</button></div>`);
  }
  private editor(){
   const v=this.view!;

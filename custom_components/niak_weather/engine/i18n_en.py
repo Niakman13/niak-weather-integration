@@ -778,4 +778,9 @@ EN: dict[str, str] = {
     "une station WAQI qui donne l’indice de qualité de l’air": "a WAQI station giving the air quality index",
     "une zone Atmo France fournissant l’indice pollen": "an Atmo France zone giving the pollen index",
     "Atmo France, Polleninformation ou IRM KMI": "Atmo France, Polleninformation or IRM KMI",
+    # Renaming the entities (migration.py)
+    "Tableau de bord par défaut": "Default dashboard",
+    "Aucune entité à renommer.": "No entity to rename.",
+    "Le renommage n’a pas abouti : tout a été remis comme avant ({error}).": "The renaming did not go through: everything was put back as it was ({error}).",
+    "Aucun renommage à annuler.": "No renaming to undo.",
 }

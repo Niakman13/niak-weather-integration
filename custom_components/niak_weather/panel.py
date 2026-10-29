@@ -28,6 +28,7 @@ from .engine import atmo, detection, families, health, home, polleninfo
 from .engine.settings import Settings
 from .engine.i18n import speaking, t
 from .extensions import inventory, official, set_official
+from . import migration
 from .websocket import VERSION_KEY
 from .socle import async_register_brick, async_register_card, is_card_resource
 
@@ -44,7 +45,7 @@ async def async_setup_panel(hass: HomeAssistant, version: str) -> None:
         return  # Headless setups and isolated tests have no frontend.
     if not hass.data.get(f"{DOMAIN}_panel"):
         await hass.http.async_register_static_paths([StaticPathConfig(ASSETS, str(Path(__file__).parent / "frontend"), True)])
-        for command in (ws_places, ws_open, ws_change, ws_save, ws_link, ws_remove):
+        for command in (ws_places, ws_open, ws_change, ws_save, ws_link, ws_remove, ws_rename_preview, ws_rename, ws_rename_undo):
             websocket_api.async_register_command(hass, command)
         # Dashboard resource, with a guarded extra-module fallback for YAML resources.
         await async_register_card(hass, CARD_URL, version)
@@ -335,3 +336,40 @@ async def ws_link(hass: HomeAssistant, connection: websocket_api.ActiveConnectio
         connection.send_error(msg["id"], "invalid", str(err))
         return
     connection.send_result(msg["id"], {"official": official(hass, msg["entry_id"])})
+
+
+@websocket_api.websocket_command({vol.Required("type"): "niak_weather/rename/preview", LANGUAGE: str})
+@websocket_api.require_admin
+@websocket_api.async_response
+@spoken
+async def ws_rename_preview(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """What renaming the « niak_weather… » entities « hestia_weather… » would do (migration.py). Nothing changes."""
+    connection.send_result(msg["id"], await migration.preview(hass))
+
+
+@websocket_api.websocket_command({vol.Required("type"): "niak_weather/rename/apply", LANGUAGE: str})
+@websocket_api.require_admin
+@websocket_api.async_response
+@spoken
+async def ws_rename(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """Renames the entities and what uses them, asked for by the user."""
+    try:
+        done = await migration.apply(hass)
+    except ValueError as err:
+        connection.send_error(msg["id"], "invalid", str(err))
+        return
+    connection.send_result(msg["id"], {"done": done, "preview": await migration.preview(hass)})
+
+
+@websocket_api.websocket_command({vol.Required("type"): "niak_weather/rename/undo", LANGUAGE: str})
+@websocket_api.require_admin
+@websocket_api.async_response
+@spoken
+async def ws_rename_undo(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """Back to the old ids."""
+    try:
+        done = await migration.undo(hass)
+    except ValueError as err:
+        connection.send_error(msg["id"], "invalid", str(err))
+        return
+    connection.send_result(msg["id"], {"done": done, "preview": await migration.preview(hass)})

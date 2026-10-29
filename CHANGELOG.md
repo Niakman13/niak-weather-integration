@@ -1,3 +1,17 @@
+## 2.9.6 — Préversion : renommer ses entités en hestia_weather
+
+**En bref**
+
+- **Vos entités peuvent prendre le nom Hestia**, si vous le voulez : une installation qui a encore des entités `niak_weather_…` peut les renommer `hestia_weather_…` depuis le panneau, puis revenir en arrière.
+
+### Nouveautés
+
+- Dans les Réglages généraux, la carte « Nom des entités » montre d’abord ce qui change, sans rien modifier.
+- Les automatisations, scripts, scènes, tableaux de bord et assistants qui les utilisent sont mis à jour tout seuls.
+- Les fichiers YAML écrits à la main ne sont jamais modifiés : la carte indique le fichier et la ligne à corriger.
+- L’historique et les statistiques sont conservés.
+- « Revenir à l’ancien nom » remet les entités et ce qui les utilise comme avant.
+
 ## 2.9.5 — Préversion : correctif d’affichage sur petit écran
 
 ### Corrections
